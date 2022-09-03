@@ -48,27 +48,27 @@ cmake_force:
 SHELL = /bin/sh
 
 # The CMake executable.
-CMAKE_COMMAND = /usr/local/Cellar/cmake/3.22.1/bin/cmake
+CMAKE_COMMAND = /usr/bin/cmake
 
 # The command to remove a file.
-RM = /usr/local/Cellar/cmake/3.22.1/bin/cmake -E rm -f
+RM = /usr/bin/cmake -E rm -f
 
 # Escaping for special characters.
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /Users/raulescobar/Documents/CSCE_649/Ball
+CMAKE_SOURCE_DIR = /mnt/c/Users/raul3/Programming/physics/ball
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /Users/raulescobar/Documents/CSCE_649/Ball/build
+CMAKE_BINARY_DIR = /mnt/c/Users/raul3/Programming/physics/ball/build
 
 #=============================================================================
 # Targets provided globally by CMake.
 
 # Special rule for the target edit_cache
 edit_cache:
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running CMake cache editor..."
-	/usr/local/Cellar/cmake/3.22.1/bin/ccmake -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "No interactive CMake dialog available..."
+	/usr/bin/cmake -E echo No\ interactive\ CMake\ dialog\ available.
 .PHONY : edit_cache
 
 # Special rule for the target edit_cache
@@ -78,7 +78,7 @@ edit_cache/fast: edit_cache
 # Special rule for the target rebuild_cache
 rebuild_cache:
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running CMake to regenerate build system..."
-	/usr/local/Cellar/cmake/3.22.1/bin/cmake --regenerate-during-build -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
+	/usr/bin/cmake --regenerate-during-build -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
 .PHONY : rebuild_cache
 
 # Special rule for the target rebuild_cache
@@ -97,44 +97,44 @@ list_install_components/fast: list_install_components
 # Special rule for the target install
 install: preinstall
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Install the project..."
-	/usr/local/Cellar/cmake/3.22.1/bin/cmake -P cmake_install.cmake
+	/usr/bin/cmake -P cmake_install.cmake
 .PHONY : install
 
 # Special rule for the target install
 install/fast: preinstall/fast
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Install the project..."
-	/usr/local/Cellar/cmake/3.22.1/bin/cmake -P cmake_install.cmake
+	/usr/bin/cmake -P cmake_install.cmake
 .PHONY : install/fast
 
 # Special rule for the target install/local
 install/local: preinstall
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing only the local directory..."
-	/usr/local/Cellar/cmake/3.22.1/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
+	/usr/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
 .PHONY : install/local
 
 # Special rule for the target install/local
 install/local/fast: preinstall/fast
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing only the local directory..."
-	/usr/local/Cellar/cmake/3.22.1/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
+	/usr/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
 .PHONY : install/local/fast
 
 # Special rule for the target install/strip
 install/strip: preinstall
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing the project stripped..."
-	/usr/local/Cellar/cmake/3.22.1/bin/cmake -DCMAKE_INSTALL_DO_STRIP=1 -P cmake_install.cmake
+	/usr/bin/cmake -DCMAKE_INSTALL_DO_STRIP=1 -P cmake_install.cmake
 .PHONY : install/strip
 
 # Special rule for the target install/strip
 install/strip/fast: preinstall/fast
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing the project stripped..."
-	/usr/local/Cellar/cmake/3.22.1/bin/cmake -DCMAKE_INSTALL_DO_STRIP=1 -P cmake_install.cmake
+	/usr/bin/cmake -DCMAKE_INSTALL_DO_STRIP=1 -P cmake_install.cmake
 .PHONY : install/strip/fast
 
 # The main all target
 all: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/raulescobar/Documents/CSCE_649/Ball/build/CMakeFiles /Users/raulescobar/Documents/CSCE_649/Ball/build//CMakeFiles/progress.marks
+	$(CMAKE_COMMAND) -E cmake_progress_start /mnt/c/Users/raul3/Programming/physics/ball/build/CMakeFiles /mnt/c/Users/raul3/Programming/physics/ball/build//CMakeFiles/progress.marks
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 all
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/raulescobar/Documents/CSCE_649/Ball/build/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /mnt/c/Users/raul3/Programming/physics/ball/build/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
@@ -184,7 +184,7 @@ uninstall: cmake_check_build_system
 
 # fast build rule for target.
 uninstall/fast:
-	$(MAKE) $(MAKESILENT) -f /Users/raulescobar/Documents/glfw-3.3.6/debug/CMakeFiles/uninstall.dir/build.make /Users/raulescobar/Documents/glfw-3.3.6/debug/CMakeFiles/uninstall.dir/build
+	$(MAKE) $(MAKESILENT) -f /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/CMakeFiles/uninstall.dir/build.make /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/CMakeFiles/uninstall.dir/build
 .PHONY : uninstall/fast
 
 #=============================================================================
@@ -197,7 +197,7 @@ update_mappings: cmake_check_build_system
 
 # fast build rule for target.
 update_mappings/fast:
-	$(MAKE) $(MAKESILENT) -f /Users/raulescobar/Documents/glfw-3.3.6/debug/src/CMakeFiles/update_mappings.dir/build.make /Users/raulescobar/Documents/glfw-3.3.6/debug/src/CMakeFiles/update_mappings.dir/build
+	$(MAKE) $(MAKESILENT) -f /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/src/CMakeFiles/update_mappings.dir/build.make /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/src/CMakeFiles/update_mappings.dir/build
 .PHONY : update_mappings/fast
 
 #=============================================================================
@@ -210,7 +210,7 @@ glfw: cmake_check_build_system
 
 # fast build rule for target.
 glfw/fast:
-	$(MAKE) $(MAKESILENT) -f /Users/raulescobar/Documents/glfw-3.3.6/debug/src/CMakeFiles/glfw.dir/build.make /Users/raulescobar/Documents/glfw-3.3.6/debug/src/CMakeFiles/glfw.dir/build
+	$(MAKE) $(MAKESILENT) -f /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/src/CMakeFiles/glfw.dir/build.make /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/src/CMakeFiles/glfw.dir/build
 .PHONY : glfw/fast
 
 src/Camera.o: src/Camera.cpp.o
@@ -260,30 +260,6 @@ src/GLSL.s: src/GLSL.cpp.s
 src/GLSL.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Ball.dir/build.make CMakeFiles/Ball.dir/src/GLSL.cpp.s
 .PHONY : src/GLSL.cpp.s
-
-src/Material.o: src/Material.cpp.o
-.PHONY : src/Material.o
-
-# target to build an object file
-src/Material.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Ball.dir/build.make CMakeFiles/Ball.dir/src/Material.cpp.o
-.PHONY : src/Material.cpp.o
-
-src/Material.i: src/Material.cpp.i
-.PHONY : src/Material.i
-
-# target to preprocess a source file
-src/Material.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Ball.dir/build.make CMakeFiles/Ball.dir/src/Material.cpp.i
-.PHONY : src/Material.cpp.i
-
-src/Material.s: src/Material.cpp.s
-.PHONY : src/Material.s
-
-# target to generate assembly for a file
-src/Material.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Ball.dir/build.make CMakeFiles/Ball.dir/src/Material.cpp.s
-.PHONY : src/Material.cpp.s
 
 src/MatrixStack.o: src/MatrixStack.cpp.o
 .PHONY : src/MatrixStack.o
@@ -357,30 +333,6 @@ src/Shape.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Ball.dir/build.make CMakeFiles/Ball.dir/src/Shape.cpp.s
 .PHONY : src/Shape.cpp.s
 
-src/Texture.o: src/Texture.cpp.o
-.PHONY : src/Texture.o
-
-# target to build an object file
-src/Texture.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Ball.dir/build.make CMakeFiles/Ball.dir/src/Texture.cpp.o
-.PHONY : src/Texture.cpp.o
-
-src/Texture.i: src/Texture.cpp.i
-.PHONY : src/Texture.i
-
-# target to preprocess a source file
-src/Texture.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Ball.dir/build.make CMakeFiles/Ball.dir/src/Texture.cpp.i
-.PHONY : src/Texture.cpp.i
-
-src/Texture.s: src/Texture.cpp.s
-.PHONY : src/Texture.s
-
-# target to generate assembly for a file
-src/Texture.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Ball.dir/build.make CMakeFiles/Ball.dir/src/Texture.cpp.s
-.PHONY : src/Texture.cpp.s
-
 src/main.o: src/main.cpp.o
 .PHONY : src/main.o
 
@@ -427,9 +379,6 @@ help:
 	@echo "... src/GLSL.o"
 	@echo "... src/GLSL.i"
 	@echo "... src/GLSL.s"
-	@echo "... src/Material.o"
-	@echo "... src/Material.i"
-	@echo "... src/Material.s"
 	@echo "... src/MatrixStack.o"
 	@echo "... src/MatrixStack.i"
 	@echo "... src/MatrixStack.s"
@@ -439,9 +388,6 @@ help:
 	@echo "... src/Shape.o"
 	@echo "... src/Shape.i"
 	@echo "... src/Shape.s"
-	@echo "... src/Texture.o"
-	@echo "... src/Texture.i"
-	@echo "... src/Texture.s"
 	@echo "... src/main.o"
 	@echo "... src/main.i"
 	@echo "... src/main.s"

@@ -26,21 +26,8 @@ void Camera::applyProjectionMatrix(std::shared_ptr<MatrixStack> P) const{
 	P->multMatrix(glm::perspective(fovy, aspect, znear, zfar));
 }
 
-void Camera::applyOrthoMatrix(std::shared_ptr<MatrixStack> P,float w, float h) const{
-	P->multMatrix(glm::ortho(-w/2.0f, w/2.0f, -h/2.0f, h/2.0f,znear,zfar));
-}
-
-void Camera::applyOrthoTopMatrix(std::shared_ptr<MatrixStack> P,float w, float h) const{
-	P->multMatrix(glm::ortho(-w/15.0f, w/15.0f, -h/15.0f, h/15.0f,znear,zfar));
-}
-
 void Camera::applyViewMatrix(std::shared_ptr<MatrixStack> MV) const{
 	MV->multMatrix(glm::lookAt(pos, pos + glm::normalize(glm::vec3(sin(yaw)*cos(pitch), sin(pitch), cos(yaw)*cos(pitch))), glm::vec3(0.0,1.0,0.0) ));
-}
-
-void Camera::applyTopViewMatrix(std::shared_ptr<MatrixStack> MV) const{
-	glm::vec3 camera_pos = glm::vec3(50.0f,100.0f,50.0f);
-	MV->multMatrix(glm::lookAt(camera_pos, camera_pos + glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(1.0,0.0,0.0) ));
 }
 
 void Camera::increment_fovy() {

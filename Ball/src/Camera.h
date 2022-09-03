@@ -22,10 +22,7 @@ public:
 	virtual ~Camera();
 	void setAspect(float a) { aspect = a; };
 	void applyProjectionMatrix(std::shared_ptr<MatrixStack> P) const;
-	void applyOrthoMatrix(std::shared_ptr<MatrixStack> P,float w, float h) const;
-	void applyOrthoTopMatrix(std::shared_ptr<MatrixStack> P,float w, float h) const;
 	void applyViewMatrix(std::shared_ptr<MatrixStack> MV) const;
-	void applyTopViewMatrix(std::shared_ptr<MatrixStack> MV) const;
 
 	void increment_fovy();
 	void decrement_fovy();
@@ -42,9 +39,6 @@ private:
 
 	glm::vec2 rotations;
 	glm::vec3 translations;
-
-
-	
 };
 
 #endif

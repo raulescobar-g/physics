@@ -44,19 +44,19 @@ cmake_force:
 SHELL = /bin/sh
 
 # The CMake executable.
-CMAKE_COMMAND = /usr/local/Cellar/cmake/3.22.1/bin/cmake
+CMAKE_COMMAND = /usr/bin/cmake
 
 # The command to remove a file.
-RM = /usr/local/Cellar/cmake/3.22.1/bin/cmake -E rm -f
+RM = /usr/bin/cmake -E rm -f
 
 # Escaping for special characters.
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /Users/raulescobar/Documents/CSCE_649/Ball
+CMAKE_SOURCE_DIR = /mnt/c/Users/raul3/Programming/physics/ball
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /Users/raulescobar/Documents/CSCE_649/Ball/build
+CMAKE_BINARY_DIR = /mnt/c/Users/raul3/Programming/physics/ball/build
 
 # Include any dependencies generated for this target.
 include CMakeFiles/Ball.dir/depend.make
@@ -72,124 +72,94 @@ include CMakeFiles/Ball.dir/flags.make
 CMakeFiles/Ball.dir/src/Camera.cpp.o: CMakeFiles/Ball.dir/flags.make
 CMakeFiles/Ball.dir/src/Camera.cpp.o: ../src/Camera.cpp
 CMakeFiles/Ball.dir/src/Camera.cpp.o: CMakeFiles/Ball.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/raulescobar/Documents/CSCE_649/Ball/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/Ball.dir/src/Camera.cpp.o"
-	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/Ball.dir/src/Camera.cpp.o -MF CMakeFiles/Ball.dir/src/Camera.cpp.o.d -o CMakeFiles/Ball.dir/src/Camera.cpp.o -c /Users/raulescobar/Documents/CSCE_649/Ball/src/Camera.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/mnt/c/Users/raul3/Programming/physics/ball/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/Ball.dir/src/Camera.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/Ball.dir/src/Camera.cpp.o -MF CMakeFiles/Ball.dir/src/Camera.cpp.o.d -o CMakeFiles/Ball.dir/src/Camera.cpp.o -c /mnt/c/Users/raul3/Programming/physics/ball/src/Camera.cpp
 
 CMakeFiles/Ball.dir/src/Camera.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/Ball.dir/src/Camera.cpp.i"
-	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/raulescobar/Documents/CSCE_649/Ball/src/Camera.cpp > CMakeFiles/Ball.dir/src/Camera.cpp.i
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /mnt/c/Users/raul3/Programming/physics/ball/src/Camera.cpp > CMakeFiles/Ball.dir/src/Camera.cpp.i
 
 CMakeFiles/Ball.dir/src/Camera.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/Ball.dir/src/Camera.cpp.s"
-	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/raulescobar/Documents/CSCE_649/Ball/src/Camera.cpp -o CMakeFiles/Ball.dir/src/Camera.cpp.s
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /mnt/c/Users/raul3/Programming/physics/ball/src/Camera.cpp -o CMakeFiles/Ball.dir/src/Camera.cpp.s
 
 CMakeFiles/Ball.dir/src/GLSL.cpp.o: CMakeFiles/Ball.dir/flags.make
 CMakeFiles/Ball.dir/src/GLSL.cpp.o: ../src/GLSL.cpp
 CMakeFiles/Ball.dir/src/GLSL.cpp.o: CMakeFiles/Ball.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/raulescobar/Documents/CSCE_649/Ball/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/Ball.dir/src/GLSL.cpp.o"
-	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/Ball.dir/src/GLSL.cpp.o -MF CMakeFiles/Ball.dir/src/GLSL.cpp.o.d -o CMakeFiles/Ball.dir/src/GLSL.cpp.o -c /Users/raulescobar/Documents/CSCE_649/Ball/src/GLSL.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/mnt/c/Users/raul3/Programming/physics/ball/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/Ball.dir/src/GLSL.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/Ball.dir/src/GLSL.cpp.o -MF CMakeFiles/Ball.dir/src/GLSL.cpp.o.d -o CMakeFiles/Ball.dir/src/GLSL.cpp.o -c /mnt/c/Users/raul3/Programming/physics/ball/src/GLSL.cpp
 
 CMakeFiles/Ball.dir/src/GLSL.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/Ball.dir/src/GLSL.cpp.i"
-	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/raulescobar/Documents/CSCE_649/Ball/src/GLSL.cpp > CMakeFiles/Ball.dir/src/GLSL.cpp.i
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /mnt/c/Users/raul3/Programming/physics/ball/src/GLSL.cpp > CMakeFiles/Ball.dir/src/GLSL.cpp.i
 
 CMakeFiles/Ball.dir/src/GLSL.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/Ball.dir/src/GLSL.cpp.s"
-	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/raulescobar/Documents/CSCE_649/Ball/src/GLSL.cpp -o CMakeFiles/Ball.dir/src/GLSL.cpp.s
-
-CMakeFiles/Ball.dir/src/Material.cpp.o: CMakeFiles/Ball.dir/flags.make
-CMakeFiles/Ball.dir/src/Material.cpp.o: ../src/Material.cpp
-CMakeFiles/Ball.dir/src/Material.cpp.o: CMakeFiles/Ball.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/raulescobar/Documents/CSCE_649/Ball/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object CMakeFiles/Ball.dir/src/Material.cpp.o"
-	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/Ball.dir/src/Material.cpp.o -MF CMakeFiles/Ball.dir/src/Material.cpp.o.d -o CMakeFiles/Ball.dir/src/Material.cpp.o -c /Users/raulescobar/Documents/CSCE_649/Ball/src/Material.cpp
-
-CMakeFiles/Ball.dir/src/Material.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/Ball.dir/src/Material.cpp.i"
-	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/raulescobar/Documents/CSCE_649/Ball/src/Material.cpp > CMakeFiles/Ball.dir/src/Material.cpp.i
-
-CMakeFiles/Ball.dir/src/Material.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/Ball.dir/src/Material.cpp.s"
-	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/raulescobar/Documents/CSCE_649/Ball/src/Material.cpp -o CMakeFiles/Ball.dir/src/Material.cpp.s
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /mnt/c/Users/raul3/Programming/physics/ball/src/GLSL.cpp -o CMakeFiles/Ball.dir/src/GLSL.cpp.s
 
 CMakeFiles/Ball.dir/src/MatrixStack.cpp.o: CMakeFiles/Ball.dir/flags.make
 CMakeFiles/Ball.dir/src/MatrixStack.cpp.o: ../src/MatrixStack.cpp
 CMakeFiles/Ball.dir/src/MatrixStack.cpp.o: CMakeFiles/Ball.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/raulescobar/Documents/CSCE_649/Ball/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object CMakeFiles/Ball.dir/src/MatrixStack.cpp.o"
-	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/Ball.dir/src/MatrixStack.cpp.o -MF CMakeFiles/Ball.dir/src/MatrixStack.cpp.o.d -o CMakeFiles/Ball.dir/src/MatrixStack.cpp.o -c /Users/raulescobar/Documents/CSCE_649/Ball/src/MatrixStack.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/mnt/c/Users/raul3/Programming/physics/ball/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object CMakeFiles/Ball.dir/src/MatrixStack.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/Ball.dir/src/MatrixStack.cpp.o -MF CMakeFiles/Ball.dir/src/MatrixStack.cpp.o.d -o CMakeFiles/Ball.dir/src/MatrixStack.cpp.o -c /mnt/c/Users/raul3/Programming/physics/ball/src/MatrixStack.cpp
 
 CMakeFiles/Ball.dir/src/MatrixStack.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/Ball.dir/src/MatrixStack.cpp.i"
-	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/raulescobar/Documents/CSCE_649/Ball/src/MatrixStack.cpp > CMakeFiles/Ball.dir/src/MatrixStack.cpp.i
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /mnt/c/Users/raul3/Programming/physics/ball/src/MatrixStack.cpp > CMakeFiles/Ball.dir/src/MatrixStack.cpp.i
 
 CMakeFiles/Ball.dir/src/MatrixStack.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/Ball.dir/src/MatrixStack.cpp.s"
-	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/raulescobar/Documents/CSCE_649/Ball/src/MatrixStack.cpp -o CMakeFiles/Ball.dir/src/MatrixStack.cpp.s
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /mnt/c/Users/raul3/Programming/physics/ball/src/MatrixStack.cpp -o CMakeFiles/Ball.dir/src/MatrixStack.cpp.s
 
 CMakeFiles/Ball.dir/src/Program.cpp.o: CMakeFiles/Ball.dir/flags.make
 CMakeFiles/Ball.dir/src/Program.cpp.o: ../src/Program.cpp
 CMakeFiles/Ball.dir/src/Program.cpp.o: CMakeFiles/Ball.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/raulescobar/Documents/CSCE_649/Ball/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object CMakeFiles/Ball.dir/src/Program.cpp.o"
-	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/Ball.dir/src/Program.cpp.o -MF CMakeFiles/Ball.dir/src/Program.cpp.o.d -o CMakeFiles/Ball.dir/src/Program.cpp.o -c /Users/raulescobar/Documents/CSCE_649/Ball/src/Program.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/mnt/c/Users/raul3/Programming/physics/ball/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object CMakeFiles/Ball.dir/src/Program.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/Ball.dir/src/Program.cpp.o -MF CMakeFiles/Ball.dir/src/Program.cpp.o.d -o CMakeFiles/Ball.dir/src/Program.cpp.o -c /mnt/c/Users/raul3/Programming/physics/ball/src/Program.cpp
 
 CMakeFiles/Ball.dir/src/Program.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/Ball.dir/src/Program.cpp.i"
-	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/raulescobar/Documents/CSCE_649/Ball/src/Program.cpp > CMakeFiles/Ball.dir/src/Program.cpp.i
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /mnt/c/Users/raul3/Programming/physics/ball/src/Program.cpp > CMakeFiles/Ball.dir/src/Program.cpp.i
 
 CMakeFiles/Ball.dir/src/Program.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/Ball.dir/src/Program.cpp.s"
-	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/raulescobar/Documents/CSCE_649/Ball/src/Program.cpp -o CMakeFiles/Ball.dir/src/Program.cpp.s
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /mnt/c/Users/raul3/Programming/physics/ball/src/Program.cpp -o CMakeFiles/Ball.dir/src/Program.cpp.s
 
 CMakeFiles/Ball.dir/src/Shape.cpp.o: CMakeFiles/Ball.dir/flags.make
 CMakeFiles/Ball.dir/src/Shape.cpp.o: ../src/Shape.cpp
 CMakeFiles/Ball.dir/src/Shape.cpp.o: CMakeFiles/Ball.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/raulescobar/Documents/CSCE_649/Ball/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building CXX object CMakeFiles/Ball.dir/src/Shape.cpp.o"
-	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/Ball.dir/src/Shape.cpp.o -MF CMakeFiles/Ball.dir/src/Shape.cpp.o.d -o CMakeFiles/Ball.dir/src/Shape.cpp.o -c /Users/raulescobar/Documents/CSCE_649/Ball/src/Shape.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/mnt/c/Users/raul3/Programming/physics/ball/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object CMakeFiles/Ball.dir/src/Shape.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/Ball.dir/src/Shape.cpp.o -MF CMakeFiles/Ball.dir/src/Shape.cpp.o.d -o CMakeFiles/Ball.dir/src/Shape.cpp.o -c /mnt/c/Users/raul3/Programming/physics/ball/src/Shape.cpp
 
 CMakeFiles/Ball.dir/src/Shape.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/Ball.dir/src/Shape.cpp.i"
-	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/raulescobar/Documents/CSCE_649/Ball/src/Shape.cpp > CMakeFiles/Ball.dir/src/Shape.cpp.i
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /mnt/c/Users/raul3/Programming/physics/ball/src/Shape.cpp > CMakeFiles/Ball.dir/src/Shape.cpp.i
 
 CMakeFiles/Ball.dir/src/Shape.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/Ball.dir/src/Shape.cpp.s"
-	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/raulescobar/Documents/CSCE_649/Ball/src/Shape.cpp -o CMakeFiles/Ball.dir/src/Shape.cpp.s
-
-CMakeFiles/Ball.dir/src/Texture.cpp.o: CMakeFiles/Ball.dir/flags.make
-CMakeFiles/Ball.dir/src/Texture.cpp.o: ../src/Texture.cpp
-CMakeFiles/Ball.dir/src/Texture.cpp.o: CMakeFiles/Ball.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/raulescobar/Documents/CSCE_649/Ball/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building CXX object CMakeFiles/Ball.dir/src/Texture.cpp.o"
-	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/Ball.dir/src/Texture.cpp.o -MF CMakeFiles/Ball.dir/src/Texture.cpp.o.d -o CMakeFiles/Ball.dir/src/Texture.cpp.o -c /Users/raulescobar/Documents/CSCE_649/Ball/src/Texture.cpp
-
-CMakeFiles/Ball.dir/src/Texture.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/Ball.dir/src/Texture.cpp.i"
-	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/raulescobar/Documents/CSCE_649/Ball/src/Texture.cpp > CMakeFiles/Ball.dir/src/Texture.cpp.i
-
-CMakeFiles/Ball.dir/src/Texture.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/Ball.dir/src/Texture.cpp.s"
-	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/raulescobar/Documents/CSCE_649/Ball/src/Texture.cpp -o CMakeFiles/Ball.dir/src/Texture.cpp.s
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /mnt/c/Users/raul3/Programming/physics/ball/src/Shape.cpp -o CMakeFiles/Ball.dir/src/Shape.cpp.s
 
 CMakeFiles/Ball.dir/src/main.cpp.o: CMakeFiles/Ball.dir/flags.make
 CMakeFiles/Ball.dir/src/main.cpp.o: ../src/main.cpp
 CMakeFiles/Ball.dir/src/main.cpp.o: CMakeFiles/Ball.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/raulescobar/Documents/CSCE_649/Ball/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Building CXX object CMakeFiles/Ball.dir/src/main.cpp.o"
-	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/Ball.dir/src/main.cpp.o -MF CMakeFiles/Ball.dir/src/main.cpp.o.d -o CMakeFiles/Ball.dir/src/main.cpp.o -c /Users/raulescobar/Documents/CSCE_649/Ball/src/main.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/mnt/c/Users/raul3/Programming/physics/ball/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building CXX object CMakeFiles/Ball.dir/src/main.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/Ball.dir/src/main.cpp.o -MF CMakeFiles/Ball.dir/src/main.cpp.o.d -o CMakeFiles/Ball.dir/src/main.cpp.o -c /mnt/c/Users/raul3/Programming/physics/ball/src/main.cpp
 
 CMakeFiles/Ball.dir/src/main.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/Ball.dir/src/main.cpp.i"
-	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/raulescobar/Documents/CSCE_649/Ball/src/main.cpp > CMakeFiles/Ball.dir/src/main.cpp.i
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /mnt/c/Users/raul3/Programming/physics/ball/src/main.cpp > CMakeFiles/Ball.dir/src/main.cpp.i
 
 CMakeFiles/Ball.dir/src/main.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/Ball.dir/src/main.cpp.s"
-	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/raulescobar/Documents/CSCE_649/Ball/src/main.cpp -o CMakeFiles/Ball.dir/src/main.cpp.s
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /mnt/c/Users/raul3/Programming/physics/ball/src/main.cpp -o CMakeFiles/Ball.dir/src/main.cpp.s
 
 # Object files for target Ball
 Ball_OBJECTS = \
 "CMakeFiles/Ball.dir/src/Camera.cpp.o" \
 "CMakeFiles/Ball.dir/src/GLSL.cpp.o" \
-"CMakeFiles/Ball.dir/src/Material.cpp.o" \
 "CMakeFiles/Ball.dir/src/MatrixStack.cpp.o" \
 "CMakeFiles/Ball.dir/src/Program.cpp.o" \
 "CMakeFiles/Ball.dir/src/Shape.cpp.o" \
-"CMakeFiles/Ball.dir/src/Texture.cpp.o" \
 "CMakeFiles/Ball.dir/src/main.cpp.o"
 
 # External object files for target Ball
@@ -197,17 +167,18 @@ Ball_EXTERNAL_OBJECTS =
 
 Ball: CMakeFiles/Ball.dir/src/Camera.cpp.o
 Ball: CMakeFiles/Ball.dir/src/GLSL.cpp.o
-Ball: CMakeFiles/Ball.dir/src/Material.cpp.o
 Ball: CMakeFiles/Ball.dir/src/MatrixStack.cpp.o
 Ball: CMakeFiles/Ball.dir/src/Program.cpp.o
 Ball: CMakeFiles/Ball.dir/src/Shape.cpp.o
-Ball: CMakeFiles/Ball.dir/src/Texture.cpp.o
 Ball: CMakeFiles/Ball.dir/src/main.cpp.o
 Ball: CMakeFiles/Ball.dir/build.make
-Ball: /Users/raulescobar/Documents/glfw-3.3.6/debug/src/libglfw3.a
-Ball: /Users/raulescobar/Documents/glew-2.2.0/lib/libGLEW.a
+Ball: /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/src/libglfw3.a
+Ball: /mnt/c/Users/raul3/Programming/glew-2.1.0/lib/libGLEW.a
+Ball: /usr/lib/x86_64-linux-gnu/librt.a
+Ball: /usr/lib/x86_64-linux-gnu/libm.so
+Ball: /usr/lib/x86_64-linux-gnu/libX11.so
 Ball: CMakeFiles/Ball.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/Users/raulescobar/Documents/CSCE_649/Ball/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Linking CXX executable Ball"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/mnt/c/Users/raul3/Programming/physics/ball/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Linking CXX executable Ball"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/Ball.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.
@@ -219,6 +190,6 @@ CMakeFiles/Ball.dir/clean:
 .PHONY : CMakeFiles/Ball.dir/clean
 
 CMakeFiles/Ball.dir/depend:
-	cd /Users/raulescobar/Documents/CSCE_649/Ball/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /Users/raulescobar/Documents/CSCE_649/Ball /Users/raulescobar/Documents/CSCE_649/Ball /Users/raulescobar/Documents/CSCE_649/Ball/build /Users/raulescobar/Documents/CSCE_649/Ball/build /Users/raulescobar/Documents/CSCE_649/Ball/build/CMakeFiles/Ball.dir/DependInfo.cmake --color=$(COLOR)
+	cd /mnt/c/Users/raul3/Programming/physics/ball/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /mnt/c/Users/raul3/Programming/physics/ball /mnt/c/Users/raul3/Programming/physics/ball /mnt/c/Users/raul3/Programming/physics/ball/build /mnt/c/Users/raul3/Programming/physics/ball/build /mnt/c/Users/raul3/Programming/physics/ball/build/CMakeFiles/Ball.dir/DependInfo.cmake --color=$(COLOR)
 .PHONY : CMakeFiles/Ball.dir/depend
 

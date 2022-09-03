@@ -45,84 +45,84 @@ cmake_force:
 SHELL = /bin/sh
 
 # The CMake executable.
-CMAKE_COMMAND = /usr/local/Cellar/cmake/3.22.1/bin/cmake
+CMAKE_COMMAND = /usr/bin/cmake
 
 # The command to remove a file.
-RM = /usr/local/Cellar/cmake/3.22.1/bin/cmake -E rm -f
+RM = /usr/bin/cmake -E rm -f
 
 # Escaping for special characters.
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /Users/raulescobar/Documents/CSCE_649/Ball
+CMAKE_SOURCE_DIR = /mnt/c/Users/raul3/Programming/physics/ball
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /Users/raulescobar/Documents/CSCE_649/Ball/build
+CMAKE_BINARY_DIR = /mnt/c/Users/raul3/Programming/physics/ball/build
+
+#=============================================================================
+# Directory level rules for directory /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug
+
+# Recursive "all" directory target.
+/mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/all: /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/src/all
+.PHONY : /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/all
+
+# Recursive "preinstall" directory target.
+/mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/preinstall: /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/src/preinstall
+.PHONY : /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/preinstall
+
+# Recursive "clean" directory target.
+/mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/clean: /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/CMakeFiles/uninstall.dir/clean
+/mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/clean: /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/src/clean
+.PHONY : /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/clean
+
+#=============================================================================
+# Directory level rules for directory /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/src
+
+# Recursive "all" directory target.
+/mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/src/all: /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/src/CMakeFiles/glfw.dir/all
+.PHONY : /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/src/all
+
+# Recursive "preinstall" directory target.
+/mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/src/preinstall:
+.PHONY : /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/src/preinstall
+
+# Recursive "clean" directory target.
+/mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/src/clean: /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/src/CMakeFiles/update_mappings.dir/clean
+/mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/src/clean: /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/src/CMakeFiles/glfw.dir/clean
+.PHONY : /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/src/clean
 
 #=============================================================================
 # Directory level rules for the build root directory
 
 # The main recursive "all" target.
 all: CMakeFiles/Ball.dir/all
-all: /Users/raulescobar/Documents/glfw-3.3.6/debug/all
+all: /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/all
 .PHONY : all
 
 # The main recursive "preinstall" target.
-preinstall: /Users/raulescobar/Documents/glfw-3.3.6/debug/preinstall
+preinstall: /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/preinstall
 .PHONY : preinstall
 
 # The main recursive "clean" target.
 clean: CMakeFiles/Ball.dir/clean
-clean: /Users/raulescobar/Documents/glfw-3.3.6/debug/clean
+clean: /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/clean
 .PHONY : clean
-
-#=============================================================================
-# Directory level rules for directory /Users/raulescobar/Documents/glfw-3.3.6/debug
-
-# Recursive "all" directory target.
-/Users/raulescobar/Documents/glfw-3.3.6/debug/all: /Users/raulescobar/Documents/glfw-3.3.6/debug/src/all
-.PHONY : /Users/raulescobar/Documents/glfw-3.3.6/debug/all
-
-# Recursive "preinstall" directory target.
-/Users/raulescobar/Documents/glfw-3.3.6/debug/preinstall: /Users/raulescobar/Documents/glfw-3.3.6/debug/src/preinstall
-.PHONY : /Users/raulescobar/Documents/glfw-3.3.6/debug/preinstall
-
-# Recursive "clean" directory target.
-/Users/raulescobar/Documents/glfw-3.3.6/debug/clean: /Users/raulescobar/Documents/glfw-3.3.6/debug/CMakeFiles/uninstall.dir/clean
-/Users/raulescobar/Documents/glfw-3.3.6/debug/clean: /Users/raulescobar/Documents/glfw-3.3.6/debug/src/clean
-.PHONY : /Users/raulescobar/Documents/glfw-3.3.6/debug/clean
-
-#=============================================================================
-# Directory level rules for directory /Users/raulescobar/Documents/glfw-3.3.6/debug/src
-
-# Recursive "all" directory target.
-/Users/raulescobar/Documents/glfw-3.3.6/debug/src/all: /Users/raulescobar/Documents/glfw-3.3.6/debug/src/CMakeFiles/glfw.dir/all
-.PHONY : /Users/raulescobar/Documents/glfw-3.3.6/debug/src/all
-
-# Recursive "preinstall" directory target.
-/Users/raulescobar/Documents/glfw-3.3.6/debug/src/preinstall:
-.PHONY : /Users/raulescobar/Documents/glfw-3.3.6/debug/src/preinstall
-
-# Recursive "clean" directory target.
-/Users/raulescobar/Documents/glfw-3.3.6/debug/src/clean: /Users/raulescobar/Documents/glfw-3.3.6/debug/src/CMakeFiles/update_mappings.dir/clean
-/Users/raulescobar/Documents/glfw-3.3.6/debug/src/clean: /Users/raulescobar/Documents/glfw-3.3.6/debug/src/CMakeFiles/glfw.dir/clean
-.PHONY : /Users/raulescobar/Documents/glfw-3.3.6/debug/src/clean
 
 #=============================================================================
 # Target rules for target CMakeFiles/Ball.dir
 
 # All Build rule for target.
-CMakeFiles/Ball.dir/all: /Users/raulescobar/Documents/glfw-3.3.6/debug/src/CMakeFiles/glfw.dir/all
+CMakeFiles/Ball.dir/all: /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/src/CMakeFiles/glfw.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Ball.dir/build.make CMakeFiles/Ball.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Ball.dir/build.make CMakeFiles/Ball.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/raulescobar/Documents/CSCE_649/Ball/build/CMakeFiles --progress-num=1,2,3,4,5,6,7,8,9 "Built target Ball"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/mnt/c/Users/raul3/Programming/physics/ball/build/CMakeFiles --progress-num=1,2,3,4,5,6,7 "Built target Ball"
 .PHONY : CMakeFiles/Ball.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/Ball.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/raulescobar/Documents/CSCE_649/Ball/build/CMakeFiles 25
+	$(CMAKE_COMMAND) -E cmake_progress_start /mnt/c/Users/raul3/Programming/physics/ball/build/CMakeFiles 24
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/Ball.dir/all
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/raulescobar/Documents/CSCE_649/Ball/build/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /mnt/c/Users/raul3/Programming/physics/ball/build/CMakeFiles 0
 .PHONY : CMakeFiles/Ball.dir/rule
 
 # Convenience name for target.
@@ -135,82 +135,82 @@ CMakeFiles/Ball.dir/clean:
 .PHONY : CMakeFiles/Ball.dir/clean
 
 #=============================================================================
-# Target rules for target /Users/raulescobar/Documents/glfw-3.3.6/debug/CMakeFiles/uninstall.dir
+# Target rules for target /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/CMakeFiles/uninstall.dir
 
 # All Build rule for target.
-/Users/raulescobar/Documents/glfw-3.3.6/debug/CMakeFiles/uninstall.dir/all:
-	$(MAKE) $(MAKESILENT) -f /Users/raulescobar/Documents/glfw-3.3.6/debug/CMakeFiles/uninstall.dir/build.make /Users/raulescobar/Documents/glfw-3.3.6/debug/CMakeFiles/uninstall.dir/depend
-	$(MAKE) $(MAKESILENT) -f /Users/raulescobar/Documents/glfw-3.3.6/debug/CMakeFiles/uninstall.dir/build.make /Users/raulescobar/Documents/glfw-3.3.6/debug/CMakeFiles/uninstall.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/raulescobar/Documents/CSCE_649/Ball/build/CMakeFiles --progress-num= "Built target uninstall"
-.PHONY : /Users/raulescobar/Documents/glfw-3.3.6/debug/CMakeFiles/uninstall.dir/all
+/mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/CMakeFiles/uninstall.dir/all:
+	$(MAKE) $(MAKESILENT) -f /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/CMakeFiles/uninstall.dir/build.make /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/CMakeFiles/uninstall.dir/depend
+	$(MAKE) $(MAKESILENT) -f /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/CMakeFiles/uninstall.dir/build.make /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/CMakeFiles/uninstall.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/mnt/c/Users/raul3/Programming/physics/ball/build/CMakeFiles --progress-num= "Built target uninstall"
+.PHONY : /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/CMakeFiles/uninstall.dir/all
 
 # Build rule for subdir invocation for target.
-/Users/raulescobar/Documents/glfw-3.3.6/debug/CMakeFiles/uninstall.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/raulescobar/Documents/CSCE_649/Ball/build/CMakeFiles 0
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 /Users/raulescobar/Documents/glfw-3.3.6/debug/CMakeFiles/uninstall.dir/all
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/raulescobar/Documents/CSCE_649/Ball/build/CMakeFiles 0
-.PHONY : /Users/raulescobar/Documents/glfw-3.3.6/debug/CMakeFiles/uninstall.dir/rule
+/mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/CMakeFiles/uninstall.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /mnt/c/Users/raul3/Programming/physics/ball/build/CMakeFiles 0
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/CMakeFiles/uninstall.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /mnt/c/Users/raul3/Programming/physics/ball/build/CMakeFiles 0
+.PHONY : /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/CMakeFiles/uninstall.dir/rule
 
 # Convenience name for target.
-uninstall: /Users/raulescobar/Documents/glfw-3.3.6/debug/CMakeFiles/uninstall.dir/rule
+uninstall: /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/CMakeFiles/uninstall.dir/rule
 .PHONY : uninstall
 
 # clean rule for target.
-/Users/raulescobar/Documents/glfw-3.3.6/debug/CMakeFiles/uninstall.dir/clean:
-	$(MAKE) $(MAKESILENT) -f /Users/raulescobar/Documents/glfw-3.3.6/debug/CMakeFiles/uninstall.dir/build.make /Users/raulescobar/Documents/glfw-3.3.6/debug/CMakeFiles/uninstall.dir/clean
-.PHONY : /Users/raulescobar/Documents/glfw-3.3.6/debug/CMakeFiles/uninstall.dir/clean
+/mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/CMakeFiles/uninstall.dir/clean:
+	$(MAKE) $(MAKESILENT) -f /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/CMakeFiles/uninstall.dir/build.make /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/CMakeFiles/uninstall.dir/clean
+.PHONY : /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/CMakeFiles/uninstall.dir/clean
 
 #=============================================================================
-# Target rules for target /Users/raulescobar/Documents/glfw-3.3.6/debug/src/CMakeFiles/update_mappings.dir
+# Target rules for target /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/src/CMakeFiles/update_mappings.dir
 
 # All Build rule for target.
-/Users/raulescobar/Documents/glfw-3.3.6/debug/src/CMakeFiles/update_mappings.dir/all:
-	$(MAKE) $(MAKESILENT) -f /Users/raulescobar/Documents/glfw-3.3.6/debug/src/CMakeFiles/update_mappings.dir/build.make /Users/raulescobar/Documents/glfw-3.3.6/debug/src/CMakeFiles/update_mappings.dir/depend
-	$(MAKE) $(MAKESILENT) -f /Users/raulescobar/Documents/glfw-3.3.6/debug/src/CMakeFiles/update_mappings.dir/build.make /Users/raulescobar/Documents/glfw-3.3.6/debug/src/CMakeFiles/update_mappings.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/raulescobar/Documents/CSCE_649/Ball/build/CMakeFiles --progress-num=26 "Built target update_mappings"
-.PHONY : /Users/raulescobar/Documents/glfw-3.3.6/debug/src/CMakeFiles/update_mappings.dir/all
+/mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/src/CMakeFiles/update_mappings.dir/all:
+	$(MAKE) $(MAKESILENT) -f /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/src/CMakeFiles/update_mappings.dir/build.make /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/src/CMakeFiles/update_mappings.dir/depend
+	$(MAKE) $(MAKESILENT) -f /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/src/CMakeFiles/update_mappings.dir/build.make /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/src/CMakeFiles/update_mappings.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/mnt/c/Users/raul3/Programming/physics/ball/build/CMakeFiles --progress-num=25 "Built target update_mappings"
+.PHONY : /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/src/CMakeFiles/update_mappings.dir/all
 
 # Build rule for subdir invocation for target.
-/Users/raulescobar/Documents/glfw-3.3.6/debug/src/CMakeFiles/update_mappings.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/raulescobar/Documents/CSCE_649/Ball/build/CMakeFiles 1
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 /Users/raulescobar/Documents/glfw-3.3.6/debug/src/CMakeFiles/update_mappings.dir/all
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/raulescobar/Documents/CSCE_649/Ball/build/CMakeFiles 0
-.PHONY : /Users/raulescobar/Documents/glfw-3.3.6/debug/src/CMakeFiles/update_mappings.dir/rule
+/mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/src/CMakeFiles/update_mappings.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /mnt/c/Users/raul3/Programming/physics/ball/build/CMakeFiles 1
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/src/CMakeFiles/update_mappings.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /mnt/c/Users/raul3/Programming/physics/ball/build/CMakeFiles 0
+.PHONY : /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/src/CMakeFiles/update_mappings.dir/rule
 
 # Convenience name for target.
-update_mappings: /Users/raulescobar/Documents/glfw-3.3.6/debug/src/CMakeFiles/update_mappings.dir/rule
+update_mappings: /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/src/CMakeFiles/update_mappings.dir/rule
 .PHONY : update_mappings
 
 # clean rule for target.
-/Users/raulescobar/Documents/glfw-3.3.6/debug/src/CMakeFiles/update_mappings.dir/clean:
-	$(MAKE) $(MAKESILENT) -f /Users/raulescobar/Documents/glfw-3.3.6/debug/src/CMakeFiles/update_mappings.dir/build.make /Users/raulescobar/Documents/glfw-3.3.6/debug/src/CMakeFiles/update_mappings.dir/clean
-.PHONY : /Users/raulescobar/Documents/glfw-3.3.6/debug/src/CMakeFiles/update_mappings.dir/clean
+/mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/src/CMakeFiles/update_mappings.dir/clean:
+	$(MAKE) $(MAKESILENT) -f /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/src/CMakeFiles/update_mappings.dir/build.make /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/src/CMakeFiles/update_mappings.dir/clean
+.PHONY : /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/src/CMakeFiles/update_mappings.dir/clean
 
 #=============================================================================
-# Target rules for target /Users/raulescobar/Documents/glfw-3.3.6/debug/src/CMakeFiles/glfw.dir
+# Target rules for target /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/src/CMakeFiles/glfw.dir
 
 # All Build rule for target.
-/Users/raulescobar/Documents/glfw-3.3.6/debug/src/CMakeFiles/glfw.dir/all:
-	$(MAKE) $(MAKESILENT) -f /Users/raulescobar/Documents/glfw-3.3.6/debug/src/CMakeFiles/glfw.dir/build.make /Users/raulescobar/Documents/glfw-3.3.6/debug/src/CMakeFiles/glfw.dir/depend
-	$(MAKE) $(MAKESILENT) -f /Users/raulescobar/Documents/glfw-3.3.6/debug/src/CMakeFiles/glfw.dir/build.make /Users/raulescobar/Documents/glfw-3.3.6/debug/src/CMakeFiles/glfw.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/raulescobar/Documents/CSCE_649/Ball/build/CMakeFiles --progress-num=10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25 "Built target glfw"
-.PHONY : /Users/raulescobar/Documents/glfw-3.3.6/debug/src/CMakeFiles/glfw.dir/all
+/mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/src/CMakeFiles/glfw.dir/all:
+	$(MAKE) $(MAKESILENT) -f /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/src/CMakeFiles/glfw.dir/build.make /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/src/CMakeFiles/glfw.dir/depend
+	$(MAKE) $(MAKESILENT) -f /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/src/CMakeFiles/glfw.dir/build.make /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/src/CMakeFiles/glfw.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/mnt/c/Users/raul3/Programming/physics/ball/build/CMakeFiles --progress-num=8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24 "Built target glfw"
+.PHONY : /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/src/CMakeFiles/glfw.dir/all
 
 # Build rule for subdir invocation for target.
-/Users/raulescobar/Documents/glfw-3.3.6/debug/src/CMakeFiles/glfw.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/raulescobar/Documents/CSCE_649/Ball/build/CMakeFiles 16
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 /Users/raulescobar/Documents/glfw-3.3.6/debug/src/CMakeFiles/glfw.dir/all
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/raulescobar/Documents/CSCE_649/Ball/build/CMakeFiles 0
-.PHONY : /Users/raulescobar/Documents/glfw-3.3.6/debug/src/CMakeFiles/glfw.dir/rule
+/mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/src/CMakeFiles/glfw.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /mnt/c/Users/raul3/Programming/physics/ball/build/CMakeFiles 17
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/src/CMakeFiles/glfw.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /mnt/c/Users/raul3/Programming/physics/ball/build/CMakeFiles 0
+.PHONY : /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/src/CMakeFiles/glfw.dir/rule
 
 # Convenience name for target.
-glfw: /Users/raulescobar/Documents/glfw-3.3.6/debug/src/CMakeFiles/glfw.dir/rule
+glfw: /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/src/CMakeFiles/glfw.dir/rule
 .PHONY : glfw
 
 # clean rule for target.
-/Users/raulescobar/Documents/glfw-3.3.6/debug/src/CMakeFiles/glfw.dir/clean:
-	$(MAKE) $(MAKESILENT) -f /Users/raulescobar/Documents/glfw-3.3.6/debug/src/CMakeFiles/glfw.dir/build.make /Users/raulescobar/Documents/glfw-3.3.6/debug/src/CMakeFiles/glfw.dir/clean
-.PHONY : /Users/raulescobar/Documents/glfw-3.3.6/debug/src/CMakeFiles/glfw.dir/clean
+/mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/src/CMakeFiles/glfw.dir/clean:
+	$(MAKE) $(MAKESILENT) -f /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/src/CMakeFiles/glfw.dir/build.make /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/src/CMakeFiles/glfw.dir/clean
+.PHONY : /mnt/c/Users/raul3/Programming/glfw-3.3.8/debug/src/CMakeFiles/glfw.dir/clean
 
 #=============================================================================
 # Special targets to cleanup operation of make.

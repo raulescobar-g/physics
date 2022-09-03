@@ -21,7 +21,7 @@ public:
 	Shape();
 	virtual ~Shape();
 	void loadMesh(const std::string &meshName);
-	void createMesh(std::string type, int parameter);
+	void createSphere(int parameter);
 	void fitToUnitBox();
 	void init();
 	void draw(const std::shared_ptr<Program> prog) const;

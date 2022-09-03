@@ -72,85 +72,43 @@ void Shape::loadMesh(const string &meshName)
 	}
 }
 
-void Shape::createMesh(std::string type, int parameter) {
+void Shape::createSphere(int parameter) {
 	
 	int res = parameter;
 	float rad = (2.0f * glm::pi<float>()) / (float) (res-2);
-	float len = 10.0f;
 
-	if (type == "gen_sphere"){
 
-		for (int i = 0; i < res/2 ; ++i) {
-			for (int j = 0; j < res ; ++j) {
+	for (int i = 0; i < res/2 ; ++i) {
+		for (int j = 0; j < res ; ++j) {
 
-				float theta = i * rad;
-				float phi = j * rad;
+			float theta = i * rad;
+			float phi = j * rad;
 
-				posBuf.push_back(sin(theta) * sin(phi));
-				posBuf.push_back(cos(theta));
-				posBuf.push_back(sin(theta) * cos(phi) );
-				
+			posBuf.push_back(sin(theta) * sin(phi));
+			posBuf.push_back(cos(theta));
+			posBuf.push_back(sin(theta) * cos(phi) );
+			
 
-				norBuf.push_back(sin(theta) * sin(phi));
-				norBuf.push_back(cos(theta));
-				norBuf.push_back(sin(theta) * cos(phi));
-
-				// texBuf.push_back(2.0f*j / (res *0.05f));
-				// texBuf.push_back(1.0f - (float) i /  (res * 0.05f));
-			}
+			norBuf.push_back(sin(theta) * sin(phi));
+			norBuf.push_back(cos(theta));
+			norBuf.push_back(sin(theta) * cos(phi));
 		}
-
-		for (int x = 0; x < res-1; ++x){
-			for (int y = 0; y < (res/2)-1; ++y) {
-
-				int idx = y * res + x;
-				indBuf.push_back(idx + 1 + res);
-				indBuf.push_back(idx + 1);
-				indBuf.push_back(idx);
-				
-				indBuf.push_back(idx + res);
-				indBuf.push_back(idx + 1 + res);
-				indBuf.push_back(idx);
-			}
-		}
-	} else if (type == "vase") {
-
-		for (int i = 0; i < res ; ++i) {
-			for (int j = 0; j < res ; ++j) {
-
-				float theta = i * rad;
-				float x = (j / (float) res) * len;
-
-				posBuf.push_back(x);
-				posBuf.push_back(theta);
-				posBuf.push_back(0.0f);
-
-				norBuf.push_back(0.0f);
-				norBuf.push_back(0.0f);
-				norBuf.push_back(0.0f);
-
-				// texBuf.push_back(2.0f*j / (res *0.5f));
-				// texBuf.push_back(1.0f - (float) i /  (res * 0.5f));
-			}
-		}
-
-		for (int x = 0; x < res-1; ++x){
-			for (int y = 0; y < (res)-1; ++y) {
-
-				int idx = y * res + x;
-				indBuf.push_back(idx);
-				indBuf.push_back(idx + 1);
-				indBuf.push_back(idx + 1 + res);
-				
-				
-				indBuf.push_back(idx);
-				indBuf.push_back(idx + 1 + res);
-				indBuf.push_back(idx + res);
-			}
-		}
-	} else {
-		assert(false);
 	}
+
+	for (int x = 0; x < res-1; ++x){
+		for (int y = 0; y < (res/2)-1; ++y) {
+
+			int idx = y * res + x;
+			indBuf.push_back(idx + 1 + res);
+			indBuf.push_back(idx + 1);
+			indBuf.push_back(idx);
+			
+			indBuf.push_back(idx + res);
+			indBuf.push_back(idx + 1 + res);
+			indBuf.push_back(idx);
+		}
+	}
+	
 	
 }
 
