@@ -44,19 +44,20 @@ shared_ptr<Camera> camera;
 
 shared_ptr<Program> prog_p;
 
-shared_ptr<Shape> sphere;
-shared_ptr<Shape> ground;
+shared_ptr<Shape> ball;
+shared_ptr<Shape> wall;
 
 bool keyToggles[256] = {false}; // only for English keyboards!
 bool inputs[256] = {false}; // only for English keyboards!
 
-vector<Material> materials;
-vector<Light> lights;
-vector<Object> objects;
+shared_ptr<Material> ball_material;
+shared_ptr<Material> wall_material;
+shared_ptr<Light> light;
+vector<shared_ptr<Object> > objects;
 
 
 // could not think of a better way to initialize these values probably bad practice
-double o_x = 0.0;			
+double o_x = 0.0;		 //TODO: changte to ptr	
 double o_y = 0.0;
 float t, dt;
 
@@ -82,6 +83,10 @@ static void key_callback(GLFWwindow *window, int key, int scancode, int action, 
 		inputs[(unsigned)'q'] = action != GLFW_RELEASE;
 	if (key == GLFW_KEY_E) 
 		inputs[(unsigned)'e'] = action != GLFW_RELEASE;
+	if (key == GLFW_KEY_C) 
+		inputs[(unsigned)'c'] = action != GLFW_RELEASE;
+	if (key == GLFW_KEY_V) 
+		inputs[(unsigned)'v'] = action != GLFW_RELEASE;
 	
 	if (key == GLFW_KEY_Z && (mods == GLFW_MOD_SHIFT || inputs[(unsigned) 'Z'])) {
 		inputs[(unsigned)'Z'] = action != GLFW_RELEASE;
@@ -121,7 +126,7 @@ static void resize_callback(GLFWwindow *window, int width, int height){
 static void init(){
 	glfwSetTime(0.0);	
 	srand (time(NULL));
-	glClearColor(0.4f, 0.4f, 0.4f, 1.0f);
+	glClearColor(0.99f, 0.99f, 0.99f, 1.0f);
 	glEnable(GL_DEPTH_TEST);
 
 	int width, height;
@@ -136,7 +141,7 @@ static void init(){
 	prog_p->addUniform("MV");
 	prog_p->addUniform("iMV");
 	prog_p->addUniform("P");
-	prog_p->addUniform("lightPos1");
+	prog_p->addUniform("lightPos");
 	prog_p->addUniform("ka");
 	prog_p->addUniform("kd");
 	prog_p->addUniform("ks");
@@ -144,37 +149,34 @@ static void init(){
 	prog_p->setVerbose(false);
 
 
-	Light l1("lightPos1", glm::vec3(100.0f, 50.0f, -100.0f));
-	lights.push_back(l1);
+	light = make_shared<Light>(glm::vec3(0.0f, 10.0f, 0.0f));
 	
 	camera = make_shared<Camera>();
 
-	sphere = make_shared<Shape>();
-	sphere->createSphere(20);
-	sphere->fitToUnitBox();
-	sphere->init();
-	sphere->set_id("sphere");
+	ball = make_shared<Shape>();
+	ball->createSphere(20);
+	ball->fitToUnitBox();
+	ball->init();
+	ball->set_id("ball");
+	ball_material = make_shared<Material>(glm::vec3(0.0f,0.0f,1.0f),glm::vec3(0.1f,0.2f,0.8f),glm::vec3(0.05f,0.95f,0.05f),200.0f);
+	glm::vec3 ball_position = glm::vec3(1.0f, 1.0f, 1.0f);
+	objects.push_back(make_shared<Object>(ball_material, ball, ball_position, ball_position));
 
-	ground = make_shared<Shape>();
-	ground->loadMesh(RESOURCE_DIR + "square.obj");
-	ground->fitToUnitBox();
-	ground->init();
-	ground->set_id("ground");
-	
 
-	for (int i = 0; i < MATERIAL_COUNT; ++i){ 
-		materials.push_back(
-			Material( 
-				glm::vec3((rand()%101)/100.0f,  (rand()%101)/100.0f,  (rand()%101)/100.0f),
-				glm::vec3((rand()%101)/100.0f,  (rand()%101)/100.0f,  (rand()%101)/100.0f),
-				glm::vec3((rand()%101)/100.0f,  (rand()%101)/100.0f,  (rand()%101)/100.0f),
-				(float)(rand()%1001)
-			)
-		);
-	}
+	wall = make_shared<Shape>();
+	wall->loadMesh(RESOURCE_DIR + "square.obj"); // TODO: fix generation script later
+	wall->fitToUnitBox();
+	wall->init();
+	wall->set_id("wall");
+	wall_material = make_shared<Material>(glm::vec3(0.02f,0.02f,0.02f),glm::vec3(0.6f,0.6f,0.65f),glm::vec3(0.01f,0.01f,0.02f),0.0f);
 
-	// push object into objects vector
-	
+	objects.push_back(make_shared<Object>(wall_material, wall, glm::vec3(0.0f , 5.0f, 0.0f), glm::vec3(1.0f,0.0f,0.0f) * glm::pi<float>()/2.0f, 10.f));
+	objects.push_back(make_shared<Object>(wall_material, wall, glm::vec3(0.0f, -5.0f, 0.0f), glm::vec3(1.0f,0.0f,0.0f) * -glm::pi<float>()/2.0f, 10.f));
+	objects.push_back(make_shared<Object>(wall_material, wall, glm::vec3(5.0f, 0.0f, 0.0f), glm::vec3(0.0f,1.0f,0.0f) * -glm::pi<float>()/2.0f, 10.f));
+	objects.push_back(make_shared<Object>(wall_material, wall, glm::vec3(-5.0f, 0.0f, 0.0f), glm::vec3(0.0f,1.0f,0.0f) * glm::pi<float>()/2.0f, 10.f));
+	objects.push_back(make_shared<Object>(wall_material, wall, glm::vec3(0.0f, 0.0f, -5.0f), glm::vec3(1.0f,0.0f,0.0f) * glm::pi<float>() * 2.0f, 10.f));
+	objects.push_back(make_shared<Object>(wall_material, wall, glm::vec3(0.0f, 0.0f, 5.0f), glm::vec3(0.0f,1.0f,0.0f) * glm::pi<float>(), 10.f));
+
 	GLSL::checkError(GET_FILE_LINE);
 }
 
@@ -218,6 +220,17 @@ static void render()
 	// Clear framebuffer.
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+	if(keyToggles[(unsigned)'c']) {
+		glEnable(GL_CULL_FACE);
+	} else {
+		glDisable(GL_CULL_FACE);
+	}
+	if(keyToggles[(unsigned)'v']) {
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	} else {
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	}
+
 	// Get current frame buffer size.
 	int width, height;
 	glfwGetFramebufferSize(window, &width, &height);
@@ -235,38 +248,43 @@ static void render()
 	camera->applyProjectionMatrix(P);
 	camera->applyViewMatrix(MV);	
 	MV->pushMatrix();
-		prog_p->bind();
-		for (Object& obj : objects){ //loops over objects except lights and ground
-			MV->pushMatrix();
-				
-				//obj.update(t);
-				MV->translate(obj.x, obj.y, obj.z);
-				MV->scale(obj.scale,obj.scale,obj.scale);
-				MV->rotate(obj.rotation,0.0f,1.0f,0.0f);
-				
-				iMV = glm::transpose(glm::inverse(glm::mat4(MV->topMatrix())));
 
-				glUniformMatrix4fv(prog_p->getUniform("P"), 1, GL_FALSE, glm::value_ptr(P->topMatrix()));
-				glUniformMatrix4fv(prog_p->getUniform("MV"), 1, GL_FALSE, glm::value_ptr(MV->topMatrix()));
-				glUniformMatrix4fv(prog_p->getUniform("iMV"), 1, GL_FALSE, glm::value_ptr(iMV));
-				glUniform3f(prog_p->getUniform("ka"), obj.material->ka.x, obj.material->ka.y, obj.material->ka.z);
-				glUniform3f(prog_p->getUniform("kd"), obj.material->kd.x, obj.material->kd.y, obj.material->kd.z);
-				glUniform3f(prog_p->getUniform("ks"), obj.material->ks.x, obj.material->ks.y, obj.material->ks.z);
-				glUniform1f(prog_p->getUniform("s"), obj.material->s );
+	prog_p->bind();
+	glm::vec3 light_coord = MV->topMatrix() * glm::vec4(light->position, 1.0f);
+	glUniform3f(prog_p->getUniform("lightPos"), light_coord.x, light_coord.y, light_coord.z);
 
-				obj.shape->draw(prog_p); 	
-				
-			MV->popMatrix();
+	for (auto obj : objects){ //loops over objects except lights and wall
+		MV->pushMatrix();
 			
-		}
+			// obj.update(t);
+			MV->translate(obj->pos);
+			MV->scale(obj->scale,obj->scale,obj->scale);
+			MV->rotate(glm::length(obj->rotation), obj->rotation);
+			
+			iMV = glm::transpose(glm::inverse(glm::mat4(MV->topMatrix())));
 
-		prog_p->unbind();
+			glUniformMatrix4fv(prog_p->getUniform("P"), 1, GL_FALSE, glm::value_ptr(P->topMatrix()));
+			glUniformMatrix4fv(prog_p->getUniform("MV"), 1, GL_FALSE, glm::value_ptr(MV->topMatrix()));
+			glUniformMatrix4fv(prog_p->getUniform("iMV"), 1, GL_FALSE, glm::value_ptr(iMV));
+			glUniform3f(prog_p->getUniform("ka"), obj->material->ka.x, obj->material->ka.y, obj->material->ka.z);
+			glUniform3f(prog_p->getUniform("kd"), obj->material->kd.x, obj->material->kd.y, obj->material->kd.z);
+			glUniform3f(prog_p->getUniform("ks"), obj->material->ks.x, obj->material->ks.y, obj->material->ks.z);
+			glUniform1f(prog_p->getUniform("s"), obj->material->s );
+
+			obj->shape->draw(prog_p); 	
+			
+		MV->popMatrix();
+		
+	}
+
+	prog_p->unbind();
 
 	MV->popMatrix();	
 	P->popMatrix();	
 	
 }
 
+// time loop based on this blog post https://gafferongames.com/post/fix_your_timestep/
 int main(int argc, char **argv)
 {
 	if(argc < 2) {
@@ -324,7 +342,7 @@ int main(int argc, char **argv)
 
 	// Loop until the user closes the window.
 	while(!glfwWindowShouldClose(window)) {
-		
+
 		// update position and camera
 		move_camera();
 

@@ -9,10 +9,8 @@
 
 class Light {
     public:
-        Light(std::string name, glm::vec3 position) : pos_name(name), position(position){};
-        std::string pos_name;
+        Light(glm::vec3 position) : position(position){};
         glm::vec3 position;
-        
 };
 
 

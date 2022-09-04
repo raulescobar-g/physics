@@ -12,22 +12,17 @@ class Object {
         
 
         // defined objects for the HUD
-        Object(std::shared_ptr<Material> m, std::shared_ptr<Shape> s, glm::vec3 position, float _scale) {
+        Object(std::shared_ptr<Material> m, std::shared_ptr<Shape> s, glm::vec3 position, glm::vec3 rotation, float scale=1.0f) {
             material = m;
             shape = s;
-            scale = _scale;
-            x = position.x;
-            y = position.y;
-            z = position.z;
-            rotation = 0.0f;
+            this->scale = scale;
+            pos = position;
+            this->rotation = rotation;
         }
 
         
-        float x;
-        float z;
-        float y;
-
-        float rotation;
+        glm::vec3 pos;
+        glm::vec3 rotation;
         float scale;
         std::shared_ptr<Material> material;
         std::shared_ptr<Shape> shape;

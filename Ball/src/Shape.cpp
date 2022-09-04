@@ -72,6 +72,64 @@ void Shape::loadMesh(const string &meshName)
 	}
 }
 
+void Shape::createQuad() {
+	posBuf.push_back(-0.5f);
+	posBuf.push_back(-0.5f);
+	posBuf.push_back(0.0f);
+
+	norBuf.push_back(0.0f);
+	norBuf.push_back(0.0f);
+	norBuf.push_back(1.0f);
+
+	posBuf.push_back(0.5f);
+	posBuf.push_back(0.5f);
+	posBuf.push_back(0.0f);
+
+	norBuf.push_back(0.0f);
+	norBuf.push_back(0.0f);
+	norBuf.push_back(1.0f);
+
+	posBuf.push_back(0.5f);
+	posBuf.push_back(-0.5f);
+	posBuf.push_back(0.0f);
+
+	norBuf.push_back(0.0f);
+	norBuf.push_back(0.0f);
+	norBuf.push_back(1.0f);
+
+	posBuf.push_back(-0.5f);
+	posBuf.push_back(-0.5f);
+	posBuf.push_back(0.0f);
+
+	norBuf.push_back(0.0f);
+	norBuf.push_back(0.0f);
+	norBuf.push_back(1.0f);
+
+	posBuf.push_back(0.5f);
+	posBuf.push_back(0.5f);
+	posBuf.push_back(0.0f);
+
+	norBuf.push_back(0.0f);
+	norBuf.push_back(0.0f);
+	norBuf.push_back(1.0f);
+
+	posBuf.push_back(-0.5f);
+	posBuf.push_back(0.5f);
+	posBuf.push_back(0.0f);
+
+	norBuf.push_back(0.0f);
+	norBuf.push_back(0.0f);
+	norBuf.push_back(1.0f);
+
+	indBuf.push_back(0);
+	indBuf.push_back(1);
+	indBuf.push_back(3);
+	
+	indBuf.push_back(0);
+	indBuf.push_back(3);
+	indBuf.push_back(2);
+}
+
 void Shape::createSphere(int parameter) {
 	
 	int res = parameter;

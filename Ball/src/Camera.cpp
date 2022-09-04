@@ -6,7 +6,6 @@
 #include "MatrixStack.h"
 
 #define FOVY_SPEED 0.1f
-#define MAP_ZOOM 200.0f
 
 Camera::Camera() :
 	aspect(1.0f),
@@ -15,7 +14,7 @@ Camera::Camera() :
 	zfar(1000.0f),
 	rotations(0.0, 0.0),
 	translations(0.0f, 1.0f, -5.0f),
-	pos(50.0f,1.0f,50.0f),
+	pos(0.0f,0.0f,-10.0f),
 	yaw(glm::pi<float>()),
 	pitch(0.0f)
 	{}

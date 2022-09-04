@@ -18,6 +18,6 @@ void main()
 	
 	gl_Position = P * vec4(position, 1.0);
 
-	normal = normalize((iMV * vec4(aNor,0.0)).xyz);
+	normal = normalize((iMV * vec4(aNor, 0.0)).xyz);
 	
 }
