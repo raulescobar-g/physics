@@ -31,11 +31,8 @@
 
 using namespace std;
 
-#define OBJECT_AMOUNT 100
-#define MATERIAL_COUNT 100
 #define MOVEMENT_SPEED 10.0f
 #define SENSITIVITY 0.005
-#define SPIN_SPEED 1.0
 
 GLFWwindow *window; // Main application window
 string RESOURCE_DIR = "./"; // Where the resources are loaded from
@@ -53,7 +50,7 @@ bool inputs[256] = {false}; // only for English keyboards!
 shared_ptr<Material> ball_material;
 shared_ptr<Material> wall_material;
 shared_ptr<Light> light;
-vector<shared_ptr<Object> > objects;
+vector< shared_ptr<Object> > objects;
 
 
 // could not think of a better way to initialize these values probably bad practice
@@ -149,7 +146,7 @@ static void init(){
 	prog_p->setVerbose(false);
 
 
-	light = make_shared<Light>(glm::vec3(0.0f, 10.0f, 0.0f));
+	light = make_shared<Light>(glm::vec3(0.0f, 9.0f, 0.0f));
 	
 	camera = make_shared<Camera>();
 
@@ -159,8 +156,7 @@ static void init(){
 	ball->init();
 	ball->set_id("ball");
 	ball_material = make_shared<Material>(glm::vec3(0.0f,0.0f,1.0f),glm::vec3(0.1f,0.2f,0.8f),glm::vec3(0.05f,0.95f,0.05f),200.0f);
-	glm::vec3 ball_position = glm::vec3(1.0f, 1.0f, 1.0f);
-	objects.push_back(make_shared<Object>(ball_material, ball, ball_position, ball_position));
+	objects.push_back(make_shared<Object>(ball_material, ball, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)));
 
 
 	wall = make_shared<Shape>();
@@ -168,13 +164,13 @@ static void init(){
 	wall->fitToUnitBox();
 	wall->init();
 	wall->set_id("wall");
-	wall_material = make_shared<Material>(glm::vec3(0.02f,0.02f,0.02f),glm::vec3(0.6f,0.6f,0.65f),glm::vec3(0.01f,0.01f,0.02f),0.0f);
+	wall_material = make_shared<Material>(glm::vec3(0.2f,0.2f,0.2f),glm::vec3(0.6f,0.6f,0.6f),glm::vec3(0.01f,0.01f,0.01f),0.1f);
 
 	objects.push_back(make_shared<Object>(wall_material, wall, glm::vec3(0.0f , 5.0f, 0.0f), glm::vec3(1.0f,0.0f,0.0f) * glm::pi<float>()/2.0f, 10.f));
 	objects.push_back(make_shared<Object>(wall_material, wall, glm::vec3(0.0f, -5.0f, 0.0f), glm::vec3(1.0f,0.0f,0.0f) * -glm::pi<float>()/2.0f, 10.f));
 	objects.push_back(make_shared<Object>(wall_material, wall, glm::vec3(5.0f, 0.0f, 0.0f), glm::vec3(0.0f,1.0f,0.0f) * -glm::pi<float>()/2.0f, 10.f));
 	objects.push_back(make_shared<Object>(wall_material, wall, glm::vec3(-5.0f, 0.0f, 0.0f), glm::vec3(0.0f,1.0f,0.0f) * glm::pi<float>()/2.0f, 10.f));
-	objects.push_back(make_shared<Object>(wall_material, wall, glm::vec3(0.0f, 0.0f, -5.0f), glm::vec3(1.0f,0.0f,0.0f) * glm::pi<float>() * 2.0f, 10.f));
+	objects.push_back(make_shared<Object>(wall_material, wall, glm::vec3(0.0f, 0.0f, -5.0f), glm::vec3(1.0f,0.0f,0.0f) * 0.0f, 10.f));
 	objects.push_back(make_shared<Object>(wall_material, wall, glm::vec3(0.0f, 0.0f, 5.0f), glm::vec3(0.0f,1.0f,0.0f) * glm::pi<float>(), 10.f));
 
 	GLSL::checkError(GET_FILE_LINE);
@@ -256,22 +252,21 @@ static void render()
 	for (auto obj : objects){ //loops over objects except lights and wall
 		MV->pushMatrix();
 			
-			// obj.update(t);
-			MV->translate(obj->pos);
-			MV->scale(obj->scale,obj->scale,obj->scale);
-			MV->rotate(glm::length(obj->rotation), obj->rotation);
-			
-			iMV = glm::transpose(glm::inverse(glm::mat4(MV->topMatrix())));
+		MV->translate(obj->pos);
+		MV->scale(obj->scale,obj->scale,obj->scale);
+		if (glm::length(obj->rotation) > 0.0000f) MV->rotate(glm::length(obj->rotation), obj->rotation);
+		
+		iMV = glm::transpose(glm::inverse(glm::mat4(MV->topMatrix())));
 
-			glUniformMatrix4fv(prog_p->getUniform("P"), 1, GL_FALSE, glm::value_ptr(P->topMatrix()));
-			glUniformMatrix4fv(prog_p->getUniform("MV"), 1, GL_FALSE, glm::value_ptr(MV->topMatrix()));
-			glUniformMatrix4fv(prog_p->getUniform("iMV"), 1, GL_FALSE, glm::value_ptr(iMV));
-			glUniform3f(prog_p->getUniform("ka"), obj->material->ka.x, obj->material->ka.y, obj->material->ka.z);
-			glUniform3f(prog_p->getUniform("kd"), obj->material->kd.x, obj->material->kd.y, obj->material->kd.z);
-			glUniform3f(prog_p->getUniform("ks"), obj->material->ks.x, obj->material->ks.y, obj->material->ks.z);
-			glUniform1f(prog_p->getUniform("s"), obj->material->s );
+		glUniformMatrix4fv(prog_p->getUniform("P"), 1, GL_FALSE, glm::value_ptr(P->topMatrix()));
+		glUniformMatrix4fv(prog_p->getUniform("MV"), 1, GL_FALSE, glm::value_ptr(MV->topMatrix()));
+		glUniformMatrix4fv(prog_p->getUniform("iMV"), 1, GL_FALSE, glm::value_ptr(iMV));
+		glUniform3f(prog_p->getUniform("ka"), obj->material->ka.x, obj->material->ka.y, obj->material->ka.z);
+		glUniform3f(prog_p->getUniform("kd"), obj->material->kd.x, obj->material->kd.y, obj->material->kd.z);
+		glUniform3f(prog_p->getUniform("ks"), obj->material->ks.x, obj->material->ks.y, obj->material->ks.z);
+		glUniform1f(prog_p->getUniform("s"), obj->material->s );
 
-			obj->shape->draw(prog_p); 	
+		obj->shape->draw(prog_p); 	
 			
 		MV->popMatrix();
 		
