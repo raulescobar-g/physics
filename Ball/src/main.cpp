@@ -33,6 +33,7 @@ using namespace std;
 
 #define MOVEMENT_SPEED 10.0f
 #define SENSITIVITY 0.005
+#define g glm::vec3(0.0f, -10.0f, 0.0f);
 
 GLFWwindow *window; // Main application window
 string RESOURCE_DIR = "./"; // Where the resources are loaded from
@@ -51,12 +52,12 @@ shared_ptr<Material> ball_material;
 shared_ptr<Material> wall_material;
 shared_ptr<Light> light;
 vector< shared_ptr<Object> > objects;
+vector<glm::vec3> forces;
 
 
 // could not think of a better way to initialize these values probably bad practice
 double o_x = 0.0;		 //TODO: changte to ptr	
 double o_y = 0.0;
-float t, dt;
 
 static void error_callback(int error, const char *description) { 
 	cerr << description << endl; 
@@ -121,7 +122,7 @@ static void resize_callback(GLFWwindow *window, int width, int height){
 
 // This function is called once to initialize the scene and OpenGL
 static void init(){
-	glfwSetTime(0.0);	
+	glfwSetTime(0.0);
 	srand (time(NULL));
 	glClearColor(0.99f, 0.99f, 0.99f, 1.0f);
 	glEnable(GL_DEPTH_TEST);
@@ -146,7 +147,7 @@ static void init(){
 	prog_p->setVerbose(false);
 
 
-	light = make_shared<Light>(glm::vec3(0.0f, 9.0f, 0.0f));
+	light = make_shared<Light>(glm::vec3(0.0f, 4.5f, 0.0f));
 	
 	camera = make_shared<Camera>();
 
@@ -156,8 +157,7 @@ static void init(){
 	ball->init();
 	ball->set_id("ball");
 	ball_material = make_shared<Material>(glm::vec3(0.0f,0.0f,1.0f),glm::vec3(0.1f,0.2f,0.8f),glm::vec3(0.05f,0.95f,0.05f),200.0f);
-	objects.push_back(make_shared<Object>(ball_material, ball, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)));
-
+	objects.push_back(make_shared<Object>(ball_material, ball, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(7.0f,-1.0f,3.2f), true));
 
 	wall = make_shared<Shape>();
 	wall->loadMesh(RESOURCE_DIR + "square.obj"); // TODO: fix generation script later
@@ -166,20 +166,22 @@ static void init(){
 	wall->set_id("wall");
 	wall_material = make_shared<Material>(glm::vec3(0.2f,0.2f,0.2f),glm::vec3(0.6f,0.6f,0.6f),glm::vec3(0.01f,0.01f,0.01f),0.1f);
 
-	objects.push_back(make_shared<Object>(wall_material, wall, glm::vec3(0.0f , 5.0f, 0.0f), glm::vec3(1.0f,0.0f,0.0f) * glm::pi<float>()/2.0f, 10.f));
-	objects.push_back(make_shared<Object>(wall_material, wall, glm::vec3(0.0f, -5.0f, 0.0f), glm::vec3(1.0f,0.0f,0.0f) * -glm::pi<float>()/2.0f, 10.f));
-	objects.push_back(make_shared<Object>(wall_material, wall, glm::vec3(5.0f, 0.0f, 0.0f), glm::vec3(0.0f,1.0f,0.0f) * -glm::pi<float>()/2.0f, 10.f));
-	objects.push_back(make_shared<Object>(wall_material, wall, glm::vec3(-5.0f, 0.0f, 0.0f), glm::vec3(0.0f,1.0f,0.0f) * glm::pi<float>()/2.0f, 10.f));
-	objects.push_back(make_shared<Object>(wall_material, wall, glm::vec3(0.0f, 0.0f, -5.0f), glm::vec3(1.0f,0.0f,0.0f) * 0.0f, 10.f));
-	objects.push_back(make_shared<Object>(wall_material, wall, glm::vec3(0.0f, 0.0f, 5.0f), glm::vec3(0.0f,1.0f,0.0f) * glm::pi<float>(), 10.f));
+	objects.push_back(make_shared<Object>(wall_material, wall, glm::vec3(0.0f , 5.0f, 0.0f), glm::vec3(1.0f,0.0f,0.0f) * glm::pi<float>()/2.0f, glm::vec3(0.0f,0.0f,0.0f), false, 10.0f));
+	objects.push_back(make_shared<Object>(wall_material, wall, glm::vec3(0.0f, -5.0f, 0.0f), glm::vec3(1.0f,0.0f,0.0f) * -glm::pi<float>()/2.0f, glm::vec3(0.0f,0.0f,0.0f), false, 10.0f));
+	objects.push_back(make_shared<Object>(wall_material, wall, glm::vec3(5.0f, 0.0f, 0.0f), glm::vec3(0.0f,1.0f,0.0f) * -glm::pi<float>()/2.0f, glm::vec3(0.0f,0.0f,0.0f), false, 10.0f));
+	objects.push_back(make_shared<Object>(wall_material, wall, glm::vec3(-5.0f, 0.0f, 0.0f), glm::vec3(0.0f,1.0f,0.0f) * glm::pi<float>()/2.0f, glm::vec3(0.0f,0.0f,0.0f), false, 10.0f));
+	objects.push_back(make_shared<Object>(wall_material, wall, glm::vec3(0.0f, 0.0f, -5.0f), glm::vec3(1.0f,0.0f,0.0f) * 0.0f, glm::vec3(0.0f,0.0f,0.0f), false, 10.0f));
+	objects.push_back(make_shared<Object>(wall_material, wall, glm::vec3(0.0f, 0.0f, 5.0f), glm::vec3(0.0f,1.0f,0.0f) * glm::pi<float>(), glm::vec3(0.0f,0.0f,0.0f), false, 10.0f));
+
+
 
 	GLSL::checkError(GET_FILE_LINE);
 }
 
 static void move_camera() {
 
-	dt = glfwGetTime() - t;
-	t = glfwGetTime();
+	float dt = 0.001;
+	
 	glm::vec3 buff(0.0f,0.0f,0.0f);
 
 	if (inputs[(unsigned)'w']) {
@@ -205,17 +207,6 @@ static void move_camera() {
 		camera->pos += glm::normalize(buff) * MOVEMENT_SPEED * dt; // keeps the movement the same speed even if moving diagonally by summing direction of movement vectors and normalizing
 	}
 
-
-	if (inputs[(unsigned) 'z']){camera->decrement_fovy();}
-	if (inputs[(unsigned) 'Z']){camera->increment_fovy();}
-}
-
-// This function is called to draw the scene.
-static void render()
-{
-	// Clear framebuffer.
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
 	if(keyToggles[(unsigned)'c']) {
 		glEnable(GL_CULL_FACE);
 	} else {
@@ -226,6 +217,42 @@ static void render()
 	} else {
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	}
+
+
+	if (inputs[(unsigned) 'z']){camera->decrement_fovy();}
+	if (inputs[(unsigned) 'Z']){camera->increment_fovy();}
+}
+
+// game physics
+static void update(float t, float dt) {
+
+	for (auto obj : objects) {
+		if (obj->dynamic) {
+			glm::vec3 a(0.0f, 0.0f, 0.0f);
+
+			a += g; 
+			obj->pos = obj->pos + obj->velocity * dt;
+			obj->velocity = obj->velocity + a * dt;
+
+			if (obj->pos.y - 0.5f < -5.0f || obj->pos.y + 0.5f > 5.0f) { // here take into account radius
+				obj->velocity.y = -1.0f * obj->velocity.y * 0.9f;
+			}
+			if (obj->pos.x - 0.5f < -5.0f || obj->pos.x + 0.5f > 5.0f) { // here take into account radius
+				obj->velocity.x = -1.0f * obj->velocity.x * 0.9f;
+			}
+			if (obj->pos.z - 0.5f < -5.0f || obj->pos.z + 0.5f > 5.0f) { // here take into account radius
+				obj->velocity.z = -1.0f * obj->velocity.z * 0.9f;
+			}
+		}
+	}
+
+}
+
+// This function is called to draw the scene.
+static void render()
+{
+	// Clear framebuffer.
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	// Get current frame buffer size.
 	int width, height;
@@ -335,8 +362,28 @@ int main(int argc, char **argv)
 	// Initialize scene.
 	init();
 
+	float t = 0.0f;
+	float dt = 0.000001f;
+
+
+	float currentTime = glfwGetTime();
+	float totalTime = 0.0f;
+	float newTime, frameTime;
+
 	// Loop until the user closes the window.
 	while(!glfwWindowShouldClose(window)) {
+
+		newTime = glfwGetTime();
+		frameTime = newTime - currentTime;
+		currentTime = newTime;
+
+		totalTime += frameTime;
+
+		while (totalTime >= dt) {
+			update(t, dt);
+			totalTime -= dt;
+			t += dt;
+		}
 
 		// update position and camera
 		move_camera();
