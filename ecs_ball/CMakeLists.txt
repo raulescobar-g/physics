@@ -46,7 +46,7 @@ INCLUDE_DIRECTORIES(${GLM_INCLUDE_DIR})
 
 
 SET(ENTT_DIR "$ENV{ENTT_DIR}")
-IF(NOT GLM_INCLUDE_DIR)
+IF(NOT ENTT_DIR)
 	# The environment variable was not set
 	SET(ERR_MSG "Please point the environment variable ENTT to the root directory of your ENTT.")
 	MESSAGE(FATAL_ERROR ${ERR_MSG})
