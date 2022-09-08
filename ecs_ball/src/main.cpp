@@ -226,6 +226,8 @@ static void update(float t, float dt) {
 			if (crossed_boundaries(new_pos)) {
 				float f = time_split(obj->pos);
 				update(t, dt * f - EPS);
+
+				
 				
 			} else {
 				obj->velocity = obj->velocity + a * dt;
