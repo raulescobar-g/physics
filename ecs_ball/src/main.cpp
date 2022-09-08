@@ -19,6 +19,10 @@
 
 #include <entt/entt.hpp>
 
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
+
 #include "Camera.h"
 #include "GLSL.h"
 #include "MatrixStack.h"
@@ -36,7 +40,7 @@ using namespace std;
 #define FRAG "../resources/phong_frag.glsl"
 #define g glm::vec3(0.0f, -10.0f, 0.0f);
 
-GLFWwindow *window; // Main application window
+GLFWwindow *window, *gui_window; // Main application window
 string RESOURCE_DIR = "./"; // Where the resources are loaded from
 
 shared_ptr<Camera> camera;
@@ -338,6 +342,23 @@ int main(int argc, char **argv)
 
 	// Initialize scene.
 	init();
+
+	gui_window = glfwCreateWindow(640 * 2, 480 * 2, "Raul Escobar", NULL, NULL);
+	// Setup Dear ImGui context
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+
+    // Setup Dear ImGui style
+    ImGui::StyleColorsDark();
+    //ImGui::StyleColorsClassic();
+
+    // Setup Platform/Renderer backends
+    ImGui_ImplGlfw_InitForOpenGL(gui_window, true);
+	const char* glsl_version = "#version 130";
+    ImGui_ImplOpenGL3_Init(glsl_version);
 
 	float t = 0.0f;
 	float dt = 0.000001f;
