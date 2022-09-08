@@ -19,9 +19,9 @@
 
 #include <entt/entt.hpp>
 
-#include "imgui.h"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_opengl3.h"
+// #include "imgui.h"
+// #include "imgui_impl_glfw.h"
+// #include "imgui_impl_opengl3.h"
 
 #include "Camera.h"
 #include "GLSL.h"
@@ -35,10 +35,15 @@
 using namespace std;
 
 #define MOVEMENT_SPEED 10.0f
-#define SENSITIVITY 0.005
+#define SENSITIVITY 0.005f
 #define VERT "../resources/phong_vert.glsl"
 #define FRAG "../resources/phong_frag.glsl"
-#define g glm::vec3(0.0f, -10.0f, 0.0f);
+#define GRAVITY glm::vec3(0.0f, -9.81f, 0.0f)
+#define WIND glm::vec3(1.0f, 0.0f, 0.0f)
+#define DRAG 0.3f
+#define WALL_RADIUS 5.0f
+#define RADIUS 0.5f
+#define EPS 0.00000001f
 
 GLFWwindow *window, *gui_window; // Main application window
 string RESOURCE_DIR = "./"; // Where the resources are loaded from
@@ -215,24 +220,29 @@ static void update(float t, float dt) {
 
 	for (auto obj : objects) {
 		if (obj->dynamic) {
-			glm::vec3 a(0.0f, 0.0f, 0.0f);
-
-			a += g; 
-			obj->pos = obj->pos + obj->velocity * dt;
-			obj->velocity = obj->velocity + a * dt;
-
-			if (obj->pos.y - 0.5f < -5.0f || obj->pos.y + 0.5f > 5.0f) { // here take into account radius
-				obj->velocity.y = -1.0f * obj->velocity.y * 0.9f;
-			}
-			if (obj->pos.x - 0.5f < -5.0f || obj->pos.x + 0.5f > 5.0f) { // here take into account radius
-				obj->velocity.x = -1.0f * obj->velocity.x * 0.9f;
-			}
-			if (obj->pos.z - 0.5f < -5.0f || obj->pos.z + 0.5f > 5.0f) { // here take into account radius
-				obj->velocity.z = -1.0f * obj->velocity.z * 0.9f;
+			glm::vec3 a = calculateAcceleration(obj->mass, obj->velocity);
+			glm::vec3 new_pos = obj->pos + obj->velocity * dt;
+			
+			if (crossed_boundaries(new_pos)) {
+				float f = time_split(obj->pos);
+				update(t, dt * f - EPS);
+				
+			} else {
+				obj->velocity = obj->velocity + a * dt;
+				obj->pos = new_pos;
 			}
 		}
 	}
 
+}
+
+glm::vec3 calculateAcceleration(float mass, glm::vec3 velocity) {
+	glm::vec3 air = (DRAG * (WIND - velocity))  / mass;
+	return air + GRAVITY;
+}
+
+bool crossed_boundaries(glm::vec3 pos) {
+	return glm::abs(pos.x) > WALL_RADIUS - RADIUS || glm::abs(pos.y) > WALL_RADIUS - RADIUS || glm::abs(pos.z) > WALL_RADIUS - RADIUS;
 }
 
 // This function is called to draw the scene.
@@ -343,22 +353,22 @@ int main(int argc, char **argv)
 	// Initialize scene.
 	init();
 
-	gui_window = glfwCreateWindow(640 * 2, 480 * 2, "Raul Escobar", NULL, NULL);
-	// Setup Dear ImGui context
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO(); (void)io;
-    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+	// gui_window = glfwCreateWindow(640 * 2, 480 * 2, "Raul Escobar", NULL, NULL);
+	// // Setup Dear ImGui context
+    // IMGUI_CHECKVERSION();
+    // ImGui::CreateContext();
+    // ImGuiIO& io = ImGui::GetIO(); (void)io;
+    // //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+    // //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
 
-    // Setup Dear ImGui style
-    ImGui::StyleColorsDark();
-    //ImGui::StyleColorsClassic();
+    // // Setup Dear ImGui style
+    // ImGui::StyleColorsDark();
+    // //ImGui::StyleColorsClassic();
 
-    // Setup Platform/Renderer backends
-    ImGui_ImplGlfw_InitForOpenGL(gui_window, true);
-	const char* glsl_version = "#version 130";
-    ImGui_ImplOpenGL3_Init(glsl_version);
+    // // Setup Platform/Renderer backends
+    // ImGui_ImplGlfw_InitForOpenGL(gui_window, true);
+	// const char* glsl_version = "#version 130";
+    // ImGui_ImplOpenGL3_Init(glsl_version);
 
 	float t = 0.0f;
 	float dt = 0.000001f;
