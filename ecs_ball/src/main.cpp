@@ -34,7 +34,7 @@
 
 using namespace std;
 
-#define MOVEMENT_SPEED 10.0f
+#define MOVEMENT_SPEED 5.0f
 #define SENSITIVITY 0.005f
 #define VERT "../resources/phong_vert.glsl"
 #define FRAG "../resources/phong_frag.glsl"
@@ -43,7 +43,10 @@ using namespace std;
 #define DRAG 0.3f
 #define WALL_RADIUS 5.0f
 #define RADIUS 0.5f
-#define EPS 0.00000001f
+#define EPS 0.01f
+#define RESTITUTION 0.5f
+#define MU 0.2f
+#define dT 1.0f/60.0f
 
 GLFWwindow *window, *gui_window; // Main application window
 string RESOURCE_DIR = "./"; // Where the resources are loaded from
@@ -62,20 +65,20 @@ shared_ptr<Material> ball_material;
 shared_ptr<Material> wall_material;
 shared_ptr<Light> light;
 vector< shared_ptr<Object> > objects;
-vector<glm::vec3> forces;
 
 // could not think of a better way to initialize these values probably bad practice
 double o_x = 0.0;		 //TODO: changte to ptr	
 double o_y = 0.0;
 
 struct Triangle {
+	Triangle()=default;
 	Triangle(glm::vec3 a, glm::vec3 b, glm::vec3 c, glm::vec3 n) : v1(a), v2(b), v3(c), n(glm::normalize(n)), empty(false) {};
-	Triangle(bool empty) : empty(a) {};
+	Triangle(bool empty) : empty(empty) {};
 	glm::vec3 v1, v2, v3;
 	glm::vec3 n;
 	bool empty;
 	operator bool() {return empty;};
-}
+};
 
 static void error_callback(int error, const char *description) { 
 	cerr << description << endl; 
@@ -103,7 +106,8 @@ static void key_callback(GLFWwindow *window, int key, int scancode, int action, 
 		inputs[(unsigned)'c'] = action != GLFW_RELEASE;
 	if (key == GLFW_KEY_V) 
 		inputs[(unsigned)'v'] = action != GLFW_RELEASE;
-	
+	if (key == GLFW_KEY_F) 
+		inputs[(unsigned) 'f'] = true;
 	if (key == GLFW_KEY_Z && (mods == GLFW_MOD_SHIFT || inputs[(unsigned) 'Z'])) {
 		inputs[(unsigned)'Z'] = action != GLFW_RELEASE;
 	}
@@ -114,17 +118,18 @@ static void key_callback(GLFWwindow *window, int key, int scancode, int action, 
 }
 
 static void cursor_position_callback(GLFWwindow* window, double xmouse, double ymouse){
+	if (inputs[(unsigned) 'f']) {
+		float xdiff = (xmouse - o_x) * SENSITIVITY;
+		float ydiff = (ymouse - o_y) * SENSITIVITY;
 
-	float xdiff = (xmouse - o_x) * SENSITIVITY;
-	float ydiff = (ymouse - o_y) * SENSITIVITY;
+		camera->yaw -= xdiff;
+		camera->pitch -= ydiff;
 
-	camera->yaw -= xdiff;
-	camera->pitch -= ydiff;
-
-	camera->pitch = min(glm::pi<float>()/3.0f, camera->pitch);
-	camera->pitch = max(-glm::pi<float>()/3.0f, camera->pitch);
-	o_x = xmouse;
-	o_y = ymouse;
+		camera->pitch = min(glm::pi<float>()/3.0f, camera->pitch);
+		camera->pitch = max(-glm::pi<float>()/3.0f, camera->pitch);
+		o_x = xmouse;
+		o_y = ymouse;
+	}
 }
 
 static void char_callback(GLFWwindow *window, unsigned int key){
@@ -155,15 +160,13 @@ static void init(){
 	ball->createSphere(20);
 	ball->fitToUnitBox();
 	ball->init();
-	ball->set_id("ball");
-	ball_material = make_shared<Material>(glm::vec3(0.0f,0.0f,1.0f),glm::vec3(0.1f,0.2f,0.8f),glm::vec3(0.05f,0.95f,0.05f),200.0f);
-	objects.push_back(make_shared<Object>(ball_material, ball, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(7.0f,-1.0f,3.2f), true));
+	ball_material = make_shared<Material>(glm::vec3(1.0f,0.0f,0.0f),glm::vec3(0.1f,0.2f,0.8f),glm::vec3(0.05f,0.95f,0.05f),200.0f);
+	objects.push_back(make_shared<Object>(ball_material, ball, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(70.0f,50.0f,-20.2f), true));
 
 	wall = make_shared<Shape>();
 	wall->loadMesh("../resources/square.obj"); // TODO: fix generation script later
 	wall->fitToUnitBox();
 	wall->init();
-	wall->set_id("wall");
 	wall_material = make_shared<Material>(glm::vec3(0.2f,0.2f,0.2f),glm::vec3(0.6f,0.6f,0.6f),glm::vec3(0.01f,0.01f,0.01f),0.1f);
 
 	objects.push_back(make_shared<Object>(wall_material, wall, glm::vec3(0.0f , 5.0f, 0.0f), glm::vec3(1.0f,0.0f,0.0f) * glm::pi<float>()/2.0f, glm::vec3(0.0f,0.0f,0.0f), false, 10.0f));
@@ -180,7 +183,7 @@ static void init(){
 
 static void move_camera() {
 
-	float dt = 0.001;
+	float dt = dT;
 	
 	glm::vec3 buff(0.0f,0.0f,0.0f);
 
@@ -207,7 +210,7 @@ static void move_camera() {
 		camera->pos += glm::normalize(buff) * MOVEMENT_SPEED * dt; // keeps the movement the same speed even if moving diagonally by summing direction of movement vectors and normalizing
 	}
 
-	if(keyToggles[(unsigned)'c']) {
+	if(!keyToggles[(unsigned)'c']) {
 		glEnable(GL_CULL_FACE);
 	} else {
 		glDisable(GL_CULL_FACE);
@@ -223,89 +226,84 @@ static void move_camera() {
 	if (inputs[(unsigned) 'Z']){camera->increment_fovy();}
 }
 
-// game physics
-static void update(float dt, glm::vec3 collision_response=glm::vec3(0.0f,0.0f,0.0f)) { // reorder into a while loop
-
-	float f1 = 1.0f;
-	bool collision = false;
-	shared_ptr<Object> collider;
-	Triangle triangle;
-
-	for (auto obj : objects) {
-		if (obj->dynamic) {
-			glm::vec3 new_pos = obj->pos + obj->velocity * dt;
-			triangle = collision_found(obj->pos, new->pos); 
-			if (!triangle) {
-				collision = true;
-				if (time_split(obj->pos, new_pos, triangle) < f1) {
-					f1 = time_split(obj->pos, new_pos, triangle);
-					collider = obj;
-				}
-			}
-		}
-	}
-
-	for (auto obj : objects) {
-		if (obj->dynamic) {
-			glm::vec3 a = calculate_acceleration(obj->mass, obj->velocity);
-			a += obj->colliding ? collision_response : glm::vec3(0.0f, 0.0f, 0.0f);
-			obj->pos = obj->pos + obj->velocity * dt * f1;
-			obj->velocity = obj->velocity + a * dt * f1;
-		}
-	}
-
-	collider->velocity = collider->velocity
-
-	glm::vec3 response = 
-
-	if (collision) update(dt * (1.0f - f1), response);
-}
-
-float time_split(glm::vec3 old_pos, glm::vec3 new_pos, Triangle& tri) {
-	return dist(tri, old_pos) / (dist(tri, old_pos) - dist(tri, new_pos));
-}
-
 glm::vec3 calculate_acceleration(float mass, glm::vec3 velocity) {
 	glm::vec3 air = (DRAG * (WIND - velocity))  / mass;
 	return air + GRAVITY;
 }
 
-bool collision_found(glm::vec3 old_pos, glm::vec3 new_pos) {
+pair<float, glm::vec3> collision_found(glm::vec3 old_pos, glm::vec3 new_pos) {
+	pair<float, glm::vec3> result(1.0f, glm::vec3(0.0f, 0.0f, 0.0f));
+	
+	if (glm::abs(new_pos.x) >= WALL_RADIUS - RADIUS){
+		float a = glm::abs(old_pos.x) - (WALL_RADIUS - RADIUS);
+		float b = glm::abs(new_pos.x - old_pos.x) - a;
+		result.first = a / (a - b);
+		result.second += new_pos.x < 0.0f ? glm::vec3(1.0f, 0.0f, 0.0f) : glm::vec3(-1.0f, 0.0f, 0.0f);
+	}
+	if (glm::abs(new_pos.y) >= WALL_RADIUS - RADIUS) {
+		float a = glm::abs(old_pos.y) - (WALL_RADIUS - RADIUS);
+		float b = glm::abs(new_pos.y - old_pos.y) - a;
+		result.first = glm::min(result.first, a / (a - b));
+		result.second += new_pos.y < 0.0f ? glm::vec3(0.0f, 1.0f, 0.0f) : glm::vec3(0.0f, -1.0f, 0.0f);
+	} 
+	if (glm::abs(new_pos.z) >= WALL_RADIUS - RADIUS) {
+		float a = glm::abs(old_pos.z) - (WALL_RADIUS - RADIUS);
+		float b = glm::abs(new_pos.z - old_pos.z) - a;
+		result.first = glm::min(result.first, a / (a - b));
+		result.second += new_pos.z < 0.0f ? glm::vec3(0.0f, 0.0f, 1.0f) : glm::vec3(0.0f, 0.0f, -1.0f);
+	}
+	result.second = glm::length(result.second) > 0.1f ? glm::normalize(result.second): result.second;
+	return result;
+}
 
-	for (auto obj: objects) {
-		if (!obj->dynamic) {
-			for (auto tri: extract_triangles(obj->shape)) {
-				if (dist(tri, new_pos) * dist(tri, old_pos) < 0 && inside_triangle(new_pos, old_pos, tri)) {
-					return tri;
-				}
+bool is_sleeping(shared_ptr<Object> obj) {
+	if (glm::length(obj->velocity) < 10.0f * EPS && obj->pos.y < RADIUS - WALL_RADIUS + EPS) {
+		cout<<"sleeping"<<endl;
+		return true;
+	}
+	return false;
+}
+
+// game physics
+static void update(float dt) { // reorder into a while loop
+
+	float f1 = 1.0f;
+	glm::vec3 normal;
+	shared_ptr<Object> collider;
+
+	for (auto obj : objects) {
+		if (obj->dynamic && !obj->sleeping) {
+			if (is_sleeping(obj)) {
+				obj->sleeping = true;
+				continue;
+			}
+			glm::vec3 new_pos = obj->pos + obj->velocity * dt;
+
+			pair<float,glm::vec3> c = collision_found(obj->pos, new_pos);
+			if (c.first < f1) {
+				f1 = c.first;
+				normal = c.second;
+				collider = obj;
 			}
 		}
 	}
-	return Triangle(true);
-}
 
-bool inside_triangle(glm::vec3 new_pos, glm::vec3 old_pos, Triangle& tri) {
-	if () {
-
-	} else if () {
-
-	} else {
-
+	for (auto obj : objects) {
+		if (obj->dynamic && !obj->sleeping) {
+			glm::vec3 a = calculate_acceleration(obj->mass, obj->velocity);
+			obj->pos = obj->pos + obj->velocity * dt * f1;
+			obj->velocity = obj->velocity + a * dt * f1;
+		}
 	}
-}
+	
+	if (f1 < 1.0f) {
+		glm::vec3 vn = glm::dot(collider->velocity, normal) * normal;
+		glm::vec3 vt = collider->velocity - vn;
 
-float dist(Triangle& tri, glm::vec3 p) {
-	return glm::dot(p - tri.v1,  tri.n) + RADIUS; // switch to negative if failing
-}
+		collider->velocity = -RESTITUTION * vn  + vt - glm::min(MU * glm::length(vn), glm::length(vt)) * glm::normalize(vt);
 
-vector<Triangle> extract_triangles(shared_ptr<Shape> shape) {
-	for (int i = 0; i < shape->getPosBuf.size(); i += 9){
-		glm::vec3 v1(shape->getPosBuf(i), shape->getPosBuf(i+1), shape->getPosBuf(i+2) );
-		glm::vec3 v2(shape->getPosBuf(i+3), shape->getPosBuf(i+4), shape->getPosBuf(i+5) );
-		glm::vec3 v3(shape->getPosBuf(i+6), shape->getPosBuf(i+7), shape->getPosBuf(i+8) );
+		update(dt * (1.0f - f1));
 	}
-	glm::vec3 n = glm::cross(v1,v2);
-        Triangle tri(v1,v2,v3, n);
 }
 
 // This function is called to draw the scene.
@@ -434,7 +432,7 @@ int main(int argc, char **argv)
     // ImGui_ImplOpenGL3_Init(glsl_version);
 
 	float t = 0.0f;
-	float dt = 0.000001f;
+	float dt = dT;
 
 
 	float currentTime = glfwGetTime();

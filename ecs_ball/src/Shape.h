@@ -27,7 +27,8 @@ public:
 	void init();
 	void draw(const std::shared_ptr<Program> prog) const;
 
-	vector<float> getPosBuf(int i) {return posBuf[i];};
+	float getPosBuf(int i) {return posBuf[i];};
+	int getPosBufSize() {return posBuf.size();};
 	
 private:
 	std::vector<float> posBuf;
