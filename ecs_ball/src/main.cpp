@@ -64,10 +64,18 @@ shared_ptr<Light> light;
 vector< shared_ptr<Object> > objects;
 vector<glm::vec3> forces;
 
-
 // could not think of a better way to initialize these values probably bad practice
 double o_x = 0.0;		 //TODO: changte to ptr	
 double o_y = 0.0;
+
+struct Triangle {
+	Triangle(glm::vec3 a, glm::vec3 b, glm::vec3 c, glm::vec3 n) : v1(a), v2(b), v3(c), n(glm::normalize(n)), empty(false) {};
+	Triangle(bool empty) : empty(a) {};
+	glm::vec3 v1, v2, v3;
+	glm::vec3 n;
+	bool empty;
+	operator bool() {return empty;};
+}
 
 static void error_callback(int error, const char *description) { 
 	cerr << description << endl; 
@@ -216,35 +224,88 @@ static void move_camera() {
 }
 
 // game physics
-static void update(float t, float dt) {
+static void update(float dt, glm::vec3 collision_response=glm::vec3(0.0f,0.0f,0.0f)) { // reorder into a while loop
+
+	float f1 = 1.0f;
+	bool collision = false;
+	shared_ptr<Object> collider;
+	Triangle triangle;
 
 	for (auto obj : objects) {
 		if (obj->dynamic) {
-			glm::vec3 a = calculateAcceleration(obj->mass, obj->velocity);
 			glm::vec3 new_pos = obj->pos + obj->velocity * dt;
-			
-			if (crossed_boundaries(new_pos)) {
-				float f = time_split(obj->pos);
-				update(t, dt * f - EPS);
-
-				
-				
-			} else {
-				obj->velocity = obj->velocity + a * dt;
-				obj->pos = new_pos;
+			triangle = collision_found(obj->pos, new->pos); 
+			if (!triangle) {
+				collision = true;
+				if (time_split(obj->pos, new_pos, triangle) < f1) {
+					f1 = time_split(obj->pos, new_pos, triangle);
+					collider = obj;
+				}
 			}
 		}
 	}
 
+	for (auto obj : objects) {
+		if (obj->dynamic) {
+			glm::vec3 a = calculate_acceleration(obj->mass, obj->velocity);
+			a += obj->colliding ? collision_response : glm::vec3(0.0f, 0.0f, 0.0f);
+			obj->pos = obj->pos + obj->velocity * dt * f1;
+			obj->velocity = obj->velocity + a * dt * f1;
+		}
+	}
+
+	collider->velocity = collider->velocity
+
+	glm::vec3 response = 
+
+	if (collision) update(dt * (1.0f - f1), response);
 }
 
-glm::vec3 calculateAcceleration(float mass, glm::vec3 velocity) {
+float time_split(glm::vec3 old_pos, glm::vec3 new_pos, Triangle& tri) {
+	return dist(tri, old_pos) / (dist(tri, old_pos) - dist(tri, new_pos));
+}
+
+glm::vec3 calculate_acceleration(float mass, glm::vec3 velocity) {
 	glm::vec3 air = (DRAG * (WIND - velocity))  / mass;
 	return air + GRAVITY;
 }
 
-bool crossed_boundaries(glm::vec3 pos) {
-	return glm::abs(pos.x) > WALL_RADIUS - RADIUS || glm::abs(pos.y) > WALL_RADIUS - RADIUS || glm::abs(pos.z) > WALL_RADIUS - RADIUS;
+bool collision_found(glm::vec3 old_pos, glm::vec3 new_pos) {
+
+	for (auto obj: objects) {
+		if (!obj->dynamic) {
+			for (auto tri: extract_triangles(obj->shape)) {
+				if (dist(tri, new_pos) * dist(tri, old_pos) < 0 && inside_triangle(new_pos, old_pos, tri)) {
+					return tri;
+				}
+			}
+		}
+	}
+	return Triangle(true);
+}
+
+bool inside_triangle(glm::vec3 new_pos, glm::vec3 old_pos, Triangle& tri) {
+	if () {
+
+	} else if () {
+
+	} else {
+
+	}
+}
+
+float dist(Triangle& tri, glm::vec3 p) {
+	return glm::dot(p - tri.v1,  tri.n) + RADIUS; // switch to negative if failing
+}
+
+vector<Triangle> extract_triangles(shared_ptr<Shape> shape) {
+	for (int i = 0; i < shape->getPosBuf.size(); i += 9){
+		glm::vec3 v1(shape->getPosBuf(i), shape->getPosBuf(i+1), shape->getPosBuf(i+2) );
+		glm::vec3 v2(shape->getPosBuf(i+3), shape->getPosBuf(i+4), shape->getPosBuf(i+5) );
+		glm::vec3 v3(shape->getPosBuf(i+6), shape->getPosBuf(i+7), shape->getPosBuf(i+8) );
+	}
+	glm::vec3 n = glm::cross(v1,v2);
+        Triangle tri(v1,v2,v3, n);
 }
 
 // This function is called to draw the scene.
@@ -390,7 +451,7 @@ int main(int argc, char **argv)
 		totalTime += frameTime;
 
 		while (totalTime >= dt) {
-			update(t, dt);
+			update(dt);
 			totalTime -= dt;
 			t += dt;
 		}

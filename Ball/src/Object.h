@@ -4,6 +4,8 @@
 #define OBJECT_H
 #include <stdlib.h>  
 #include <memory>
+#include "Material.h"
+#include "Shape.h"
 
 
 class Object {

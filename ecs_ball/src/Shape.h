@@ -26,9 +26,8 @@ public:
 	void fitToUnitBox();
 	void init();
 	void draw(const std::shared_ptr<Program> prog) const;
-	
-	void set_id(std::string s) {id=s;};
-	std::string get_id() {return id;};
+
+	vector<float> getPosBuf(int i) {return posBuf[i];};
 	
 private:
 	std::vector<float> posBuf;
