@@ -389,7 +389,7 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	glGetError(); // A bug in glewInit() causes an error that we can safely ignore.
+	glGetError();
 	glfwSwapInterval(1);
 	// Set keyboard callback.
 	glfwSetKeyCallback(window, key_callback);
@@ -398,13 +398,8 @@ int main(int argc, char **argv)
 	// Set cursor position callback.
 	glfwSetCursorPosCallback(window, cursor_position_callback);
 
-	// Set mouse button callback.
-	// glfwSetMouseButtonCallback(window, mouse_button_callback);
-
 	// Set the window resize call back.
 	glfwSetFramebufferSizeCallback(window, resize_callback);
-
-	//glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // THIS MAKES THE CURSOR DISAPPEAR
 
 	// Initialize scene.
 	init();
@@ -438,9 +433,9 @@ int main(int argc, char **argv)
 	float totalTime = 0.0f;
 	float newTime, frameTime;
 
-	bool show_demo_window = true;
-    bool show_another_window = false;
+	// imgui parameters
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+	float fps = 0.0f;
 
 	// Loop until the user closes the window.
 	while(!glfwWindowShouldClose(window) && !glfwWindowShouldClose(gui_window)) {
@@ -448,6 +443,8 @@ int main(int argc, char **argv)
 		glfwPollEvents();
 		newTime = glfwGetTime();
 		frameTime = newTime - currentTime;
+		fps = (int) (newTime*100.0f) % 10 == 0 ? 1.0f/frameTime : fps; 
+		
 		currentTime = newTime;
 
 		totalTime += frameTime;
@@ -457,6 +454,7 @@ int main(int argc, char **argv)
 			totalTime -= dt;
 			t += dt;
 		}
+		
 
 		// update position and camera
 		move_camera();
@@ -486,21 +484,25 @@ int main(int argc, char **argv)
 		static float f = 0.0f;
 		static int counter = 0;
 
-		ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
+		ImGui::Begin("Parameters");                        
 
-		ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
-		ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
-		ImGui::Checkbox("Another Window", &show_another_window);
+		ImGui::Text("Edit the parameters and reset the simulation.");
 
-		ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
+		ImGui::SliderFloat("initial x position", &f, 0.0f, 100.0f);  // make this radius dependant
+		ImGui::SliderFloat("initial y position", &f, 0.0f, 100.0f);
+		ImGui::SliderFloat("initial y position", &f, 0.0f, 100.0f);
+
+		ImGui::SliderFloat("initial x velocity", &f, 0.0f, 100.0f); // cap it at something 
+		ImGui::SliderFloat("initial y velocity", &f, 0.0f, 100.0f);
+		ImGui::SliderFloat("initial y velocity", &f, 0.0f, 100.0f);
 		ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
 
-		if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
+		if (ImGui::Button("Restart"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
 			counter++;
 		ImGui::SameLine();
 		ImGui::Text("counter = %d", counter);
 
-		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+		ImGui::Text("Application (%.1f FPS)", fps);
 		ImGui::End();
 		ImGui::Render();
         int display_w, display_h;
