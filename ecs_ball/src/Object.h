@@ -5,6 +5,12 @@
 #include <stdlib.h>  
 #include <memory>
 
+#define GLM_FORCE_RADIANS
+#include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
+#include "Material.h"
+#include "Shape.h"
 
 class Object {
     public: 
@@ -18,15 +24,14 @@ class Object {
             this->dynamic = dynamic; 
             mass = 5.0f;
             sleeping = !dynamic;
+            drag_coeff = 0.3f;
+            restitution = 0.5f;
+            mu = 0.2f;
         }
 
-        bool dynamic;
-        float mass;
-        glm::vec3 pos;
-        glm::vec3 velocity;
-        glm::vec3 rotation;
-        float scale;
-        bool sleeping;
+        bool dynamic, sleeping;
+        float drag_coeff, restitution, mu, mass, scale;
+        glm::vec3 pos, velocity, rotation;
         std::shared_ptr<Material> material;
         std::shared_ptr<Shape> shape;
 };

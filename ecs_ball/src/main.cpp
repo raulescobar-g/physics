@@ -33,345 +33,74 @@
 #include "Object.h"
 #include "Simulation.h"
 
-using namespace std;
-
-#define MOVEMENT_SPEED 5.0f
-#define SENSITIVITY 0.005f
-#define GRAVITY glm::vec3(0.0f, -9.81f, 0.0f)
-#define WIND glm::vec3(1.0f, 0.0f, 0.0f)
-#define DRAG 0.3f
-#define WALL_RADIUS 5.0f
-#define RADIUS 0.5f
-#define EPS 0.01f
-#define RESTITUTION 0.5f
-#define MU 0.2f
-#define dT 1.0f/60.0f
-
-GLFWwindow *window, *gui_window; // Main application window
-string RESOURCE_DIR = "./"; // Where the resources are loaded from
-
-shared_ptr<Camera> camera;
-
-shared_ptr<Program> prog_p;
-
-shared_ptr<Shape> ball;
-shared_ptr<Shape> wall;
-
-bool keyToggles[256] = {false}; // only for English keyboards!
-bool inputs[256] = {false}; // only for English keyboards!
-
-shared_ptr<Material> ball_material;
-shared_ptr<Material> wall_material;
-shared_ptr<Light> light;
-vector< shared_ptr<Object> > objects;
-
-// could not think of a better way to initialize these values probably bad practice
-double o_x = 0.0;		 //TODO: changte to ptr	
-double o_y = 0.0;
+GLFWwindow *gui_window; // Main application window
 
 
-
-static void init(){
-	int width, height;
-
-	glfwSetTime(0.0);
-	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-	glEnable(GL_DEPTH_TEST);
-	glfwGetFramebufferSize(window, &width, &height);
-
-	vector<string> attributes = {"aPos", "aNor"};
-	vector<string> uniforms = {"MV", "iMV", "P", "lightPos", "ka", "kd", "ks", "s"};
-	prog_p = make_shared<Program>(VERT, FRAG, attributes, uniforms);
-
-	light = make_shared<Light>(glm::vec3(0.0f, 4.5f, 0.0f)); // TODO
-	
-	camera = make_shared<Camera>();
-
-	ball = make_shared<Shape>();
-	ball->createSphere(20);
-	ball->fitToUnitBox();
-	ball->init();
-	ball_material = make_shared<Material>(glm::vec3(1.0f,0.0f,0.0f),glm::vec3(0.1f,0.2f,0.8f),glm::vec3(0.05f,0.95f,0.05f),200.0f);
-	objects.push_back(make_shared<Object>(ball_material, ball, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(70.0f,50.0f,-20.2f), true));
-
-	wall = make_shared<Shape>();
-	wall->loadMesh("../resources/square.obj"); // TODO: fix generation script later
-	wall->fitToUnitBox();
-	wall->init();
-	wall_material = make_shared<Material>(glm::vec3(0.2f,0.2f,0.2f),glm::vec3(0.6f,0.6f,0.6f),glm::vec3(0.01f,0.01f,0.01f),0.1f);
-
-	objects.push_back(make_shared<Object>(wall_material, wall, glm::vec3(0.0f , 5.0f, 0.0f), glm::vec3(1.0f,0.0f,0.0f) * glm::pi<float>()/2.0f, glm::vec3(0.0f,0.0f,0.0f), false, 10.0f));
-	objects.push_back(make_shared<Object>(wall_material, wall, glm::vec3(0.0f, -5.0f, 0.0f), glm::vec3(1.0f,0.0f,0.0f) * -glm::pi<float>()/2.0f, glm::vec3(0.0f,0.0f,0.0f), false, 10.0f));
-	objects.push_back(make_shared<Object>(wall_material, wall, glm::vec3(5.0f, 0.0f, 0.0f), glm::vec3(0.0f,1.0f,0.0f) * -glm::pi<float>()/2.0f, glm::vec3(0.0f,0.0f,0.0f), false, 10.0f));
-	objects.push_back(make_shared<Object>(wall_material, wall, glm::vec3(-5.0f, 0.0f, 0.0f), glm::vec3(0.0f,1.0f,0.0f) * glm::pi<float>()/2.0f, glm::vec3(0.0f,0.0f,0.0f), false, 10.0f));
-	objects.push_back(make_shared<Object>(wall_material, wall, glm::vec3(0.0f, 0.0f, -5.0f), glm::vec3(1.0f,0.0f,0.0f) * 0.0f, glm::vec3(0.0f,0.0f,0.0f), false, 10.0f));
-	objects.push_back(make_shared<Object>(wall_material, wall, glm::vec3(0.0f, 0.0f, 5.0f), glm::vec3(0.0f,1.0f,0.0f) * glm::pi<float>(), glm::vec3(0.0f,0.0f,0.0f), false, 10.0f));
-
-
-
-	GLSL::checkError(GET_FILE_LINE);
-}
-
-static void move_camera() {
-
-	float dt = dT;
-	
-	glm::vec3 buff(0.0f,0.0f,0.0f);
-
-	if (inputs[(unsigned)'w']) {
-		buff += glm::normalize(glm::vec3( sin(camera->yaw)*cos(camera->pitch) , 0.0f, cos(camera->yaw)*cos(camera->pitch))); 
-	}
-	if (inputs[(unsigned)'s']) {
-		buff -= glm::normalize(glm::vec3( sin(camera->yaw)*cos(camera->pitch) , 0.0f, cos(camera->yaw)*cos(camera->pitch))); 
-	}
-	if (inputs[(unsigned)'a']) {
-		buff -= glm::normalize(glm::cross(glm::vec3( sin(camera->yaw)*cos(camera->pitch) , 0.0f, cos(camera->yaw)*cos(camera->pitch)), glm::vec3(0.0f, 1.0f, 0.0f)));
-	}
-	if (inputs[(unsigned)'d']) {
-		buff += glm::normalize(glm::cross(glm::vec3( sin(camera->yaw)*cos(camera->pitch) , 0.0f, cos(camera->yaw)*cos(camera->pitch)), glm::vec3(0.0f, 1.0f, 0.0f)));
-	}
-	if (inputs[(unsigned)'q']) {
-		buff += glm::vec3(0.0f,1.0f,0.0f);
-	}
-	if (inputs[(unsigned)'e']) {
-		buff += glm::vec3(0.0f,-1.0f,0.0f);
-	}
-
-	if (glm::length(buff) > 0.00001f || glm::length(buff) < -0.00001f) {
-		camera->pos += glm::normalize(buff) * MOVEMENT_SPEED * dt; // keeps the movement the same speed even if moving diagonally by summing direction of movement vectors and normalizing
-	}
-
-	if(!keyToggles[(unsigned)'c']) {
-		glEnable(GL_CULL_FACE);
-	} else {
-		glDisable(GL_CULL_FACE);
-	}
-	if(keyToggles[(unsigned)'v']) {
-		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	} else {
-		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-	}
-
-
-	if (inputs[(unsigned) 'z']){camera->decrement_fovy();}
-	if (inputs[(unsigned) 'Z']){camera->increment_fovy();}
-}
-
-glm::vec3 calculate_acceleration(float mass, glm::vec3 velocity) {
-	glm::vec3 air = (DRAG * (WIND - velocity))  / mass;
-	return air + GRAVITY;
-}
-
-pair<float, glm::vec3> collision_found(glm::vec3 old_pos, glm::vec3 new_pos) {
-	pair<float, glm::vec3> result(1.0f, glm::vec3(0.0f, 0.0f, 0.0f));
-	
-	if (glm::abs(new_pos.x) >= WALL_RADIUS - RADIUS){
-		float a = glm::abs(old_pos.x) - (WALL_RADIUS - RADIUS);
-		float b = glm::abs(new_pos.x - old_pos.x) - a;
-		result.first = a / (a - b);
-		result.second += new_pos.x < 0.0f ? glm::vec3(1.0f, 0.0f, 0.0f) : glm::vec3(-1.0f, 0.0f, 0.0f);
-	}
-	if (glm::abs(new_pos.y) >= WALL_RADIUS - RADIUS) {
-		float a = glm::abs(old_pos.y) - (WALL_RADIUS - RADIUS);
-		float b = glm::abs(new_pos.y - old_pos.y) - a;
-		result.first = glm::min(result.first, a / (a - b));
-		result.second += new_pos.y < 0.0f ? glm::vec3(0.0f, 1.0f, 0.0f) : glm::vec3(0.0f, -1.0f, 0.0f);
-	} 
-	if (glm::abs(new_pos.z) >= WALL_RADIUS - RADIUS) {
-		float a = glm::abs(old_pos.z) - (WALL_RADIUS - RADIUS);
-		float b = glm::abs(new_pos.z - old_pos.z) - a;
-		result.first = glm::min(result.first, a / (a - b));
-		result.second += new_pos.z < 0.0f ? glm::vec3(0.0f, 0.0f, 1.0f) : glm::vec3(0.0f, 0.0f, -1.0f);
-	}
-	result.second = glm::length(result.second) > 0.1f ? glm::normalize(result.second): result.second;
-	return result;
-}
-
-bool is_sleeping(shared_ptr<Object> obj) {
-	if (glm::length(obj->velocity) < 10.0f * EPS && obj->pos.y < RADIUS - WALL_RADIUS + EPS) {
-		cout<<"sleeping"<<endl;
-		return true;
-	}
-	return false;
-}
-
-// game physics
-static void update(float dt) { // reorder into a while loop
-
-	float f1 = 1.0f;
-	glm::vec3 normal;
-	shared_ptr<Object> collider;
-
-	for (auto obj : objects) {
-		if (obj->dynamic && !obj->sleeping) {
-			if (is_sleeping(obj)) {
-				obj->sleeping = true;
-				continue;
-			}
-			glm::vec3 new_pos = obj->pos + obj->velocity * dt;
-
-			pair<float,glm::vec3> c = collision_found(obj->pos, new_pos);
-			if (c.first < f1) {
-				f1 = c.first;
-				normal = c.second;
-				collider = obj;
-			}
-		}
-	}
-
-	for (auto obj : objects) {
-		if (obj->dynamic && !obj->sleeping) {
-			glm::vec3 a = calculate_acceleration(obj->mass, obj->velocity);
-			obj->pos = obj->pos + obj->velocity * dt * f1;
-			obj->velocity = obj->velocity + a * dt * f1;
-		}
-	}
-	
-	if (f1 < 1.0f) {
-		glm::vec3 vn = glm::dot(collider->velocity, normal) * normal;
-		glm::vec3 vt = collider->velocity - vn;
-
-		collider->velocity = -RESTITUTION * vn  + vt - glm::min(MU * glm::length(vn), glm::length(vt)) * glm::normalize(vt);
-
-		update(dt * (1.0f - f1));
-	}
-}
-
-// This function is called to draw the scene.
-static void render()
-{
-	// Clear framebuffer.
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-	// Get current frame buffer size.
-	int width, height;
-	glfwGetFramebufferSize(window, &width, &height);
-
-	glViewport(0, 0, width, height);
-	
-	
-	// Matrix stacks
-	auto P = make_shared<MatrixStack>();
-	auto MV = make_shared<MatrixStack>();
-	glm::mat4 iMV;
-
-	
-	P->pushMatrix();	
-	camera->applyProjectionMatrix(P);
-	camera->applyViewMatrix(MV);	
-	MV->pushMatrix();
-
-	prog_p->bind();
-	glm::vec3 light_coord = MV->topMatrix() * glm::vec4(light->position, 1.0f);
-	glUniform3f(prog_p->getUniform("lightPos"), light_coord.x, light_coord.y, light_coord.z);
-
-	for (auto obj : objects){ //loops over objects except lights and wall
-		MV->pushMatrix();
-			
-		MV->translate(obj->pos);
-		MV->scale(obj->scale,obj->scale,obj->scale);
-		if (glm::length(obj->rotation) > 0.0000f) MV->rotate(glm::length(obj->rotation), obj->rotation);
-		
-		iMV = glm::transpose(glm::inverse(glm::mat4(MV->topMatrix())));
-
-		glUniformMatrix4fv(prog_p->getUniform("P"), 1, GL_FALSE, glm::value_ptr(P->topMatrix()));
-		glUniformMatrix4fv(prog_p->getUniform("MV"), 1, GL_FALSE, glm::value_ptr(MV->topMatrix()));
-		glUniformMatrix4fv(prog_p->getUniform("iMV"), 1, GL_FALSE, glm::value_ptr(iMV));
-		glUniform3f(prog_p->getUniform("ka"), obj->material->ka.x, obj->material->ka.y, obj->material->ka.z);
-		glUniform3f(prog_p->getUniform("kd"), obj->material->kd.x, obj->material->kd.y, obj->material->kd.z);
-		glUniform3f(prog_p->getUniform("ks"), obj->material->ks.x, obj->material->ks.y, obj->material->ks.z);
-		glUniform1f(prog_p->getUniform("s"), obj->material->s );
-
-		obj->shape->draw(prog_p); 	
-			
-		MV->popMatrix();
-		
-	}
-
-	prog_p->unbind();
-
-	MV->popMatrix();	
-	P->popMatrix();	
-	
-}
-
-// time loop based on this blog post https://gafferongames.com/post/fix_your_timestep/
 int main(int argc, char **argv)
 {
-	
+	// ===================================================================
+	Simulation &sim = Simulation::get_instance();
 
-	Simulation sim();
+	glfwSetErrorCallback(&Simulation::error_callback);
 
 	if (sim.create_window("Ball in a box") == -1) {
-		cout<<"Error creating simulation window."<<endl;
+		std::cout<<"Error creating simulation window."<<std::endl;
 		return -1;
 	}
 
+	GLFWwindow * win = sim.get_window();
+
+	// Set keyboard callback.
+	glfwSetKeyCallback(win, &Simulation::key_callback);
+	// Set char callback.
+	glfwSetCharCallback(win, &Simulation::char_callback);
+	// Set cursor position callback.
+	glfwSetCursorPosCallback(win, &Simulation::cursor_position_callback);
+
+	// Set the window resize call back.
+	glfwSetFramebufferSizeCallback(win, &Simulation::resize_callback);
+	
 	sim.create_scene();
+	// ===================================================================
+	{
+		gui_window = glfwCreateWindow(640, 480, "Parameters", NULL, NULL);
+		if(!gui_window) {
+			glfwTerminate();
+			return -1;
+		}	
+		// Setup Dear ImGui context
+		IMGUI_CHECKVERSION();
+		ImGui::CreateContext();
+		ImGuiIO& io = ImGui::GetIO(); (void)io;
 
-	// Initialize scene.
-	init();
+		ImGui::StyleColorsDark();
 
-	gui_window = glfwCreateWindow(640, 480, "Parameters", NULL, NULL);
-	if(!gui_window) {
-		glfwTerminate();
-		return -1;
-	}	
-	// Setup Dear ImGui context
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO(); (void)io;
-    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+		// Setup Platform/Renderer backends
+		ImGui_ImplGlfw_InitForOpenGL(gui_window, true);
+		const char* glsl_version = "#version 130";
+		ImGui_ImplOpenGL3_Init(glsl_version);
+	}
 
-    // Setup Dear ImGui style
-    ImGui::StyleColorsDark();
-    //ImGui::StyleColorsClassic();
-
-    // Setup Platform/Renderer backends
-    ImGui_ImplGlfw_InitForOpenGL(gui_window, true);
-	const char* glsl_version = "#version 130";
-    ImGui_ImplOpenGL3_Init(glsl_version);
-
-	float t = 0.0f;
-	float dt = dT;
-
-	glfwMakeContextCurrent(window);
-	float currentTime = glfwGetTime();
-	float totalTime = 0.0f;
-	float newTime, frameTime;
+	
 
 	// imgui parameters
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
-	float fps = 0.0f;
+	
 
 	// Loop until the user closes the window.
-	while(!glfwWindowShouldClose(window) && !glfwWindowShouldClose(gui_window)) {
-		glfwMakeContextCurrent(window);
-		glfwPollEvents();
-		newTime = glfwGetTime();
-		frameTime = newTime - currentTime;
-		fps = (int) (newTime*100.0f) % 10 == 0 ? 1.0f/frameTime : fps; 
+	while(!sim.window_closed() && !glfwWindowShouldClose(gui_window)) {
 		
-		currentTime = newTime;
-
-		totalTime += frameTime;
-
-		while (totalTime >= dt) {
-			update(dt);
-			totalTime -= dt;
-			t += dt;
-		}
-		
+		// update physics until dt time passes, then renders
+		sim.fixed_timestep_update();
 
 		// update position and camera
-		move_camera();
+		sim.move_camera();
 
 		// Render scene.
-		render();
+		sim.render_scene();
 
 		// Swap front and back buffers.
-		glfwSwapBuffers(window);
+		sim.swap_buffers();
 		
 		//------------------------------------------------------
 		//------------------------------------------------------
@@ -384,43 +113,45 @@ int main(int argc, char **argv)
 		//------------------------------------------------------
 		//------------------------------------------------------
 
-		glfwMakeContextCurrent(gui_window);
-		glfwPollEvents();
-		ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
-        ImGui::NewFrame();
-		static float f = 0.0f;
-		static int counter = 0;
+		{
+			glfwMakeContextCurrent(gui_window);
+			glfwPollEvents();
+			ImGui_ImplOpenGL3_NewFrame();
+			ImGui_ImplGlfw_NewFrame();
+			ImGui::NewFrame();
+			static float f = 0.0f;
+			static int counter = 0;
 
-		ImGui::Begin("Parameters");                        
+			ImGui::Begin("Parameters");                        
 
-		ImGui::Text("Edit the parameters and reset the simulation.");
+			ImGui::Text("Edit the parameters and reset the simulation.");
 
-		ImGui::SliderFloat("initial x position", &f, 0.0f, 100.0f);  // make this radius dependant
-		ImGui::SliderFloat("initial y position", &f, 0.0f, 100.0f);
-		ImGui::SliderFloat("initial y position", &f, 0.0f, 100.0f);
+			ImGui::SliderFloat("initial x position", &f, 0.0f, 100.0f);  // make this radius dependant
+			ImGui::SliderFloat("initial y position", &f, 0.0f, 100.0f);
+			ImGui::SliderFloat("initial y position", &f, 0.0f, 100.0f);
 
-		ImGui::SliderFloat("initial x velocity", &f, 0.0f, 100.0f); // cap it at something 
-		ImGui::SliderFloat("initial y velocity", &f, 0.0f, 100.0f);
-		ImGui::SliderFloat("initial y velocity", &f, 0.0f, 100.0f);
-		ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
+			ImGui::SliderFloat("initial x velocity", &f, 0.0f, 100.0f); // cap it at something 
+			ImGui::SliderFloat("initial y velocity", &f, 0.0f, 100.0f);
+			ImGui::SliderFloat("initial y velocity", &f, 0.0f, 100.0f);
+			ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
 
-		if (ImGui::Button("Restart"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
-			counter++;
-		ImGui::SameLine();
-		ImGui::Text("counter = %d", counter);
+			if (ImGui::Button("Restart"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
+				counter++;
+			ImGui::SameLine();
+			ImGui::Text("counter = %d", counter);
+			float fps = 1.0f;
+			ImGui::Text("Application (%.1f FPS)", fps);
+			ImGui::End();
+			ImGui::Render();
+			int display_w, display_h;
+			glfwGetFramebufferSize(gui_window, &display_w, &display_h);
+			glViewport(0, 0, display_w, display_h);
+			glClearColor(clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w);
+			glClear(GL_COLOR_BUFFER_BIT);
+			ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-		ImGui::Text("Application (%.1f FPS)", fps);
-		ImGui::End();
-		ImGui::Render();
-        int display_w, display_h;
-        glfwGetFramebufferSize(gui_window, &display_w, &display_h);
-        glViewport(0, 0, display_w, display_h);
-        glClearColor(clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w);
-        glClear(GL_COLOR_BUFFER_BIT);
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
-        glfwSwapBuffers(gui_window);
+			glfwSwapBuffers(gui_window);
+		}
 	}
 
 	glfwMakeContextCurrent(gui_window);
@@ -429,10 +160,7 @@ int main(int argc, char **argv)
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();
 	glfwDestroyWindow(gui_window);
-	glfwTerminate();
 
-	glfwMakeContextCurrent(window);
-	glfwDestroyWindow(window);
-	glfwTerminate();
+	sim.end();
 	return 0;
 }
