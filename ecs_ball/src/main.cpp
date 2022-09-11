@@ -31,13 +31,12 @@
 #include "Material.h"
 #include "Light.h"
 #include "Object.h"
+#include "Simulation.h"
 
 using namespace std;
 
 #define MOVEMENT_SPEED 5.0f
 #define SENSITIVITY 0.005f
-#define VERT "../resources/phong_vert.glsl"
-#define FRAG "../resources/phong_frag.glsl"
 #define GRAVITY glm::vec3(0.0f, -9.81f, 0.0f)
 #define WIND glm::vec3(1.0f, 0.0f, 0.0f)
 #define DRAG 0.3f
@@ -70,75 +69,7 @@ vector< shared_ptr<Object> > objects;
 double o_x = 0.0;		 //TODO: changte to ptr	
 double o_y = 0.0;
 
-struct Triangle {
-	Triangle()=default;
-	Triangle(glm::vec3 a, glm::vec3 b, glm::vec3 c, glm::vec3 n) : v1(a), v2(b), v3(c), n(glm::normalize(n)), empty(false) {};
-	Triangle(bool empty) : empty(empty) {};
-	glm::vec3 v1, v2, v3;
-	glm::vec3 n;
-	bool empty;
-	operator bool() {return empty;};
-};
 
-static void error_callback(int error, const char *description) { 
-	cerr << description << endl; 
-}
-
-static void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods){
-	
-	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) { 
-		glfwSetWindowShouldClose(window, GL_TRUE);
-	} 	
-
-	if (key == GLFW_KEY_W) 
-		inputs[(unsigned)'w'] = action != GLFW_RELEASE;								
-	if (key == GLFW_KEY_S) 
-		inputs[(unsigned)'s'] = action != GLFW_RELEASE;
-	if (key == GLFW_KEY_D) 
-		inputs[(unsigned)'d'] = action != GLFW_RELEASE;
-	if (key == GLFW_KEY_A) 
-		inputs[(unsigned)'a'] = action != GLFW_RELEASE;
-	if (key == GLFW_KEY_Q) 
-		inputs[(unsigned)'q'] = action != GLFW_RELEASE;
-	if (key == GLFW_KEY_E) 
-		inputs[(unsigned)'e'] = action != GLFW_RELEASE;
-	if (key == GLFW_KEY_C) 
-		inputs[(unsigned)'c'] = action != GLFW_RELEASE;
-	if (key == GLFW_KEY_V) 
-		inputs[(unsigned)'v'] = action != GLFW_RELEASE;
-	if (key == GLFW_KEY_F) 
-		inputs[(unsigned) 'f'] = true;
-	if (key == GLFW_KEY_Z && (mods == GLFW_MOD_SHIFT || inputs[(unsigned) 'Z'])) {
-		inputs[(unsigned)'Z'] = action != GLFW_RELEASE;
-	}
-	if (key == GLFW_KEY_Z && mods != GLFW_MOD_SHIFT && !inputs[(unsigned) 'Z']) {
-		inputs[(unsigned)'z'] = action != GLFW_RELEASE;
-	}
-	
-}
-
-static void cursor_position_callback(GLFWwindow* window, double xmouse, double ymouse){
-	if (inputs[(unsigned) 'f']) {
-		float xdiff = (xmouse - o_x) * SENSITIVITY;
-		float ydiff = (ymouse - o_y) * SENSITIVITY;
-
-		camera->yaw -= xdiff;
-		camera->pitch -= ydiff;
-
-		camera->pitch = min(glm::pi<float>()/3.0f, camera->pitch);
-		camera->pitch = max(-glm::pi<float>()/3.0f, camera->pitch);
-		o_x = xmouse;
-		o_y = ymouse;
-	}
-}
-
-static void char_callback(GLFWwindow *window, unsigned int key){
-	keyToggles[key] = !keyToggles[key];
-}
-
-static void resize_callback(GLFWwindow *window, int width, int height){ 
-	glViewport(0, 0, width, height);
-}
 
 static void init(){
 	int width, height;
@@ -367,39 +298,16 @@ static void render()
 // time loop based on this blog post https://gafferongames.com/post/fix_your_timestep/
 int main(int argc, char **argv)
 {
-	// Set error callback.
-	glfwSetErrorCallback(error_callback);
-	// Initialize the library.
-	if(!glfwInit()) {
-		return -1;
-	}
-	// Create a windowed mode window and its OpenGL context.
-	window = glfwCreateWindow(640 * 2, 480 * 2, "Raul Escobar", NULL, NULL);
-	if(!window) {
-		glfwTerminate();
-		return -1;
-	}
-	// Make the window's context current.
-	glfwMakeContextCurrent(window);
+	
 
-	// Initialize GLEW.
-	glewExperimental = true;
-	if(glewInit() != GLEW_OK) {
-		cerr << "Failed to initialize GLEW" << endl;
+	Simulation sim();
+
+	if (sim.create_window("Ball in a box") == -1) {
+		cout<<"Error creating simulation window."<<endl;
 		return -1;
 	}
 
-	glGetError();
-	glfwSwapInterval(1);
-	// Set keyboard callback.
-	glfwSetKeyCallback(window, key_callback);
-	// Set char callback.
-	glfwSetCharCallback(window, char_callback);
-	// Set cursor position callback.
-	glfwSetCursorPosCallback(window, cursor_position_callback);
-
-	// Set the window resize call back.
-	glfwSetFramebufferSizeCallback(window, resize_callback);
+	sim.create_scene();
 
 	// Initialize scene.
 	init();
