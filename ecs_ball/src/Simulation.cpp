@@ -12,21 +12,18 @@ Simulation::Simulation() {
 		inputs[i] = false;
 	}
 
-	dt = 1.0f/60.0f;
-
 	movement_speed = 5.0f;
 	sensitivity = 0.005f;
 
 	eps = 0.01f;
 
-	box_size = 10.0f;
 	fps = 0.0f;
 }
 
-void Simulation::end() {
+Simulation::~Simulation() {
 	glfwMakeContextCurrent(window);
 	glfwDestroyWindow(window);
-	glfwTerminate();
+	
 }
 
 int Simulation::create_window(const char * window_name) {
@@ -40,40 +37,48 @@ int Simulation::create_window(const char * window_name) {
 	// Make the window's context current.
 	glfwMakeContextCurrent(window);
 
-	// Initialize GLEW.
-	glewExperimental = true;
-	if(glewInit() != GLEW_OK) {
-		std::cerr << "Failed to initialize GLEW" << std::endl;
-		return -1;
-	}
-
-	glGetError();
+	
 	glfwSwapInterval(1);
     return 0;
 }
 
-void Simulation::create_scene() {
-	
-	glfwSetTime(0.0);
-	
-	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-	glEnable(GL_DEPTH_TEST);
-	glfwGetFramebufferSize(window, &width, &height);
-
+void Simulation::init_program(){
 	std::vector<std::string> attributes = {"aPos", "aNor"};
 	std::vector<std::string> uniforms = {"MV", "iMV", "P", "lightPos", "ka", "kd", "ks", "s"};
 	program = std::make_shared<Program>(vert_shader_path, frag_shader_path, attributes, uniforms);
+}
 
-	light = std::make_shared<Light>(glm::vec3(0.0f, 4.5f, 0.0f)); // TODO
-	
+void Simulation::init_camera(){
 	camera = std::make_shared<Camera>();
+}
 
-	std::shared_ptr<Shape> ball = create_ball_shape(20);
-	std::shared_ptr<Material> ball_material = std::make_shared<Material>(glm::vec3(1.0f,0.0f,0.0f),glm::vec3(0.1f,0.2f,0.8f),glm::vec3(0.05f,0.95f,0.05f),200.0f);
-	objects.push_back(std::make_shared<Object>(ball_material, ball, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(70.0f,50.0f,-20.2f), true));
+void Simulation::set_scene(Options options) {
+	glfwMakeContextCurrent(window);
+	objects.clear();
 
+	dt = options.get_dt();
+	box_size = options.get_box_size();
+	
+	glm::vec4 background_color = options.get_background_color();
+	glClearColor(background_color.x, background_color.y, background_color.z, background_color.w);
+
+	glEnable(GL_DEPTH_TEST);
+	glfwGetFramebufferSize(window, &width, &height);
+
+	glm::vec3 light_pos = options.get_light_pos();
+	light = std::make_shared<Light>(light_pos); 
+
+	float ball_res = options.get_ball_res();
+	std::shared_ptr<Shape> ball = create_ball_shape(ball_res);
+	
+	for (int i = 0; i < options.ball_amount(); ++i) {
+		std::shared_ptr<Material> ball_material = std::make_shared<Material>(options.get_ball_mat(i)); //std::make_shared<Material>(glm::vec3(1.0f,0.0f,0.0f),glm::vec3(0.1f,0.2f,0.8f),glm::vec3(0.05f,0.95f,0.05f),200.0f);
+		objects.push_back(std::make_shared<Object>(ball_material, ball, options.get_ball_pos(i), glm::vec3(0.0f, 0.0f, 0.0f), options.get_ball_velocity(i), true, options.get_ball_size(i)));
+	}
+
+	
 	std::shared_ptr<Shape> wall = create_wall_shape();
-	std::shared_ptr<Material> wall_material = std::make_shared<Material>(glm::vec3(0.2f,0.2f,0.2f),glm::vec3(0.6f,0.6f,0.6f),glm::vec3(0.01f,0.01f,0.01f),0.1f);
+	std::shared_ptr<Material> wall_material = std::make_shared<Material>(options.get_wall_material());
 
 	float box_radius = box_size / 2.0f;
 	objects.push_back(std::make_shared<Object>(wall_material, wall, glm::vec3(0.0f , box_radius, 0.0f), glm::vec3(1.0f,0.0f,0.0f) * glm::pi<float>()/2.0f, glm::vec3(0.0f,0.0f,0.0f), false, box_size));
@@ -89,13 +94,11 @@ void Simulation::create_scene() {
 	total_time = 0.0f;
 	
 
-	gravity = glm::vec3(0.0f, -9.81f, 0.0f);
-	wind = glm::vec3(1.0f, 0.0f, 0.0f);
+	gravity = options.get_gravity();
+	wind = options.get_wind();
 
 	// GLSL::checkError(GET_FILE_LINE);
 }
-
-void Simulation::reset() {}
 
 void Simulation::fixed_timestep_update() {
 	glfwMakeContextCurrent(window);
@@ -182,7 +185,7 @@ void Simulation::render_scene() {
 			
 		MV->translate(obj->pos);
 		MV->scale(obj->scale,obj->scale,obj->scale);
-		if (glm::length(obj->rotation) > 0.0001f) MV->rotate(glm::length(obj->rotation), obj->rotation);
+		if (glm::length(obj->rotation) > eps) MV->rotate(glm::length(obj->rotation), obj->rotation);
 		
 		iMV = glm::transpose(glm::inverse(glm::mat4(MV->topMatrix())));
 
@@ -313,7 +316,6 @@ std::pair<float, glm::vec3> Simulation::collision_found(std::shared_ptr<Object> 
 	return result;
 }
 
-// callbacks to handle errors, user inputs, window resizing
 void Simulation::error_callback_impl(int error, const char *description) { 
 	std::cerr << description << std::endl; 
 }

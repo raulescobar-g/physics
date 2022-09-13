@@ -19,6 +19,7 @@
 #include "Object.h"
 #include "Light.h"
 #include "MatrixStack.h"
+#include "Options.h"
 #include <iostream>
 
 class Simulation {
@@ -26,11 +27,12 @@ class Simulation {
         Simulation();
         Simulation(Simulation const&);
         void operator=(Simulation const&);
+        ~Simulation();
 
-        void end();
         int create_window(const char * window_name);
-        void create_scene();
-        void reset();
+        void init_program();
+        void init_camera();
+        void set_scene(Options options);
         void render_scene();
         void move_camera();
         void fixed_timestep_update();
@@ -39,7 +41,7 @@ class Simulation {
         bool window_closed();
 
         static Simulation& get_instance() {
-            static Simulation instance; // lazy singleton, instantiated on first use
+            static Simulation instance; 
             return instance;
         }
 

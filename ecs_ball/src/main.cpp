@@ -19,22 +19,10 @@
 
 #include <entt/entt.hpp>
 
-#include "imgui.h"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_opengl3.h"
-
-#include "Camera.h"
 #include "GLSL.h"
-#include "MatrixStack.h"
-#include "Program.h"
-#include "Shape.h"
-#include "Material.h"
-#include "Light.h"
-#include "Object.h"
 #include "Simulation.h"
-
-GLFWwindow *gui_window; // Main application window
-
+#include "Options.h"
+#include "Gui.h"
 
 int main(int argc, char **argv)
 {
@@ -43,29 +31,13 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	#if defined(IMGUI_IMPL_OPENGL_ES2)
-		// GL ES 2.0 + GLSL 100
-		const char* glsl_version = "#version 100";
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-		glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_ES_API);
-	#elif defined(__APPLE__)
-		// GL 3.2 + GLSL 150
-		const char* glsl_version = "#version 150";
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
-		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // 3.2+ only
-		glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // Required on Mac
-	#else
-		// GL 3.0 + GLSL 130
-		const char* glsl_version = "#version 130";
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-		//glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // 3.2+ only
-		//glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // 3.0+ only
-	#endif
+	const char* glsl_version = "#version 150";
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // 3.2+ only
+	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // Required on Mac
 
-	// ===================================================================
+
 	Simulation &sim = Simulation::get_instance();
 	
 	glfwSetErrorCallback(&Simulation::error_callback);
@@ -74,7 +46,15 @@ int main(int argc, char **argv)
 		std::cout<<"Error creating simulation window."<<std::endl;
 		return -1;
 	}
-	
+
+	// Initialize GLEW.
+	glewExperimental = true;
+	if(glewInit() != GLEW_OK) {
+		std::cerr << "Failed to initialize GLEW" << std::endl;
+		return -1;
+	}
+
+	glGetError();
 
 	GLFWwindow * win = sim.get_window();
 
@@ -87,35 +67,29 @@ int main(int argc, char **argv)
 
 	// Set the window resize call back.
 	glfwSetFramebufferSizeCallback(win, &Simulation::resize_callback);
-	
-	sim.create_scene();
+
+
+	sim.init_program();
+	sim.init_camera();
+
+	Options options;
+	// init program before the scene and camera too
+	sim.set_scene(options);
+
 	// ===================================================================
-	
-	gui_window = glfwCreateWindow(640, 480, "Parameters", NULL, NULL);
-	if(!gui_window) {
+	Gui &gui = Gui::get_instance();
+
+	if(gui.create_window("Parameters", glsl_version) == -1) {
 		glfwTerminate();
 		return -1;
 	}	
-	// Setup Dear ImGui context
-	IMGUI_CHECKVERSION();
-	ImGui::CreateContext();
-	ImGuiIO& io = ImGui::GetIO(); (void)io;
 
-	ImGui::StyleColorsDark();
-
-	// Setup Platform/Renderer backends
-	ImGui_ImplGlfw_InitForOpenGL(gui_window, true);
-	ImGui_ImplOpenGL3_Init(glsl_version);
-	
-
-	
+	gui.set_options(options);
 
 	// imgui parameters
-    ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 	
-
 	// Loop until the user closes the window.
-	while(!sim.window_closed() && !glfwWindowShouldClose(gui_window)) {
+	while(!sim.window_closed() && !gui.window_closed()) {
 		
 		// update physics until dt time passes, then renders
 		sim.fixed_timestep_update();
@@ -129,65 +103,13 @@ int main(int argc, char **argv)
 		// Swap front and back buffers.
 		sim.swap_buffers();
 		
-		//------------------------------------------------------
-		//------------------------------------------------------
-		//------------------------------------------------------
-		//------------------------------------------------------
-		//------------------------------------------------------
-		//------------------------------------------------------
-		//------------------------------------------------------
-		//------------------------------------------------------
-		//------------------------------------------------------
-		//------------------------------------------------------
+		//-----------------------------------------------------
 
-		
-		glfwMakeContextCurrent(gui_window);
-		glfwPollEvents();
-		ImGui_ImplOpenGL3_NewFrame();
-		ImGui_ImplGlfw_NewFrame();
-		ImGui::NewFrame();
-		static float f = 0.0f;
-		static int counter = 0;
-
-		ImGui::Begin("Parameters");                        
-
-		ImGui::Text("Edit the parameters and reset the simulation.");
-
-		ImGui::SliderFloat("initial x position", &f, 0.0f, 100.0f);  // make this radius dependant
-		ImGui::SliderFloat("initial y position", &f, 0.0f, 100.0f);
-		ImGui::SliderFloat("initial y position", &f, 0.0f, 100.0f);
-
-		ImGui::SliderFloat("initial x velocity", &f, 0.0f, 100.0f); // cap it at something 
-		ImGui::SliderFloat("initial y velocity", &f, 0.0f, 100.0f);
-		ImGui::SliderFloat("initial y velocity", &f, 0.0f, 100.0f);
-		ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
-
-		if (ImGui::Button("Restart"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
-			counter++;
-		ImGui::SameLine();
-		ImGui::Text("counter = %d", counter);
-		float fps = 1.0f;
-		ImGui::Text("Application (%.1f FPS)", fps);
-		ImGui::End();
-		ImGui::Render();
-		int display_w, display_h;
-		glfwGetFramebufferSize(gui_window, &display_w, &display_h);
-		glViewport(0, 0, display_w, display_h);
-		glClearColor(clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w);
-		glClear(GL_COLOR_BUFFER_BIT);
-		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
-		glfwSwapBuffers(gui_window);
-		
+		if (!gui.update()) {
+			sim.set_scene(gui.get_options());
+		}
 	}
 
-	glfwMakeContextCurrent(gui_window);
-
-	ImGui_ImplOpenGL3_Shutdown();
-	ImGui_ImplGlfw_Shutdown();
-	ImGui::DestroyContext();
-	glfwDestroyWindow(gui_window);
-
-	sim.end();
+	glfwTerminate();
 	return 0;
 }
