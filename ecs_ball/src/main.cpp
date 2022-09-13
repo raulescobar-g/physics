@@ -39,8 +39,8 @@ int main(int argc, char **argv)
 
 
 	Simulation &sim = Simulation::get_instance();
-	
-	glfwSetErrorCallback(&Simulation::error_callback);
+	Gui &gui = Gui::get_instance();
+	Options options;
 
 	if (sim.create_window("Ball in a box") == -1) {
 		std::cout<<"Error creating simulation window."<<std::endl;
@@ -54,53 +54,35 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	glGetError();
-
 	GLFWwindow * win = sim.get_window();
 
-	// Set keyboard callback.
+	glfwSetErrorCallback(&Simulation::error_callback);
 	glfwSetKeyCallback(win, &Simulation::key_callback);
-	// Set char callback.
 	glfwSetCharCallback(win, &Simulation::char_callback);
-	// Set cursor position callback.
 	glfwSetCursorPosCallback(win, &Simulation::cursor_position_callback);
-
-	// Set the window resize call back.
 	glfwSetFramebufferSizeCallback(win, &Simulation::resize_callback);
-
 
 	sim.init_program();
 	sim.init_camera();
-
-	Options options;
-	// init program before the scene and camera too
-	sim.set_scene(options);
-
-	// ===================================================================
-	Gui &gui = Gui::get_instance();
+	sim.set_scene(options);	
 
 	if(gui.create_window("Parameters", glsl_version) == -1) {
+		std::cout<<"Error creating gui window"<<std::endl;
 		glfwTerminate();
 		return -1;
 	}	
 
 	gui.set_options(options);
-
-	// imgui parameters
 	
-	// Loop until the user closes the window.
+
 	while(!sim.window_closed() && !gui.window_closed()) {
 		
-		// update physics until dt time passes, then renders
 		sim.fixed_timestep_update();
 
-		// update position and camera
 		sim.move_camera();
 
-		// Render scene.
 		sim.render_scene();
 
-		// Swap front and back buffers.
 		sim.swap_buffers();
 		
 		//-----------------------------------------------------

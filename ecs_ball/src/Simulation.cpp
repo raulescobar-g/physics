@@ -105,7 +105,6 @@ void Simulation::fixed_timestep_update() {
 	glfwPollEvents();
 	new_time = glfwGetTime();
 	frame_time = new_time - current_time;
-	fps = (int) (new_time*100.0f) % 10 == 0 ? 1.0f/frame_time : fps; 
 	
 	current_time = new_time;
 
@@ -241,7 +240,7 @@ void Simulation::move_camera() {
 	}
 
 	if (glm::length(buff) > 0.00001f || glm::length(buff) < -0.00001f) {
-		camera->pos += glm::normalize(buff) * movement_speed * dt; // keeps the movement the same speed even if moving diagonally by summing direction of movement vectors and normalizing
+		camera->pos += glm::normalize(buff) * movement_speed * 0.1f; // keeps the movement the same speed even if moving diagonally by summing direction of movement vectors and normalizing
 	}
 
 	if(!keyToggles[(unsigned)'c']) {

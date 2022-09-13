@@ -30,6 +30,7 @@ int Gui::create_window(const char * window_name, const char * glsl_version) {
 	// Setup Platform/Renderer backends
 	ImGui_ImplGlfw_InitForOpenGL(gui_window, true);
 	ImGui_ImplOpenGL3_Init(glsl_version);
+    glfwSwapInterval(1);
     return 0;
 }
 
@@ -56,23 +57,27 @@ bool Gui::update() {
 
     ImGui::Text("Edit the parameters and reset the simulation.");
 
-    ImGui::SliderFloat("initial x position", &f, 0.0f, 100.0f);  // make this radius dependant
-    ImGui::SliderFloat("initial y position", &f, 0.0f, 100.0f);
-    ImGui::SliderFloat("initial y position", &f, 0.0f, 100.0f);
+    float h = options.get_dt();
+    ImGui::InputFloat("h ", &h);
+    options.set_dt(h);
 
-    ImGui::SliderFloat("initial x velocity", &f, 0.0f, 100.0f); // cap it at something 
-    ImGui::SliderFloat("initial y velocity", &f, 0.0f, 100.0f);
-    ImGui::SliderFloat("initial y velocity", &f, 0.0f, 100.0f);
+    for (int i = 0; i < options.ball_amount(); ++i) {
+        ImGui::InputFloat("initial x position", &f);  // make this radius dependant
+        ImGui::InputFloat("initial y position", &f);
+        ImGui::InputFloat("initial y position", &f);
+
+        ImGui::InputFloat("initial x velocity", &f); // cap it at something 
+        ImGui::InputFloat("initial y velocity", &f);
+        ImGui::InputFloat("initial y velocity", &f);
+    }
+
     ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
 
-    if (ImGui::Button("Restart")) {
+    if (ImGui::Button("Reset simulation")) {
         clicked_restart = true;
     }
 
-    ImGui::SameLine();
-    ImGui::Text("counter = %d", counter);
-    float fps = 1.0f;
-    ImGui::Text("Application (%.1f FPS)", fps);
+    ImGui::Text("Application (%.1f FPS)", ImGui::GetIO().Framerate);
     ImGui::End();
     ImGui::Render();
 

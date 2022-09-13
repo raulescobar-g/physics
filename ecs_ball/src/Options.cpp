@@ -18,6 +18,8 @@ Options::Options() {
 }
 
 float Options::get_dt() {return dt; }
+void Options::set_dt(float _dt) {dt=_dt;}
+
 float Options::get_box_size() {return box_size; }
 glm::vec4 Options::get_background_color() {return background_color; }
 glm::vec3 Options::get_light_pos() {return light_pos; }

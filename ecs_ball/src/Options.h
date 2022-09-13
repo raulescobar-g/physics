@@ -10,28 +10,13 @@
 #include "Object.h"
 #include "Material.h"
 
-// OPTIONS
-// amount of balls
-// ball position
-// ball velocity
-// ball restitution
-// ball drag
-// gravity
-// wind
-// ball size
-// ball material
-
-// wall size
-// wall material
-
-// light position
-
-// timestep !!!
-
 class Options {
     public:
         Options();
+
         float get_dt();
+        void set_dt(float);
+
         float get_box_size();
         glm::vec4 get_background_color();
         glm::vec3 get_light_pos();
