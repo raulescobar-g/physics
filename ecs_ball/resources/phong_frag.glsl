@@ -1,4 +1,4 @@
-#version 120
+#version 150
 
 uniform vec3 lightPos;
 uniform vec3 ka;
@@ -6,10 +6,10 @@ uniform vec3 kd;
 uniform vec3 ks;
 uniform float s;
 
-varying vec3 normal;
-varying vec3 position;
+in vec3 normal;
+in vec3 position;
 
-
+out vec4 fragColor;
 
 void main()
 {
@@ -23,5 +23,5 @@ void main()
 	vec3 specular = ks * max(0.0, pow( dot(n,h),s ) );
 	vec3 color = ka + (diffuse + specular);
 
-	gl_FragColor = vec4(color, 1.0);
+	fragColor = vec4(color, 1.0);
 }

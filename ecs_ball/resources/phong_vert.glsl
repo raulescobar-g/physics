@@ -1,14 +1,14 @@
-#version 120
+#version 150
 
 uniform mat4 P;
 uniform mat4 MV;
 uniform mat4 iMV;
 
-attribute vec4 aPos; // in object space
-attribute vec3 aNor; // in object space
+in vec4 aPos; // in object space
+in vec3 aNor; // in object space
 
-varying vec3 position;
-varying vec3 normal;
+out vec3 position;
+out vec3 normal;
 
 
 

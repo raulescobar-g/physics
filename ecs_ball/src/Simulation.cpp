@@ -31,11 +31,6 @@ void Simulation::end() {
 
 int Simulation::create_window(const char * window_name) {
 	
-	// Initialize the library.
-	if(!glfwInit()) {
-		return -1;
-	}
-
     // Create a windowed mode window and its OpenGL context.
 	window = glfwCreateWindow(640 * 2, 480 * 2, window_name, NULL, NULL);
 	if(!window) {

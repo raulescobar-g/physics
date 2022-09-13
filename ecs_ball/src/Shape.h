@@ -39,6 +39,7 @@ private:
 	unsigned norBufID;
 	unsigned texBufID;
 	unsigned indBufID;
+	unsigned vaoId;
 	std::string id;
 };
 
