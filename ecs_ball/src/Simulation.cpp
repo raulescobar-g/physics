@@ -73,7 +73,12 @@ void Simulation::set_scene(Options options) {
 	
 	for (int i = 0; i < options.ball_amount(); ++i) {
 		std::shared_ptr<Material> ball_material = std::make_shared<Material>(options.get_ball_mat(i)); //std::make_shared<Material>(glm::vec3(1.0f,0.0f,0.0f),glm::vec3(0.1f,0.2f,0.8f),glm::vec3(0.05f,0.95f,0.05f),200.0f);
-		objects.push_back(std::make_shared<Object>(ball_material, ball, options.get_ball_pos(i), glm::vec3(0.0f, 0.0f, 0.0f), options.get_ball_velocity(i), true, options.get_ball_size(i)));
+		std::shared_ptr<Object> temp = std::make_shared<Object>(ball_material, ball, options.get_ball_pos(i), glm::vec3(0.0f, 0.0f, 0.0f), options.get_ball_velocity(i), true, options.get_ball_size(i));
+		temp->mass = options.get_ball_mass(i);
+		temp->mu = options.get_ball_friction(i);
+		temp->restitution = options.get_ball_res(i);
+		temp->drag_coeff = options.get_ball_drag(i);
+		objects.push_back(temp);
 	}
 
 	
@@ -122,6 +127,15 @@ void Simulation::update(float _dt) {
 	std::shared_ptr<Object> collider;
 
 	for (auto obj : objects) {
+		if (keyToggles[(unsigned) 'd']) { //DEBUG
+			glm::vec3 p = obj->pos;
+			glm::vec3 v = obj->velocity;
+			std::cout<<"[DEBUG] : positions --> < "<<p.x<<", "<<p.y<<", "<<p.z<<" >"<<std::endl;
+			std::cout<<"[DEBUG] : velocity --> < "<<v.x<<", "<<v.y<<", "<<v.z<<" >"<<std::endl;
+			std::cout<<std::endl;
+			keyToggles[(unsigned) 'd'] = false;
+		}
+
 		if (obj->dynamic && !obj->sleeping) {
 			if (object_is_sleeping(obj)) {
 				obj->sleeping = true;
@@ -141,6 +155,18 @@ void Simulation::update(float _dt) {
 	for (auto obj : objects) {
 		if (obj->dynamic && !obj->sleeping) {
 			glm::vec3 a = gravity + ((obj->drag_coeff * (wind - obj->velocity)) / obj->mass);
+
+			glm::vec3 p = obj->pos + obj->velocity * _dt * f1;
+			glm::vec3 v = obj->velocity + a * _dt * f1;
+			if (std::isnan(p.x) || std::isnan(p.y) || std::isnan(p.z) || std::isnan(v.x) || std::isnan(v.y) || std::isnan(v.z)) { //DEBUG
+				std::cout<<"[DEBUG] : f --> "<<f1<<std::endl;
+				std::cout<<"[DEBUG] : dt --> "<<_dt<<std::endl;
+				std::cout<<"[DEBUG] : positions --> < "<<obj->pos.x<<", "<<obj->pos.y<<", "<<obj->pos.z<<" >"<<std::endl;
+				std::cout<<"[DEBUG] : velocity --> < "<<obj->velocity.x<<", "<<obj->velocity.y<<", "<<obj->velocity.z<<" >"<<std::endl;
+				std::cout<<std::endl;
+				exit(-1);
+			}
+			
 			obj->pos = obj->pos + obj->velocity * _dt * f1;
 			obj->velocity = obj->velocity + a * _dt * f1;
 		}
@@ -150,7 +176,21 @@ void Simulation::update(float _dt) {
 		glm::vec3 vn = glm::dot(collider->velocity, normal) * normal;
 		glm::vec3 vt = collider->velocity - vn;
 
-		collider->velocity = -collider->restitution * vn  + vt - glm::min(collider->mu * glm::length(vn), glm::length(vt)) * glm::normalize(vt);
+		glm::vec3 temp = -collider->restitution * vn  + vt;
+		temp -= glm::length(vt) < eps ? glm::vec3(0.0f, 0.0f, 0.0f) : glm::min(collider->mu * glm::length(vn), glm::length(vt)) * glm::normalize(vt);
+
+		if (std::isnan(temp.x) || std::isnan(temp.y) || std::isnan(temp.z)) { //DEBUG
+			std::cout<<"[DEBUG] : f --> "<<f1<<std::endl;
+			std::cout<<"[DEBUG] : dt --> "<<_dt<<std::endl;
+			std::cout<<"[DEBUG] : positions --> < "<<collider->pos.x<<", "<<collider->pos.y<<", "<<collider->pos.z<<" >"<<std::endl;
+			std::cout<<"[DEBUG] : velocity --> < "<<collider->velocity.x<<", "<<collider->velocity.y<<", "<<collider->velocity.z<<" >"<<std::endl;
+			std::cout<<"[DEBUG] : vn --> < "<<vn.x<<", "<<vn.y<<", "<<vn.z<<" >"<<std::endl;
+			std::cout<<"[DEBUG] : vt --> < "<<vt.x<<", "<<vt.y<<", "<<vt.z<<" >"<<std::endl;
+			std::cout<<"[DEBUG] : response velocity --> < "<<temp.x<<", "<<temp.y<<", "<<temp.z<<" >"<<std::endl;
+			std::cout<<std::endl;
+			exit(-1);
+		}
+		collider->velocity = temp;
 
 		update(_dt * (1.0f - f1));
 	}
@@ -341,8 +381,7 @@ void Simulation::key_callback_impl(GLFWwindow *window, int key, int scancode, in
 		inputs[(unsigned)'c'] = action != GLFW_RELEASE;
 	if (key == GLFW_KEY_V) 
 		inputs[(unsigned)'v'] = action != GLFW_RELEASE;
-	if (key == GLFW_KEY_F) 
-		inputs[(unsigned) 'f'] = true;
+
 	if (key == GLFW_KEY_Z && (mods == GLFW_MOD_SHIFT || inputs[(unsigned) 'Z'])) {
 		inputs[(unsigned)'Z'] = action != GLFW_RELEASE;
 	}
@@ -353,7 +392,7 @@ void Simulation::key_callback_impl(GLFWwindow *window, int key, int scancode, in
 }
 
 void Simulation::cursor_position_callback_impl(GLFWwindow* window, double xmouse, double ymouse){
-	if (inputs[(unsigned) 'f']) {
+	if (keyToggles[(unsigned) 'f']) {
 		float xdiff = (xmouse - o_x) * sensitivity;
 		float ydiff = (ymouse - o_y) * sensitivity;
 

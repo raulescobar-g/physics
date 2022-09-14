@@ -77,6 +77,7 @@ int main(int argc, char **argv)
 
 	while(!sim.window_closed() && !gui.window_closed()) {
 		
+		// if dt too small it goes into death spiral
 		sim.fixed_timestep_update();
 
 		sim.move_camera();
@@ -85,8 +86,6 @@ int main(int argc, char **argv)
 
 		sim.swap_buffers();
 		
-		//-----------------------------------------------------
-
 		if (!gui.update()) {
 			sim.set_scene(gui.get_options());
 		}

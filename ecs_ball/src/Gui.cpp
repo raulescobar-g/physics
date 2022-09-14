@@ -55,27 +55,99 @@ bool Gui::update() {
 
     ImGui::Begin("Initial conditions");                        
 
-    ImGui::Text("Edit the parameters and reset the simulation.");
-
+    ImGui::Text("Simulation timestep size (0.00001 < dt < 1.0)");
     float h = options.get_dt();
-    ImGui::InputFloat("h ", &h);
+    ImGui::InputFloat("timestep", &h);
     options.set_dt(h);
+    ImGui::Separator();
+    
+    ImGui::Text("Size of Box");
+    float r = options.get_box_size();
+    ImGui::InputFloat("box size", &r);
+    options.set_box_size(r);
+    ImGui::Separator();
+
+    ImGui::Text("Wind");
+    glm::vec3 wind_buff = options.get_wind();
+    ImGui::InputFloat("w_x", &wind_buff.x);  
+    ImGui::InputFloat("w_y", &wind_buff.y);
+    ImGui::InputFloat("w_z", &wind_buff.z);
+    options.set_wind(wind_buff);
+    ImGui::Separator();
+
+    
+    ImGui::Text("Gravity");
+    glm::vec3 g = options.get_gravity();
+    ImGui::InputFloat("g", &g.y);
+    options.set_gravity(g);
+    ImGui::Separator();
 
     for (int i = 0; i < options.ball_amount(); ++i) {
-        ImGui::InputFloat("initial x position", &f);  // make this radius dependant
-        ImGui::InputFloat("initial y position", &f);
-        ImGui::InputFloat("initial y position", &f);
+        std::string header = "Ball #" + std::to_string(i+1);
+        if (ImGui::CollapsingHeader(header.c_str())) {
+            ImGui::Indent();
+            glm::vec3 vel_buf = options.get_ball_velocity(i);
+            glm::vec3 pos_buff = options.get_ball_pos(i);
+            float res = options.get_ball_res(i); 
+            float mu = options.get_ball_friction(i);
+            float size = options.get_ball_size(i); 
+            float mass = options.get_ball_mass(i); 
+            float drag = options.get_ball_drag(i);
 
-        ImGui::InputFloat("initial x velocity", &f); // cap it at something 
-        ImGui::InputFloat("initial y velocity", &f);
-        ImGui::InputFloat("initial y velocity", &f);
+            ImGui::Text("Position");
+            ImGui::InputFloat(("ball#" + std::to_string(i+1) + " p_x").c_str(), &pos_buff.x); 
+            ImGui::InputFloat(("ball#" + std::to_string(i+1) + " p_y").c_str(), &pos_buff.y);
+            ImGui::InputFloat(("ball#" + std::to_string(i+1) + " p_z").c_str(), &pos_buff.z);
+            pos_buff.x = glm::clamp(pos_buff.x, -r/2.0f + size, r/2.0f - size);
+            pos_buff.y = glm::clamp(pos_buff.y, -r/2.0f + size, r/2.0f - size);
+            pos_buff.z = glm::clamp(pos_buff.z, -r/2.0f + size, r/2.0f - size);
+            options.set_ball_pos(i, pos_buff);
+
+            ImGui::Text("Velocity");
+            ImGui::InputFloat(("ball#" + std::to_string(i+1) + " v_x").c_str(), &vel_buf.x); 
+            ImGui::InputFloat(("ball#" + std::to_string(i+1) + " v_y").c_str(), &vel_buf.y);
+            ImGui::InputFloat(("ball#" + std::to_string(i+1) +  " v_z").c_str(), &vel_buf.z);
+            options.set_ball_velocity(i, vel_buf);
+
+            ImGui::Text("Ball Size");
+            ImGui::InputFloat(("ball#" + std::to_string(i+1) + " size").c_str(), &size);
+            size = glm::clamp(size, 0.1f, r/2.0f - 0.1f);
+            options.set_ball_size(i, size);
+
+            ImGui::Text("Restitution");
+            ImGui::InputFloat(("ball#" + std::to_string(i+1) + " restitution").c_str(), &res);
+            res = glm::clamp(res, 0.0000001f, 0.999999f);
+            options.set_ball_res(i, res);
+
+            ImGui::Text("Friction");
+            ImGui::InputFloat(("ball#" + std::to_string(i+1) + " friction").c_str(), &mu);
+            mu = glm::clamp(mu, 0.0f, 0.99999999f);
+            options.set_ball_friction(i, mu);
+
+            ImGui::Text("Drag");
+            ImGui::InputFloat(("ball#" + std::to_string(i+1) + " drag").c_str(), &drag);
+            drag = glm::max(0.0f, drag);
+            options.set_ball_drag(i, drag);
+
+            ImGui::Text("Mass");
+            ImGui::InputFloat(("ball#" + std::to_string(i+1) + " mass").c_str(), &mass);
+            options.set_ball_mass(i, mass);
+            
+            ImGui::Unindent();
+            ImGui::Separator();
+        }
     }
 
-    ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
+    if (ImGui::Button("Add a ball")) {
+        options.add_a_ball();
+    }
+    //ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
 
     if (ImGui::Button("Reset simulation")) {
         clicked_restart = true;
     }
+
+    ImGui::Separator();
 
     ImGui::Text("Application (%.1f FPS)", ImGui::GetIO().Framerate);
     ImGui::End();

@@ -33,9 +33,6 @@ class Gui {
     private:
         GLFWwindow *gui_window;
         Options options;
-
-        float f;
-        int counter;
 };
 
 #endif
