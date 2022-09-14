@@ -127,15 +127,6 @@ void Simulation::update(float _dt) {
 	std::shared_ptr<Object> collider;
 
 	for (auto obj : objects) {
-		if (keyToggles[(unsigned) 'd']) { //DEBUG
-			glm::vec3 p = obj->pos;
-			glm::vec3 v = obj->velocity;
-			std::cout<<"[DEBUG] : positions --> < "<<p.x<<", "<<p.y<<", "<<p.z<<" >"<<std::endl;
-			std::cout<<"[DEBUG] : velocity --> < "<<v.x<<", "<<v.y<<", "<<v.z<<" >"<<std::endl;
-			std::cout<<std::endl;
-			keyToggles[(unsigned) 'd'] = false;
-		}
-
 		if (obj->dynamic && !obj->sleeping) {
 			if (object_is_sleeping(obj)) {
 				obj->sleeping = true;
