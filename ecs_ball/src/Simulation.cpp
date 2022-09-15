@@ -71,17 +71,6 @@ void Simulation::set_scene(Options options) {
 	float ball_res = options.get_ball_res();
 	std::shared_ptr<Shape> ball = create_ball_shape(ball_res);
 	
-	for (int i = 0; i < options.ball_amount(); ++i) {
-		std::shared_ptr<Material> ball_material = std::make_shared<Material>(options.get_ball_mat(i)); //std::make_shared<Material>(glm::vec3(1.0f,0.0f,0.0f),glm::vec3(0.1f,0.2f,0.8f),glm::vec3(0.05f,0.95f,0.05f),200.0f);
-		std::shared_ptr<Object> temp = std::make_shared<Object>(ball_material, ball, options.get_ball_pos(i), glm::vec3(0.0f, 0.0f, 0.0f), options.get_ball_velocity(i), true, options.get_ball_size(i));
-		temp->mass = options.get_ball_mass(i);
-		temp->mu = options.get_ball_friction(i);
-		temp->restitution = options.get_ball_res(i);
-		temp->drag_coeff = options.get_ball_drag(i);
-		objects.push_back(temp);
-	}
-
-	
 	std::shared_ptr<Shape> wall = create_wall_shape();
 	std::shared_ptr<Material> wall_material = std::make_shared<Material>(options.get_wall_material());
 
@@ -92,6 +81,16 @@ void Simulation::set_scene(Options options) {
 	objects.push_back(std::make_shared<Object>(wall_material, wall, glm::vec3(-box_radius, 0.0f, 0.0f), glm::vec3(0.0f,1.0f,0.0f) * glm::pi<float>()/2.0f, glm::vec3(0.0f,0.0f,0.0f), false, box_size));
 	objects.push_back(std::make_shared<Object>(wall_material, wall, glm::vec3(0.0f, 0.0f, -box_radius), glm::vec3(1.0f,0.0f,0.0f) * 0.0f, glm::vec3(0.0f,0.0f,0.0f), false, box_size));
 	objects.push_back(std::make_shared<Object>(wall_material, wall, glm::vec3(0.0f, 0.0f, box_radius), glm::vec3(0.0f,1.0f,0.0f) * glm::pi<float>(), glm::vec3(0.0f,0.0f,0.0f), false, box_size));
+
+	for (int i = 0; i < options.ball_amount(); ++i) {
+		std::shared_ptr<Material> ball_material = std::make_shared<Material>(options.get_ball_mat(i)); //std::make_shared<Material>(glm::vec3(1.0f,0.0f,0.0f),glm::vec3(0.1f,0.2f,0.8f),glm::vec3(0.05f,0.95f,0.05f),200.0f);
+		std::shared_ptr<Object> temp = std::make_shared<Object>(ball_material, ball, options.get_ball_pos(i), glm::vec3(0.0f, 0.0f, 0.0f), options.get_ball_velocity(i), true, options.get_ball_size(i));
+		temp->mass = options.get_ball_mass(i);
+		temp->mu = options.get_ball_friction(i);
+		temp->restitution = options.get_ball_res(i);
+		temp->drag_coeff = options.get_ball_drag(i);
+		objects.push_back(temp);
+	}
 
 	// set all time params
 	glfwMakeContextCurrent(window);
@@ -121,70 +120,68 @@ void Simulation::fixed_timestep_update() {
 	}
 }
 
-void Simulation::update(float _dt) {
-	float f1 = 1.0f;
-	glm::vec3 normal;
+
+struct Collision {
+	Collision() : exists(false), t(100.0f), n(glm::vec3(0.0f, 0.0f, 0.0f)) {};
+	float t;
+	glm::vec3 n;
+	bool exists;
+	bool between_dynamics;
 	std::shared_ptr<Object> collider;
+	std::shared_ptr<Object> other_collider;
+};
 
-	for (auto obj : objects) {
-		if (obj->dynamic && !obj->sleeping) {
-			if (object_is_sleeping(obj)) {
-				obj->sleeping = true;
-				continue;
-			}
-			
+void Simulation::update(float _dt) {
 
-			std::pair<float,glm::vec3> c = collision_found(obj, _dt);
-			if (c.first < f1) {
-				f1 = c.first;
-				normal = c.second;
-				collider = obj;
-			}
-		}
-	}
+	Collision collision = get_first_collision(_dt);
 
-	for (auto obj : objects) {
+	float f1 = collision.exists ? collision.t : 1.0f;
+
+	for (int i = 6; i < (int) objects.size(); ++i) {
+		auto obj = objects[i];
 		if (obj->dynamic && !obj->sleeping) {
 			glm::vec3 a = gravity + ((obj->drag_coeff * (wind - obj->velocity)) / obj->mass);
-
-			glm::vec3 p = obj->pos + obj->velocity * _dt * f1;
-			glm::vec3 v = obj->velocity + a * _dt * f1;
-			if (std::isnan(p.x) || std::isnan(p.y) || std::isnan(p.z) || std::isnan(v.x) || std::isnan(v.y) || std::isnan(v.z)) { //DEBUG
-				std::cout<<"[DEBUG] : f --> "<<f1<<std::endl;
-				std::cout<<"[DEBUG] : dt --> "<<_dt<<std::endl;
-				std::cout<<"[DEBUG] : positions --> < "<<obj->pos.x<<", "<<obj->pos.y<<", "<<obj->pos.z<<" >"<<std::endl;
-				std::cout<<"[DEBUG] : velocity --> < "<<obj->velocity.x<<", "<<obj->velocity.y<<", "<<obj->velocity.z<<" >"<<std::endl;
-				std::cout<<std::endl;
-				exit(-1);
-			}
 			
 			obj->pos = obj->pos + obj->velocity * _dt * f1;
 			obj->velocity = obj->velocity + a * _dt * f1;
 		}
 	}
+	//std::cout<<"here4-startme"<<std::endl;
 	
-	if (f1 < 1.0f) {
-		glm::vec3 vn = glm::dot(collider->velocity, normal) * normal;
-		glm::vec3 vt = collider->velocity - vn;
+	if (collision.exists) {
+		//std::cout<<"here5-coll"<<std::endl;
+		glm::vec3 vn = glm::dot(collision.collider->velocity, collision.n) * collision.n;
+		glm::vec3 vt = collision.collider->velocity - vn;
+		//std::cout<<"here5.5"<<std::endl;
+		glm::vec3 temp = -collision.collider->restitution * vn  + vt;
+		temp -= glm::length(vt) < eps ? glm::vec3(0.0f, 0.0f, 0.0f) : glm::min(collision.collider->mu * glm::length(vn), glm::length(vt)) * glm::normalize(vt);
 
-		glm::vec3 temp = -collider->restitution * vn  + vt;
-		temp -= glm::length(vt) < eps ? glm::vec3(0.0f, 0.0f, 0.0f) : glm::min(collider->mu * glm::length(vn), glm::length(vt)) * glm::normalize(vt);
 
-		if (std::isnan(temp.x) || std::isnan(temp.y) || std::isnan(temp.z)) { //DEBUG
-			std::cout<<"[DEBUG] : f --> "<<f1<<std::endl;
-			std::cout<<"[DEBUG] : dt --> "<<_dt<<std::endl;
-			std::cout<<"[DEBUG] : positions --> < "<<collider->pos.x<<", "<<collider->pos.y<<", "<<collider->pos.z<<" >"<<std::endl;
-			std::cout<<"[DEBUG] : velocity --> < "<<collider->velocity.x<<", "<<collider->velocity.y<<", "<<collider->velocity.z<<" >"<<std::endl;
-			std::cout<<"[DEBUG] : vn --> < "<<vn.x<<", "<<vn.y<<", "<<vn.z<<" >"<<std::endl;
-			std::cout<<"[DEBUG] : vt --> < "<<vt.x<<", "<<vt.y<<", "<<vt.z<<" >"<<std::endl;
-			std::cout<<"[DEBUG] : response velocity --> < "<<temp.x<<", "<<temp.y<<", "<<temp.z<<" >"<<std::endl;
-			std::cout<<std::endl;
-			exit(-1);
+		collision.collider->velocity = temp;
+		//std::cout<<"here6"<<std::endl;
+		// std::cout<<collision.between_dynamics<<std::endl;
+		if (collision.between_dynamics) {
+			//std::cout<<collision.other_collider->velocity.x<<", "<< collision.other_collider->velocity.y<<", "<< collision.other_collider->velocity.z<<std::endl;
+			//std::cout<<collision.n.x<<", "<< collision.n.y<<", "<< collision.n.z<<std::endl;
+			//std::cout<<"here"<<std::endl;
+			glm::vec3 vn = glm::dot(collision.other_collider->velocity, -collision.n) * -collision.n;
+			//std::cout<<"here1"<<std::endl;
+			glm::vec3 vt = collision.other_collider->velocity - vn;
+
+			//std::cout<<"here3"<<std::endl;
+
+			glm::vec3 temp = -collision.other_collider->restitution * vn  + vt;
+			temp -= glm::length(vt) < eps ? glm::vec3(0.0f, 0.0f, 0.0f) : glm::min(collision.other_collider->mu * glm::length(vn), glm::length(vt)) * glm::normalize(vt);
+
+
+			collision.other_collider->velocity = temp;
+			
 		}
-		collider->velocity = temp;
-
-		update(_dt * (1.0f - f1));
+		//std::cout<<"t: "<<collision.t<<std::endl;
+		//std::cout<<"here4: "<<_dt<<std::endl;
+		update(_dt * (1.0f - collision.t));
 	}
+	//std::cout<<"here5-noncoll"<<std::endl;
 }
 
 void Simulation::render_scene() {
@@ -306,44 +303,139 @@ std::shared_ptr<Shape> Simulation::create_wall_shape() {
 	return wall;
 }
 
-bool Simulation::object_is_sleeping(std::shared_ptr<Object> obj) {
+bool Simulation::object_is_sleeping(std::shared_ptr<Object> obj) { // HERER FIX THIS
 	float ball_radius = obj->scale/2.0f;
 	float box_radius = box_size / 2.0f;
 	if (glm::length(obj->velocity) < 10.0f * eps && obj->pos.y < ball_radius - box_radius + eps) {
-		std::cout<<"sleeping"<<std::endl;
+		//std::cout<<"sleeping"<<std::endl;
 		return true;
 	}
 	return false;
 }
 
-std::pair<float, glm::vec3> Simulation::collision_found(std::shared_ptr<Object> obj, float _dt) {
-	glm::vec3 new_pos = obj->pos + obj->velocity * _dt;
-	glm::vec3 old_pos = obj->pos;
-
-	std::pair<float, glm::vec3> result(1.0f, glm::vec3(0.0f, 0.0f, 0.0f));
-	float wall_radius = box_size / 2.0f;
-	float ball_radius = obj->scale / 2.0f;
-
-	if (glm::abs(new_pos.x) >= wall_radius - ball_radius){
-		float a = glm::abs(old_pos.x) - (wall_radius - ball_radius);
-		float b = glm::abs(new_pos.x - old_pos.x) - a;
-		result.first = a / (a - b);
-		result.second += new_pos.x < 0.0f ? glm::vec3(1.0f, 0.0f, 0.0f) : glm::vec3(-1.0f, 0.0f, 0.0f);
-	}
-	if (glm::abs(new_pos.y) >= wall_radius - ball_radius) {
-		float a = glm::abs(old_pos.y) - (wall_radius - ball_radius);
-		float b = glm::abs(new_pos.y - old_pos.y) - a;
-		result.first = glm::min(result.first, a / (a - b));
-		result.second += new_pos.y < 0.0f ? glm::vec3(0.0f, 1.0f, 0.0f) : glm::vec3(0.0f, -1.0f, 0.0f);
+float first_positive_quadratic(float a, float b, float c) {
+	float x1, x2;
+	float d = b*b - 4*a*c;
+	if (d < 0.0f) {
+		std::cout<<"How even";
+		exit(-1);
 	} 
-	if (glm::abs(new_pos.z) >= wall_radius - ball_radius) {
-		float a = glm::abs(old_pos.z) - (wall_radius - ball_radius);
-		float b = glm::abs(new_pos.z - old_pos.z) - a;
-		result.first = glm::min(result.first, a / (a - b));
-		result.second += new_pos.z < 0.0f ? glm::vec3(0.0f, 0.0f, 1.0f) : glm::vec3(0.0f, 0.0f, -1.0f);
+
+	x1 = (-b + glm::sqrt(d)) / (2*a);
+	x2 = (-b - glm::sqrt(d)) / (2*a);
+	if (x1 < 0.0f || x2 < 0.0f){
+		std::cout<<"How did this even happen.";
+		exit(-1);
 	}
-	result.second = glm::length(result.second) > 0.1f ? glm::normalize(result.second): result.second;
-	return result;
+	return glm::min(x1, x2);
+}
+
+Collision Simulation::get_first_collision(float _dt) {
+	//std::cout<<"here"<<std::endl;
+	Collision collision;
+	float wall_radius = box_size / 2.0f;
+
+	for (int i = 6; i < (int) objects.size(); ++i) {
+		auto obj = objects[i];
+		if (object_is_sleeping(obj)) {
+			obj->sleeping = true;
+			continue;
+		} else if (!obj->dynamic) {
+			continue;
+		}
+		glm::vec3 new_pos = obj->pos + obj->velocity * _dt;
+		glm::vec3 old_pos = obj->pos;
+		float ball_radius = obj->scale / 2.0f;
+
+		if (glm::abs(new_pos.x) >= wall_radius - ball_radius){
+			float a = glm::abs(old_pos.x) - (wall_radius - ball_radius);
+			float b = glm::abs(new_pos.x - old_pos.x) - a;
+			if (collision.t > a / (a - b)) {
+				collision.t = a / (a - b);
+				collision.n += new_pos.x < 0.0f ? glm::vec3(1.0f, 0.0f, 0.0f) : glm::vec3(-1.0f, 0.0f, 0.0f);
+				collision.exists = true;
+				collision.between_dynamics = false;
+				collision.collider = obj;
+			}
+		}
+		if (glm::abs(new_pos.y) >= wall_radius - ball_radius) {
+			float a = glm::abs(old_pos.y) - (wall_radius - ball_radius);
+			float b = glm::abs(new_pos.y - old_pos.y) - a;
+			if (collision.t > a / (a - b)) {
+				collision.t = a / (a - b);
+				collision.n += new_pos.y < 0.0f ? glm::vec3(0.0f, 1.0f, 0.0f) : glm::vec3(0.0f, -1.0f, 0.0f);
+				collision.exists = true;
+				collision.between_dynamics = false;
+				collision.collider = obj;
+			}
+		} 
+		if (glm::abs(new_pos.z) >= wall_radius - ball_radius) {
+			float a = glm::abs(old_pos.z) - (wall_radius - ball_radius);
+			float b = glm::abs(new_pos.z - old_pos.z) - a;
+			if (collision.t > a / (a - b)) {
+				collision.t = a / (a - b);
+				collision.n += new_pos.z < 0.0f ? glm::vec3(0.0f, 0.0f, 1.0f) : glm::vec3(0.0f, 0.0f, -1.0f);
+				collision.exists =true;
+				collision.between_dynamics = false;
+				collision.collider = obj;
+			}
+		}
+	}
+	//std::cout<<"before"<<std::endl;
+	if (collision.exists && !collision.between_dynamics && glm::length(collision.n) > eps) collision.n = glm::normalize(collision.n);	
+	//std::cout<<"ater"<<std::endl;	
+	if (objects.size() < 8) return collision;
+
+	for (int i = 6; i < (int) objects.size(); ++i) {
+		auto obj = objects[i];
+
+		if (obj->dynamic && !obj->sleeping) {
+			
+			//std::cout<<"now-b"<<std::endl;
+			glm::vec3 new_pos = obj->pos + obj->velocity * _dt;
+			glm::vec3 old_pos = obj->pos;
+			float ball_radius = obj->scale / 2.0f;
+
+			for (int j = 6; j < (int) objects.size(); ++j) {
+				
+				auto other_obj = objects[j];
+
+				if (i == j || !other_obj->dynamic) continue;
+				//std::cout<<"now"<<std::endl;
+
+				glm::vec3 other_new_pos = other_obj->pos + other_obj->velocity * _dt;
+				glm::vec3 other_old_pos = other_obj->pos;
+				float other_ball_radius = other_obj->scale / 2.0f;
+				
+				float r = ball_radius + other_ball_radius;
+
+				if (glm::length(new_pos - other_new_pos) < r) {
+					//std::cout<<"now1"<<std::endl;
+					glm::vec3 dv = obj->velocity - other_obj->velocity;
+					glm::vec3 dx = old_pos - other_old_pos;
+
+					float a = glm::dot(dv,dv);
+					float b = 2 * glm::dot(dx,dv);
+					float c = glm::dot(dx,dx) - (r*r);
+					float time = first_positive_quadratic(a,b,c);
+					glm::vec3 norm_at_collision = (obj->pos - other_obj->pos) + (obj->velocity-other_obj->velocity) * _dt * time;
+
+					if (time > 0.0f && time < collision.t) {
+						//std::cout<<"now2"<<std::endl;
+						collision.t = time;
+						collision.exists = true;
+						collision.between_dynamics = true; 
+						collision.collider = obj;
+						collision.other_collider = other_obj;
+						collision.n = glm::normalize(norm_at_collision);
+					}
+				}
+		
+			}
+		}
+	}
+
+	return collision;
 }
 
 void Simulation::error_callback_impl(int error, const char *description) { 

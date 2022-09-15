@@ -2,7 +2,7 @@
 
 
 Options::Options() {
-    dt = 1.0f/144.0f;
+    dt = 1.0f/60.0f;
     box_size = 10.0f;
     light_pos = glm::vec3(box_size/2.0f - 0.5f, box_size/2.0f - 0.5f, box_size/2.0f - 0.5f);
     background_color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
@@ -11,7 +11,7 @@ Options::Options() {
 
     ball_resolution = 20;
     ball_positions = { glm::vec3(0.0f, 0.0f, 0.0f) };
-    ball_velocities = { glm::vec3(100.0f, 20.0f, 77.0f) };
+    ball_velocities = { glm::vec3(10.0f, 1.0f, 7.0f) };
     ball_sizes = { 1.5f };
     ball_restitutions = { 0.3f };
     ball_frictions = { 0.3f };

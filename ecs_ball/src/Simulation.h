@@ -22,6 +22,8 @@
 #include "Options.h"
 #include <iostream>
 
+struct Collision;
+
 class Simulation {
     public:
         Simulation();
@@ -74,7 +76,7 @@ class Simulation {
         std::shared_ptr<Shape> create_wall_shape();
         void update(float _dt);
         bool object_is_sleeping(std::shared_ptr<Object> obj);
-        std::pair<float, glm::vec3> collision_found(std::shared_ptr<Object> obj, float _dt);
+        Collision get_first_collision(float _dt);
 
         glm::vec3 gravity, wind;
 
