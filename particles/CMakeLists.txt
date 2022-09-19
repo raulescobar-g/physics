@@ -1,7 +1,7 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.10)
 
 # Name of the project
-PROJECT(ball_ina_box)
+PROJECT(particles)
 
 
 FILE(GLOB_RECURSE SOURCES "src/*.cpp")
@@ -18,32 +18,32 @@ SET(GLM_INCLUDE_DIR "$ENV{GLM_INCLUDE_DIR}")
 INCLUDE_DIRECTORIES(${GLM_INCLUDE_DIR})
 
 
-SET(ENTT_DIR "$ENV{ENTT_DIR}")
-IF(NOT GLM_INCLUDE_DIR)
-	# The environment variable was not set
-	SET(ERR_MSG "Please point the environment variable ENTT to the root directory of your ENTT.")
-	MESSAGE(FATAL_ERROR ${ERR_MSG})
-ENDIF()
-INCLUDE_DIRECTORIES(${ENTT_DIR}/single_include)
+# SET(ENTT_DIR "$ENV{ENTT_DIR}")
+# IF(NOT GLM_INCLUDE_DIR)
+# 	# The environment variable was not set
+# 	SET(ERR_MSG "Please point the environment variable ENTT to the root directory of your ENTT.")
+# 	MESSAGE(FATAL_ERROR ${ERR_MSG})
+# ENDIF()
+# INCLUDE_DIRECTORIES(${ENTT_DIR}/single_include)
 
-SET(IMGUI_DIR "$ENV{IMGUI_DIR}")
+# SET(IMGUI_DIR "$ENV{IMGUI_DIR}")
 
-target_sources( ${CMAKE_PROJECT_NAME}
-                PRIVATE
-                    ${IMGUI_DIR}/imgui_demo.cpp
-                    ${IMGUI_DIR}/imgui_draw.cpp
-                    ${IMGUI_DIR}/imgui_tables.cpp
-                    ${IMGUI_DIR}/imgui_widgets.cpp
-                    ${IMGUI_DIR}/imgui.cpp
+# target_sources( ${CMAKE_PROJECT_NAME}
+#                 PRIVATE
+#                     ${IMGUI_DIR}/imgui_demo.cpp
+#                     ${IMGUI_DIR}/imgui_draw.cpp
+#                     ${IMGUI_DIR}/imgui_tables.cpp
+#                     ${IMGUI_DIR}/imgui_widgets.cpp
+#                     ${IMGUI_DIR}/imgui.cpp
 
-                PRIVATE
-                    ${IMGUI_DIR}/imgui_impl_opengl3.cpp
-                    ${IMGUI_DIR}/imgui_impl_glfw.cpp
-                )
+#                 PRIVATE
+#                     ${IMGUI_DIR}/imgui_impl_opengl3.cpp
+#                     ${IMGUI_DIR}/imgui_impl_glfw.cpp
+#                 )
 
-target_include_directories( ${CMAKE_PROJECT_NAME}
-                            PUBLIC ${IMGUI_DIR}
-                            )
+# target_include_directories( ${CMAKE_PROJECT_NAME}
+#                             PUBLIC ${IMGUI_DIR}
+#                             )
 
 # Get the GLFW environment variable. There should be a CMakeLists.txt in the 
 # specified directory.
