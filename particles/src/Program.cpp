@@ -7,13 +7,14 @@
 
 using namespace std;
 
-Program::Program(string vert_shader, string frag_shader, const vector<string>& attributes, const vector<string>& uniforms) :
+Program::Program(string vert_shader, string frag_shader, const vector<string>& attributes, const vector<string>& uniforms, string compute_shader="") :
 	vShaderName(""),
+	cShaderName(""),
 	fShaderName(""),
 	pid(0),
 	verbose(true)
 {
-	setShaderNames(vert_shader, frag_shader);
+	setShaderNames(vert_shader, frag_shader, compute_shader);
 	setVerbose(true);
 	init();
 	addAttributes(attributes);
@@ -26,10 +27,11 @@ Program::~Program()
 	
 }
 
-void Program::setShaderNames(const string &v, const string &f)
+void Program::setShaderNames(const string &v, const string &f, const string &c)
 {
 	vShaderName = v;
 	fShaderName = f;
+	cShaderName = c;
 }
 
 bool Program::init()
@@ -39,7 +41,7 @@ bool Program::init()
 	// Create shader handles
 	GLuint VS = glCreateShader(GL_VERTEX_SHADER);
 	GLuint FS = glCreateShader(GL_FRAGMENT_SHADER);
-	
+
 	// Read shader sources
 	const char *vshader = GLSL::textFileRead(vShaderName.c_str());
 	const char *fshader = GLSL::textFileRead(fShaderName.c_str());
@@ -67,11 +69,31 @@ bool Program::init()
 		}
 		return false;
 	}
+
+	if (cShaderName != "") {
+		GLuint CS = glCreateShader(GL_COMPUTE_SHADER);
+		const char *cshader = GLSL::textFileRead(cShaderName.c_str());
+		glShaderSource(CS, 1, &cshader, NULL);
+
+		// Compile vertex shader
+		glCompileShader(CS);
+		glGetShaderiv(CS, GL_COMPILE_STATUS, &rc);
+		if(!rc) {
+			if(isVerbose()) {
+				GLSL::printShaderInfoLog(CS);
+				cout << "Error compiling compute shader " << cShaderName << endl;
+			}
+			return false;
+		}
+	}
 	
 	// Create the program and link
 	pid = glCreateProgram();
 	glAttachShader(pid, VS);
 	glAttachShader(pid, FS);
+	if (cShaderName != "") {
+		glAttachShader(pid, CS);
+	}
 	glLinkProgram(pid);
 	glGetProgramiv(pid, GL_LINK_STATUS, &rc);
 	if(!rc) {

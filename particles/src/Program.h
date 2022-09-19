@@ -15,13 +15,13 @@
 class Program
 {
 public:
-	Program(std::string vert_shader, std::string frag_shader, const std::vector<std::string>& attributes, const std::vector<std::string>& uniforms);
+	Program(std::string vert_shader, std::string frag_shader, const std::vector<std::string>& attributes, const std::vector<std::string>& uniforms, std::string compute_shader);
 	virtual ~Program();
 	
 	void setVerbose(bool v) { verbose = v; }
 	bool isVerbose() const { return verbose; }
 	
-	void setShaderNames(const std::string &v, const std::string &f);
+	void setShaderNames(const std::string &v, const std::string &f, const std::string &c);
 	virtual bool init();
 	virtual void bind();
 	virtual void unbind();
@@ -36,6 +36,7 @@ public:
 protected:
 	std::string vShaderName;
 	std::string fShaderName;
+	std::string cShaderName
 	
 private:
 	GLuint pid;

@@ -4,8 +4,6 @@ Simulation::Simulation() {
     o_x = 0.0f;
     o_y = 0.0f;
 
-    vert_shader_path = "../resources/phong_vert.glsl";
-    frag_shader_path = "../resources/phong_frag.glsl";
 
 	for (int i = 0; i < 256; ++i) {
 		keyToggles[i] = false;
@@ -45,7 +43,11 @@ int Simulation::create_window(const char * window_name) {
 void Simulation::init_program(){
 	std::vector<std::string> attributes = {"aPos", "aNor"};
 	std::vector<std::string> uniforms = {"MV", "iMV", "P", "lightPos", "ka", "kd", "ks", "s"};
-	program = std::make_shared<Program>(vert_shader_path, frag_shader_path, attributes, uniforms);
+	program = std::make_shared<Program>("../resources/phong_vert.glsl", "../resources/phong_frag.glsl", attributes, uniforms);
+
+	std::vector<std::string> attributes = {"aPos", "aNor"};
+	std::vector<std::string> uniforms = {"MV", "iMV", "P", "lightPos", "ka", "kd", "ks", "s"};
+	particles_program = std::make_shared<Program>("../resources/particle_vert.glsl", "../resources/particle_frag.glsl", attributes, uniforms)
 }
 
 void Simulation::init_camera(){
@@ -57,7 +59,7 @@ void Simulation::set_scene() {
 	objects.clear();
 
 	dt = 0.01f;
-	box_size = 10.0f;
+	ball_size = 10.0f;
 	
 	glm::vec4 background_color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 	glClearColor(background_color.x, background_color.y, background_color.z, background_color.w);
@@ -66,18 +68,13 @@ void Simulation::set_scene() {
 	glfwGetFramebufferSize(window, &width, &height);
 
 	
-	std::shared_ptr<Shape> wall = create_wall_shape();
-	Material wall_mat(glm::vec3(0.5f, 0.5f, 0.5f), glm::vec3(0.5f, 0.5f, 0.5f), glm::vec3(0.5f, 0.5f, 0.5f), 100.0f);
-	std::shared_ptr<Material> wall_material = std::make_shared<Material>(wall_mat);
+	std::shared_ptr<Shape> ball = create_ball_shape(20);
+	Material ball_mat(glm::vec3(0.01f, 0.01f, 0.3f), glm::vec3(0.01f, 0.01f, 0.3f), glm::vec3(0.0f, 0.0f, 0.0f), 10.0f);
+	std::shared_ptr<Material> ball_material = std::make_shared<Material>(ball_mat);
 
-	float box_radius = box_size / 2.0f;
-	objects.push_back(std::make_shared<Object>(wall_material, wall, glm::vec3(0.0f , box_radius, 0.0f), glm::vec3(1.0f,0.0f,0.0f) * glm::pi<float>()/2.0f, glm::vec3(0.0f,0.0f,0.0f), false, box_size));
-	objects.push_back(std::make_shared<Object>(wall_material, wall, glm::vec3(0.0f, -box_radius, 0.0f), glm::vec3(1.0f,0.0f,0.0f) * -glm::pi<float>()/2.0f, glm::vec3(0.0f,0.0f,0.0f), false, box_size));
-	objects.push_back(std::make_shared<Object>(wall_material, wall, glm::vec3(box_radius, 0.0f, 0.0f), glm::vec3(0.0f,1.0f,0.0f) * -glm::pi<float>()/2.0f, glm::vec3(0.0f,0.0f,0.0f), false, box_size));
-	objects.push_back(std::make_shared<Object>(wall_material, wall, glm::vec3(-box_radius, 0.0f, 0.0f), glm::vec3(0.0f,1.0f,0.0f) * glm::pi<float>()/2.0f, glm::vec3(0.0f,0.0f,0.0f), false, box_size));
-	objects.push_back(std::make_shared<Object>(wall_material, wall, glm::vec3(0.0f, 0.0f, -box_radius), glm::vec3(1.0f,0.0f,0.0f) * 0.0f, glm::vec3(0.0f,0.0f,0.0f), false, box_size));
-	objects.push_back(std::make_shared<Object>(wall_material, wall, glm::vec3(0.0f, 0.0f, box_radius), glm::vec3(0.0f,1.0f,0.0f) * glm::pi<float>(), glm::vec3(0.0f,0.0f,0.0f), false, box_size));
-
+	float circle_radius = ball_size / 2.0f;
+	objects.push_back(std::make_shared<Object>(ball_material, ball, glm::vec3(0.0f , 0.0f, 0.0f), glm::vec3(0.0f,0.0f,0.0f), glm::vec3(0.0f,0.0f,0.0f), false, ball_size));
+	
 	// set all time params
 	glfwMakeContextCurrent(window);
 	current_time = glfwGetTime();
@@ -209,12 +206,12 @@ void Simulation::move_camera() {
 	if (inputs[(unsigned) 'Z']){camera->increment_fovy();}
 }
 
-std::shared_ptr<Shape> Simulation::create_wall_shape() {
-	std::shared_ptr<Shape> wall = std::make_shared<Shape>();
-	wall->loadMesh("../resources/square.obj"); 
-	wall->fitToUnitBox();
-	wall->init();
-	return wall;
+std::shared_ptr<Shape> Simulation::create_ball_shape(int resolution) {
+	std::shared_ptr<Shape> ball = std::make_shared<Shape>();
+	ball->createSphere(20);
+	ball->fitToUnitBox();
+	ball->init();
+	return ball;
 }
 
 

@@ -18,6 +18,7 @@
 #include "Shape.h"
 #include "Object.h"
 #include "MatrixStack.h"
+#include "Particles.h"
 #include <iostream>
 
 class Simulation {
@@ -68,7 +69,9 @@ class Simulation {
         } 
     
     private:
-        std::shared_ptr<Shape> create_wall_shape();
+        Particles p_sys;
+
+        std::shared_ptr<Shape> create_ball_shape(int res);
         void update(float _dt);        
 
         void error_callback_impl(int error, const char *description);
@@ -78,13 +81,12 @@ class Simulation {
         void key_callback_impl(GLFWwindow *window, int key, int scancode, int action, int mods);
 
         
-        float dt, current_time, total_time, new_time, frame_time, fps, eps, box_size;
+        float dt, current_time, total_time, new_time, frame_time, fps, eps, ball_size;
 
         glm::vec3 gravity, wind;
 
         double o_x, o_y;                                    // buffer for previous cursor positions
         int width, height;                                  // window details
-        std::string vert_shader_path, frag_shader_path;     // path to shaders
         bool keyToggles[256], inputs[256];                  // user input storage
 
         float movement_speed, sensitivity;                  // camera movement speed, cursor sensitivity
@@ -92,6 +94,7 @@ class Simulation {
         GLFWwindow *window;                                 // Main application window
         std::shared_ptr<Camera> camera;                     // application window
         std::shared_ptr<Program> program;                   // shader program
+        std::shared_ptr<Program> particles_program; 
         std::vector< std::shared_ptr<Object> > objects;     // storage for all meshes + transforms + attributes
 };
 
