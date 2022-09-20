@@ -10,6 +10,7 @@
 #include <vector>
 
 class Particles {
+    public: 
     Particles(int radius=100.0f,int amount=100){
         std::default_random_engine engine((unsigned) 1);
 
@@ -57,6 +58,12 @@ class Particles {
     std::normal_distribution<float> size_random;
 
     std::default_random_engine engine;
+
+    private: 
+    GLuint pid;
+	std::map<std::string,GLint> attributes;
+	std::map<std::string,GLint> uniforms;
+	bool verbose;
 };
 
 #endif

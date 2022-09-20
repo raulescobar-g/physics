@@ -45,8 +45,8 @@ void Simulation::init_program(){
 	std::vector<std::string> uniforms = {"MV", "iMV", "P", "lightPos", "ka", "kd", "ks", "s"};
 	program = std::make_shared<Program>("../resources/phong_vert.glsl", "../resources/phong_frag.glsl", attributes, uniforms);
 
-	std::vector<std::string> attributes = {"aPos", "aNor"};
-	std::vector<std::string> uniforms = {"MV", "iMV", "P", "lightPos", "ka", "kd", "ks", "s"};
+	std::vector<std::string> attributes = {"pos", "velocity", "forces"};
+	std::vector<std::string> uniforms = {"MV", "P"};
 	particles_program = std::make_shared<Program>("../resources/particle_vert.glsl", "../resources/particle_frag.glsl", attributes, uniforms)
 }
 
