@@ -26,24 +26,24 @@ INCLUDE_DIRECTORIES(${GLM_INCLUDE_DIR})
 # ENDIF()
 # INCLUDE_DIRECTORIES(${ENTT_DIR}/single_include)
 
-# SET(IMGUI_DIR "$ENV{IMGUI_DIR}")
+SET(IMGUI_DIR "$ENV{IMGUI_DIR}")
 
-# target_sources( ${CMAKE_PROJECT_NAME}
-#                 PRIVATE
-#                     ${IMGUI_DIR}/imgui_demo.cpp
-#                     ${IMGUI_DIR}/imgui_draw.cpp
-#                     ${IMGUI_DIR}/imgui_tables.cpp
-#                     ${IMGUI_DIR}/imgui_widgets.cpp
-#                     ${IMGUI_DIR}/imgui.cpp
+target_sources( ${CMAKE_PROJECT_NAME}
+                PRIVATE
+                    ${IMGUI_DIR}/imgui_demo.cpp
+                    ${IMGUI_DIR}/imgui_draw.cpp
+                    ${IMGUI_DIR}/imgui_tables.cpp
+                    ${IMGUI_DIR}/imgui_widgets.cpp
+                    ${IMGUI_DIR}/imgui.cpp
 
-#                 PRIVATE
-#                     ${IMGUI_DIR}/imgui_impl_opengl3.cpp
-#                     ${IMGUI_DIR}/imgui_impl_glfw.cpp
-#                 )
+                PRIVATE
+                    ${IMGUI_DIR}/imgui_impl_opengl3.cpp
+                    ${IMGUI_DIR}/imgui_impl_glfw.cpp
+                )
 
-# target_include_directories( ${CMAKE_PROJECT_NAME}
-#                             PUBLIC ${IMGUI_DIR}
-#                             )
+target_include_directories( ${CMAKE_PROJECT_NAME}
+                            PUBLIC ${IMGUI_DIR}
+                            )
 
 # Get the GLFW environment variable. There should be a CMakeLists.txt in the 
 # specified directory.

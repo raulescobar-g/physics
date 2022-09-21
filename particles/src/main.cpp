@@ -20,8 +20,16 @@
 #include "GLSL.h"
 #include "Simulation.h"
 
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
+
 int main(int argc, char **argv)
 {
+
+	Simulation &sim = Simulation::get_instance();
+
+	glfwSetErrorCallback(&Simulation::error_callback);
 	
 	// Initialize the library.
 	if(!glfwInit()) {
@@ -36,10 +44,6 @@ int main(int argc, char **argv)
 	// glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // Required on Mac
 
 
-	Simulation &sim = Simulation::get_instance();
-
-	glfwSetErrorCallback(&Simulation::error_callback);
-
 	if (sim.create_window("Particles") == -1) {
 		std::cout<<"Error creating simulation window."<<std::endl;
 		return -1;
@@ -51,6 +55,20 @@ int main(int argc, char **argv)
 		std::cerr << "Failed to initialize GLEW" << std::endl;
 		return -1;
 	}
+
+	glGetError(); // A bug in glewInit() causes an error that we can safely ignore.
+	std::cout << "OpenGL version: " << glGetString(GL_VERSION) << std::endl;
+	std::cout << "GLSL version: " << glGetString(GL_SHADING_LANGUAGE_VERSION) << std::endl;
+	int tmp;
+	glGetIntegerv(GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS, &tmp);
+	std::cout << "GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS = " << tmp << std::endl;
+	// Check how many uniforms are supported in the vertex shader
+	glGetIntegerv(GL_MAX_VERTEX_UNIFORM_COMPONENTS, &tmp);
+	std::cout << "GL_MAX_VERTEX_UNIFORM_COMPONENTS = " << tmp << std::endl;
+	glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &tmp);
+	std::cout << "GL_MAX_VERTEX_ATTRIBS = " << tmp << std::endl;
+
+	//GLSL::checkVersion();
 
 	GLFWwindow * win = sim.get_window();
 

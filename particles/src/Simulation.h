@@ -13,13 +13,19 @@
 #include <vector>
 #include <string>
 #include <memory>
+#include <iostream>
+
 #include "Program.h"
 #include "Camera.h"
 #include "Shape.h"
 #include "Object.h"
 #include "MatrixStack.h"
 #include "Particles.h"
-#include <iostream>
+
+
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
 
 class Simulation {
     public:
