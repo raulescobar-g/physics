@@ -7,7 +7,22 @@
 
 using namespace std;
 
-Program::Program(string vert_shader, string frag_shader, const vector<string>& attributes, const vector<string>& uniforms, string compute_shader="") :
+Program::Program(string vert_shader, string frag_shader, const vector<string>& attributes, const vector<string>& uniforms) :
+	vShaderName(""),
+	cShaderName(""),
+	fShaderName(""),
+	pid(0),
+	verbose(true)
+{
+	setShaderNames(vert_shader, frag_shader, "");
+	setVerbose(true);
+	init();
+	addAttributes(attributes);
+	addUniforms(uniforms);
+	setVerbose(false);
+}
+
+Program::Program(string vert_shader, string frag_shader, const vector<string>& attributes, const vector<string>& uniforms, string compute_shader) :
 	vShaderName(""),
 	cShaderName(""),
 	fShaderName(""),
@@ -69,7 +84,11 @@ bool Program::init()
 		}
 		return false;
 	}
-
+	
+	// Create the program and link
+	pid = glCreateProgram();
+	glAttachShader(pid, VS);
+	glAttachShader(pid, FS);
 	if (cShaderName != "") {
 		GLuint CS = glCreateShader(GL_COMPUTE_SHADER);
 		const char *cshader = GLSL::textFileRead(cShaderName.c_str());
@@ -85,13 +104,6 @@ bool Program::init()
 			}
 			return false;
 		}
-	}
-	
-	// Create the program and link
-	pid = glCreateProgram();
-	glAttachShader(pid, VS);
-	glAttachShader(pid, FS);
-	if (cShaderName != "") {
 		glAttachShader(pid, CS);
 	}
 	glLinkProgram(pid);

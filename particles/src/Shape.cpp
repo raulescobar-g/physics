@@ -238,13 +238,16 @@ void Shape::init()
 
 void Shape::draw(const shared_ptr<Program> prog) const
 {
+	std::cout<<"here"<<std::endl;
 	// Bind position buffer
 	int h_pos = prog->getAttribute("aPos");
 	glEnableVertexAttribArray(h_pos);
 	glBindBuffer(GL_ARRAY_BUFFER, posBufID);
 	glVertexAttribPointer(h_pos, 3, GL_FLOAT, GL_FALSE, 0, (const void *)0);
 	GLSL::checkError(GET_FILE_LINE);
-	
+	std::cout<<"here"<<std::endl;
+
+
 	// Bind normal buffer
 	int h_nor = prog->getAttribute("aNor");
 	if(h_nor != -1 && norBufID != 0) {
@@ -253,7 +256,9 @@ void Shape::draw(const shared_ptr<Program> prog) const
 		glVertexAttribPointer(h_nor, 3, GL_FLOAT, GL_FALSE, 0, (const void *)0);
 	}
 	GLSL::checkError(GET_FILE_LINE);
-	
+	std::cout<<"here"<<std::endl;
+
+
 	// Bind texcoords buffer
 	int h_tex = prog->getAttribute("aTex");
 	if(h_tex != -1 && texBufID != 0) {
@@ -262,20 +267,22 @@ void Shape::draw(const shared_ptr<Program> prog) const
 		glVertexAttribPointer(h_tex, 2, GL_FLOAT, GL_FALSE, 0, (const void *)0);
 	}
 	GLSL::checkError(GET_FILE_LINE);
-
+	std::cout<<"here1"<<std::endl;
 	if (!indBuf.empty()) { glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indBufID); }
 	GLSL::checkError(GET_FILE_LINE);
+
+
 	
 	// Draw
 	int count = posBuf.size()/3; // number of indices to be rendered
-	
+	std::cout<<"here1S"<<std::endl;
 
 	indBuf.empty() ? glDrawArrays(GL_TRIANGLES, 0, count) : glDrawElements(GL_TRIANGLES, (int)indBuf.size(), GL_UNSIGNED_INT, (void *)0);
-	
+	std::cout<<"here"<<std::endl;
 	if (!indBuf.empty()) { glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0); }
 	
 	GLSL::checkError(GET_FILE_LINE);
-
+	std::cout<<"here"<<std::endl;
 	// Disable and unbind
 	if(h_tex != -1) {
 		glDisableVertexAttribArray(h_tex);
@@ -283,6 +290,7 @@ void Shape::draw(const shared_ptr<Program> prog) const
 	if(h_nor != -1) {
 		glDisableVertexAttribArray(h_nor);
 	}
+	std::cout<<"here"<<std::endl;
 	glDisableVertexAttribArray(h_pos);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	

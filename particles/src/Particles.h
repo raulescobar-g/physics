@@ -8,44 +8,22 @@
 
 #include <random>
 #include <vector>
+#include <memory>
+#include "Program.h"
 
 class Particles {
-    public: 
-    Particles(int radius=100.0f,int amount=100){
-        std::default_random_engine engine((unsigned) 1);
+    public:
+    Particles() = default; 
+    Particles(int amount);
+    ~Particles();
 
-        std::normal_distribution<float> position_random(, );
-        std::normal_distribution<float> velocity_random(, );
-        std::normal_distribution<float> color_random(, );
-        std::normal_distribution<float> lifetime_random(, );
-        std::normal_distribution<float> mass_random(, );
-        std::normal_distribution<float> size_random(, );
+    void init();
+    void update(float _dt);
+    void draw(const std::shared_ptr<Program> prog);
 
-        positions.resize(amount);
-        velocities.resize(amount);
-        colors.resize(amount);
-        lifetime.resize(amount);
-        mass.resize(amount);
-        size.resize(amount);
-
-        for (int i = 0; i < amount; ++i) {
-            positions[i] = ;
-            velocities[i] = ;
-            colors[i] = ;
-            lifetimes[i] = ;
-            masses[i] = ;
-            sizes[i] = ;
-        }
-    };
-    ~Particles(){};
-
-    void init(){};
-    void update(){};
-    void draw(){};
-
-    std::vector<glm::vec3> positions;
-    std::vector<glm::vec3> velocities;
-    std::vector<glm::vec3> colors;
+    std::vector<float> positions;
+    std::vector<float> velocities;
+    std::vector<unsigned char> colors;
     std::vector<float> lifetimes;
     std::vector<float> masses;
     std::vector<float> sizes;
@@ -60,7 +38,9 @@ class Particles {
     std::default_random_engine engine;
 
     private: 
-    GLuint pid;
+    GLuint pid, billboard_vertex_buffer, particles_position_buffer, particles_color_buffer, vaoId;
+    GLfloat g_vertex_buffer_data[12];
+    int amount, max_amount;
 	std::map<std::string,GLint> attributes;
 	std::map<std::string,GLint> uniforms;
 	bool verbose;

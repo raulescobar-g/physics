@@ -45,9 +45,9 @@ void Simulation::init_program(){
 	std::vector<std::string> uniforms = {"MV", "iMV", "P", "lightPos", "ka", "kd", "ks", "s"};
 	program = std::make_shared<Program>("../resources/phong_vert.glsl", "../resources/phong_frag.glsl", attributes, uniforms);
 
-	std::vector<std::string> attributes = {"pos", "velocity", "forces"};
-	std::vector<std::string> uniforms = {"MV", "P"};
-	particles_program = std::make_shared<Program>("../resources/particle_vert.glsl", "../resources/particle_frag.glsl", attributes, uniforms)
+	std::vector<std::string> attributes_p = {"position", "color", "vertices"};
+	std::vector<std::string> uniforms_p = {"P","V"};
+	particles_program = std::make_shared<Program>("../resources/particle_vert.glsl", "../resources/particle_frag.glsl", attributes_p, uniforms_p);
 }
 
 void Simulation::init_camera(){
@@ -58,7 +58,7 @@ void Simulation::set_scene() {
 	glfwMakeContextCurrent(window);
 	objects.clear();
 
-	dt = 0.01f;
+	dt = 1.0f/144.0f;
 	ball_size = 10.0f;
 	
 	glm::vec4 background_color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
@@ -83,6 +83,9 @@ void Simulation::set_scene() {
 	gravity = glm::vec3(0.0f, -9.8f, 0.0f);
 	wind = glm::vec3(0.0f, 0.0f, 0.0f);
 
+	p_sys = Particles(100);
+	p_sys.init();
+
 	// GLSL::checkError(GET_FILE_LINE);
 }
 
@@ -103,8 +106,7 @@ void Simulation::fixed_timestep_update() {
 }
 
 void Simulation::update(float _dt) {
-
-	// calc collision n stuff
+	p_sys.update(_dt);
 }
 
 void Simulation::render_scene() {
@@ -120,17 +122,14 @@ void Simulation::render_scene() {
 	auto MV = std::make_shared<MatrixStack>();
 	glm::mat4 iMV;
 
-	
 	P->pushMatrix();	
 	camera->applyProjectionMatrix(P);
 	camera->applyViewMatrix(MV);	
 	MV->pushMatrix();
 
 	program->bind();
-
 	for (auto obj : objects){ 
 		MV->pushMatrix();
-			
 		MV->translate(obj->pos);
 		MV->scale(obj->scale,obj->scale,obj->scale);
 		if (glm::length(obj->rotation) > eps) MV->rotate(glm::length(obj->rotation), obj->rotation);
@@ -144,15 +143,31 @@ void Simulation::render_scene() {
 		glUniform3f(program->getUniform("kd"), obj->material->kd.x, obj->material->kd.y, obj->material->kd.z);
 		glUniform3f(program->getUniform("ks"), obj->material->ks.x, obj->material->ks.y, obj->material->ks.z);
 		glUniform1f(program->getUniform("s"), obj->material->s );
-
-		obj->shape->draw(program); 	
+		//obj->shape->draw(program); 	
 		MV->popMatrix();
 	}
-
 	program->unbind();
 
 	MV->popMatrix();	
 	P->popMatrix();	
+
+
+	auto _P = std::make_shared<MatrixStack>();
+	auto _V = std::make_shared<MatrixStack>();
+	_P->pushMatrix();
+	camera->applyProjectionMatrix(_P);
+	camera->applyViewMatrix(_V);	
+	_V->pushMatrix();
+
+	particles_program->bind();
+	glUniformMatrix4fv(particles_program->getUniform("P"), 1, GL_FALSE, glm::value_ptr(_P->topMatrix()));
+	glUniformMatrix4fv(particles_program->getUniform("V"), 1, GL_FALSE, glm::value_ptr(_V->topMatrix()));
+	
+	p_sys.draw(particles_program);
+
+	particles_program->unbind();
+	_V->popMatrix();
+	_P->popMatrix();	
 }
 
 bool Simulation::window_closed() {
@@ -213,7 +228,6 @@ std::shared_ptr<Shape> Simulation::create_ball_shape(int resolution) {
 	ball->init();
 	return ball;
 }
-
 
 void Simulation::error_callback_impl(int error, const char *description) { 
 	std::cerr << description << std::endl; 

@@ -15,6 +15,7 @@
 class Program
 {
 public:
+	Program(std::string vert_shader, std::string frag_shader, const std::vector<std::string>& attributes, const std::vector<std::string>& uniforms);
 	Program(std::string vert_shader, std::string frag_shader, const std::vector<std::string>& attributes, const std::vector<std::string>& uniforms, std::string compute_shader);
 	virtual ~Program();
 	
@@ -36,7 +37,7 @@ public:
 protected:
 	std::string vShaderName;
 	std::string fShaderName;
-	std::string cShaderName
+	std::string cShaderName;
 	
 private:
 	GLuint pid;

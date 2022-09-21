@@ -22,21 +22,25 @@
 
 int main(int argc, char **argv)
 {
+	
 	// Initialize the library.
 	if(!glfwInit()) {
+		std::cout<<"Error initing glfw"<<std::endl;
 		return -1;
 	}
 
-	const char* glsl_version = "#version 150";
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // 3.2+ only
-	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // Required on Mac
+	// const char* glsl_version = "#version 150";
+	// glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	// glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+	// glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // 3.2+ only
+	// glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // Required on Mac
 
 
 	Simulation &sim = Simulation::get_instance();
 
-	if (sim.create_window("Ball in a box") == -1) {
+	glfwSetErrorCallback(&Simulation::error_callback);
+
+	if (sim.create_window("Particles") == -1) {
 		std::cout<<"Error creating simulation window."<<std::endl;
 		return -1;
 	}
@@ -50,7 +54,7 @@ int main(int argc, char **argv)
 
 	GLFWwindow * win = sim.get_window();
 
-	glfwSetErrorCallback(&Simulation::error_callback);
+	
 	glfwSetKeyCallback(win, &Simulation::key_callback);
 	glfwSetCharCallback(win, &Simulation::char_callback);
 	glfwSetCursorPosCallback(win, &Simulation::cursor_position_callback);
@@ -62,13 +66,9 @@ int main(int argc, char **argv)
 	
 
 	while(!sim.window_closed()) {
-		
 		sim.fixed_timestep_update();
-
 		sim.move_camera();
-
 		sim.render_scene();
-
 		sim.swap_buffers();
 	}
 
