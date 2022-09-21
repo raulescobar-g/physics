@@ -19,12 +19,16 @@ Simulation::Simulation() {
 }
 
 Simulation::~Simulation() {
-	glfwMakeContextCurrent(window);
-	glfwDestroyWindow(window);
+	ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
+
+    glfwDestroyWindow(window);
+    glfwTerminate();
 	
 }
 
-int Simulation::create_window(const char * window_name) {
+int Simulation::create_window(const char * window_name, const char * glsl_version) {
 	
     // Create a windowed mode window and its OpenGL context.
 	window = glfwCreateWindow(640 * 2, 480 * 2, window_name, NULL, NULL);
@@ -37,16 +41,29 @@ int Simulation::create_window(const char * window_name) {
 
 	
 	glfwSwapInterval(1);
+
+	IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+
+    // Setup Dear ImGui style
+    ImGui::StyleColorsDark();
+    //ImGui::StyleColorsLight();
+
+    // Setup Platform/Renderer backends
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init(glsl_version);
+
     return 0;
 }
 
 void Simulation::init_program(){
 	std::vector<std::string> attributes = {"aPos", "aNor"};
-	std::vector<std::string> uniforms = {"MV", "iMV", "P", "lightPos", "ka", "kd", "ks", "s"};
+	std::vector<std::string> uniforms = {"MV", "iMV", "P"};
 	program = std::make_shared<Program>("../resources/phong_vert.glsl", "../resources/phong_frag.glsl", attributes, uniforms);
 
 	std::vector<std::string> attributes_p = {"position", "color", "vertices"};
-	std::vector<std::string> uniforms_p = {"P","V"};
+	std::vector<std::string> uniforms_p = {"pP","V"};
 	particles_program = std::make_shared<Program>("../resources/particle_vert.glsl", "../resources/particle_frag.glsl", attributes_p, uniforms_p);
 }
 
@@ -55,42 +72,40 @@ void Simulation::init_camera(){
 }
 
 void Simulation::set_scene() {
-	glfwMakeContextCurrent(window);
 	objects.clear();
 
-	dt = 1.0f/144.0f;
+	dt = 1.0f/24.0f;
 	ball_size = 10.0f;
 	
-	glm::vec4 background_color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+	glm::vec4 background_color = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
 	glClearColor(background_color.x, background_color.y, background_color.z, background_color.w);
 
 	glEnable(GL_DEPTH_TEST);
-	glfwGetFramebufferSize(window, &width, &height);
 
-	
-	std::shared_ptr<Shape> ball = create_ball_shape(20);
+	program->bind();
+	std::shared_ptr<Shape> ball = create_ball_shape(30);
+	program->unbind();
 	Material ball_mat(glm::vec3(0.01f, 0.01f, 0.3f), glm::vec3(0.01f, 0.01f, 0.3f), glm::vec3(0.0f, 0.0f, 0.0f), 10.0f);
 	std::shared_ptr<Material> ball_material = std::make_shared<Material>(ball_mat);
 
-	float circle_radius = ball_size / 2.0f;
-	objects.push_back(std::make_shared<Object>(ball_material, ball, glm::vec3(0.0f , 0.0f, 0.0f), glm::vec3(0.0f,0.0f,0.0f), glm::vec3(0.0f,0.0f,0.0f), false, ball_size));
+	objects.push_back(std::make_shared<Object>(ball_material, ball, glm::vec3(1.0f , -1.0f, 2.0f), glm::vec3(0.0f,0.0f,0.0f), glm::vec3(0.0f,0.0f,0.0f), false, ball_size));
 	
 	// set all time params
-	glfwMakeContextCurrent(window);
 	current_time = glfwGetTime();
 	total_time = 0.0f;
 	
 	gravity = glm::vec3(0.0f, -9.8f, 0.0f);
 	wind = glm::vec3(0.0f, 0.0f, 0.0f);
 
-	p_sys = Particles(100);
+	particles_program->bind();
+	p_sys = Particles(10000);
 	p_sys.init();
+	particles_program->unbind();
 
-	// GLSL::checkError(GET_FILE_LINE);
+	GLSL::checkError(GET_FILE_LINE);
 }
 
 void Simulation::fixed_timestep_update() {
-	glfwMakeContextCurrent(window);
 	glfwPollEvents();
 	new_time = glfwGetTime();
 	frame_time = new_time - current_time;
@@ -110,12 +125,18 @@ void Simulation::update(float _dt) {
 }
 
 void Simulation::render_scene() {
-	// Clear framebuffer.
+	ImGui_ImplOpenGL3_NewFrame();
+	ImGui_ImplGlfw_NewFrame();
+	ImGui::NewFrame();
+
+	int display_w, display_h;
+	glfwGetFramebufferSize(window, &display_w, &display_h);
+	glViewport(0, 0, display_w, display_h);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	// Get current frame buffer size.
-	glfwGetFramebufferSize(window, &width, &height);
-	glViewport(0, 0, width, height);
+	ImGui::Begin("info");
+	ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
+	ImGui::End();
 	
 	// Matrix stacks
 	auto P = std::make_shared<MatrixStack>();
@@ -139,18 +160,16 @@ void Simulation::render_scene() {
 		glUniformMatrix4fv(program->getUniform("P"), 1, GL_FALSE, glm::value_ptr(P->topMatrix()));
 		glUniformMatrix4fv(program->getUniform("MV"), 1, GL_FALSE, glm::value_ptr(MV->topMatrix()));
 		glUniformMatrix4fv(program->getUniform("iMV"), 1, GL_FALSE, glm::value_ptr(iMV));
-		glUniform3f(program->getUniform("ka"), obj->material->ka.x, obj->material->ka.y, obj->material->ka.z);
-		glUniform3f(program->getUniform("kd"), obj->material->kd.x, obj->material->kd.y, obj->material->kd.z);
-		glUniform3f(program->getUniform("ks"), obj->material->ks.x, obj->material->ks.y, obj->material->ks.z);
-		glUniform1f(program->getUniform("s"), obj->material->s );
-		//obj->shape->draw(program); 	
+
+		obj->shape->draw(program); 	
+
 		MV->popMatrix();
-	}
+	} 
+
 	program->unbind();
 
 	MV->popMatrix();	
 	P->popMatrix();	
-
 
 	auto _P = std::make_shared<MatrixStack>();
 	auto _V = std::make_shared<MatrixStack>();
@@ -160,14 +179,18 @@ void Simulation::render_scene() {
 	_V->pushMatrix();
 
 	particles_program->bind();
-	glUniformMatrix4fv(particles_program->getUniform("P"), 1, GL_FALSE, glm::value_ptr(_P->topMatrix()));
+	glUniformMatrix4fv(particles_program->getUniform("pP"), 1, GL_FALSE, glm::value_ptr(_P->topMatrix()));
 	glUniformMatrix4fv(particles_program->getUniform("V"), 1, GL_FALSE, glm::value_ptr(_V->topMatrix()));
-	
 	p_sys.draw(particles_program);
 
 	particles_program->unbind();
 	_V->popMatrix();
 	_P->popMatrix();	
+
+	// Rendering
+	
+	ImGui::Render();
+	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
 bool Simulation::window_closed() {
@@ -223,10 +246,18 @@ void Simulation::move_camera() {
 
 std::shared_ptr<Shape> Simulation::create_ball_shape(int resolution) {
 	std::shared_ptr<Shape> ball = std::make_shared<Shape>();
-	ball->createSphere(20);
+	ball->createSphere(resolution);
 	ball->fitToUnitBox();
 	ball->init();
 	return ball;
+}
+
+std::shared_ptr<Shape> Simulation::create_wall_shape() {
+	std::shared_ptr<Shape> wall = std::make_shared<Shape>();
+	wall->loadMesh("../resources/square.obj"); // TODO: fix generation script later
+	wall->fitToUnitBox();
+	wall->init();
+	return wall;
 }
 
 void Simulation::error_callback_impl(int error, const char *description) { 

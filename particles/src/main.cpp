@@ -37,14 +37,14 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	// const char* glsl_version = "#version 150";
-	// glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-	// glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
-	// glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // 3.2+ only
-	// glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // Required on Mac
+	const char* glsl_version = "#version 150";
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+	//glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // 3.2+ only
+	//glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // Required on Mac
 
 
-	if (sim.create_window("Particles") == -1) {
+	if (sim.create_window("Particles", glsl_version) == -1) {
 		std::cout<<"Error creating simulation window."<<std::endl;
 		return -1;
 	}
@@ -56,20 +56,11 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
+
 	glGetError(); // A bug in glewInit() causes an error that we can safely ignore.
 	std::cout << "OpenGL version: " << glGetString(GL_VERSION) << std::endl;
 	std::cout << "GLSL version: " << glGetString(GL_SHADING_LANGUAGE_VERSION) << std::endl;
-	int tmp;
-	glGetIntegerv(GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS, &tmp);
-	std::cout << "GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS = " << tmp << std::endl;
-	// Check how many uniforms are supported in the vertex shader
-	glGetIntegerv(GL_MAX_VERTEX_UNIFORM_COMPONENTS, &tmp);
-	std::cout << "GL_MAX_VERTEX_UNIFORM_COMPONENTS = " << tmp << std::endl;
-	glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &tmp);
-	std::cout << "GL_MAX_VERTEX_ATTRIBS = " << tmp << std::endl;
-
-	//GLSL::checkVersion();
-
+	
 	GLFWwindow * win = sim.get_window();
 
 	
@@ -77,6 +68,10 @@ int main(int argc, char **argv)
 	glfwSetCharCallback(win, &Simulation::char_callback);
 	glfwSetCursorPosCallback(win, &Simulation::cursor_position_callback);
 	glfwSetFramebufferSizeCallback(win, &Simulation::resize_callback);
+
+	GLuint vaoId = 0;
+	glGenVertexArrays(1, &vaoId);
+	glBindVertexArray(vaoId);
 
 	sim.init_program();
 	sim.init_camera();
@@ -90,6 +85,5 @@ int main(int argc, char **argv)
 		sim.swap_buffers();
 	}
 
-	glfwTerminate();
 	return 0;
 }

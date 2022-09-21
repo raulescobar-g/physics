@@ -6,38 +6,37 @@
 #include "GLSL.h"
 #include <iostream>
 
+
+
 Particles::Particles(int amount=10) : amount(amount), max_amount(amount) {
     std::default_random_engine engine((unsigned) 1);
 
     std::normal_distribution<float> position_random(0.0f, 20.0f);
-    std::normal_distribution<float> velocity_random(0.0f, 5.0f);
+    std::normal_distribution<float> velocity_random(0.0f, 10.0f);
     std::normal_distribution<float> color_random(150.0f, 20.0f);
     std::normal_distribution<float> lifetime_random(10.0f, 1.0f);
     std::normal_distribution<float> mass_random(5.0f, 1.0f);
     std::normal_distribution<float> size_random(1.0f, 0.5f);
 
-    positions.resize(amount * 4);
-    velocities.resize(amount * 3);
-    colors.resize(amount * 4);
-    lifetimes.resize(amount);
-    masses.resize(amount);
-    sizes.resize(amount);
+    positions.resize(max_amount * 4);
+    velocities.resize(max_amount * 4);
+    colors.resize(max_amount * 4);
+    lifetimes.resize(max_amount);
 
-    for (int i = 0; i < amount; ++i) {
-        for (int j = 0; j < 3; ++j){
-            velocities[3*i+j] = velocity_random(engine);
-        }
-
+    for (int i = 0; i < max_amount; ++i) {
         lifetimes[i] = lifetime_random(engine);
-        masses[i] = mass_random(engine);
-        sizes[i] = size_random(engine);
     }
-    for (int i = 0; i < amount*4; i+=4) {
+
+    for (int i = 0; i < max_amount*4; i+=4) {
         positions[i] = position_random(engine);
         positions[i+1] = position_random(engine);
         positions[i+2] = position_random(engine);
         positions[i+3] = size_random(engine);
-        std::cout<<positions[i]<<std::endl;
+
+        velocities[i] = velocity_random(engine);
+        velocities[i+1] = velocity_random(engine);
+        velocities[i+2] = velocity_random(engine);
+        velocities[i+3] = mass_random(engine);
 
         colors[i] = (unsigned char) color_random(engine);
         colors[i+1] = (unsigned char) color_random(engine);
@@ -47,10 +46,11 @@ Particles::Particles(int amount=10) : amount(amount), max_amount(amount) {
 };
 
 void Particles::init() {
+    std::vector<std::string> attr = {};
+    std::vector<std::string> unif = {};
+    glm::vec3 dims(1024, 1024, 64);
+    compute = Compute(attr, unif, dims);
 
-    vaoId = 1;
-	glGenVertexArrays(0, &vaoId);
-	glBindVertexArray(vaoId);
 
     GLfloat g_vertex_buffer_data[] = {
         -0.5f, -0.5f, 0.0f,
@@ -67,32 +67,38 @@ void Particles::init() {
     glGenBuffers(1, &particles_position_buffer);
     glBindBuffer(GL_ARRAY_BUFFER, particles_position_buffer);
     // Initialize with empty (NULL) buffer : it will be updated later, each frame.
-    glBufferData(GL_ARRAY_BUFFER, amount * 4 * sizeof(GLfloat), &positions[0], GL_STREAM_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, max_amount * 4 * sizeof(GLfloat), NULL, GL_STREAM_DRAW);
 
     // The VBO containing the colors of the particles
     glGenBuffers(1, &particles_color_buffer);
     glBindBuffer(GL_ARRAY_BUFFER, particles_color_buffer);
     // Initialize with empty (NULL) buffer : it will be updated later, each frame.
-    glBufferData(GL_ARRAY_BUFFER, amount * 4 * sizeof(GLubyte), &colors[0], GL_STREAM_DRAW);
-
-    GLSL::checkError(GET_FILE_LINE);
+    glBufferData(GL_ARRAY_BUFFER, max_amount * 4 * sizeof(GLubyte), NULL, GL_STREAM_DRAW);
 }
 
 Particles::~Particles() {};
 
 void Particles::update(float _dt){
-    return;
+    for (int i = 0; i < max_amount*4; i += 4) {
+        positions[i]  += _dt * velocities[i];
+        positions[i+1] += _dt * velocities[i+1];
+        positions[i+2] += _dt * velocities[i+2];
+    }
+
+    for (int i = 0; i < max_amount; ++i) {
+        lifetimes[i] -= _dt * 0.01f;
+    }
 };
 
 void Particles::draw(const std::shared_ptr<Program> prog){
 
     glBindBuffer(GL_ARRAY_BUFFER, particles_position_buffer);
-    //glBufferData(GL_ARRAY_BUFFER, max_amount * 4 * sizeof(GLfloat), &positions[0], GL_STREAM_DRAW); // Buffer orphaning, a common way to improve streaming perf. See above link for details.
-    glBufferSubData(GL_ARRAY_BUFFER, 0, positions.size() * sizeof(float) * 4, &positions[0]);
+    glBufferData(GL_ARRAY_BUFFER, max_amount * 4 * sizeof(GLfloat), NULL, GL_STREAM_DRAW); // Buffer orphaning, a common way to improve streaming perf. See above link for details.
+    glBufferSubData(GL_ARRAY_BUFFER, 0, positions.size() * sizeof(GLfloat), &positions[0]);
 
     glBindBuffer(GL_ARRAY_BUFFER, particles_color_buffer);
-    //glBufferData(GL_ARRAY_BUFFER, max_amount * 4 * sizeof(GLubyte), &colors[0], GL_STREAM_DRAW); // Buffer orphaning, a common way to improve streaming perf. See above link for details.
-    glBufferSubData(GL_ARRAY_BUFFER, 0, colors.size() * sizeof(unsigned char) * 4, &colors[0]);
+    glBufferData(GL_ARRAY_BUFFER, max_amount * 4 * sizeof(GLubyte), NULL, GL_STREAM_DRAW); // Buffer orphaning, a common way to improve streaming perf. See above link for details.
+    glBufferSubData(GL_ARRAY_BUFFER, 0, colors.size() * sizeof(GLubyte), &colors[0]);
 
 
     int verticesID = prog->getAttribute("vertices");

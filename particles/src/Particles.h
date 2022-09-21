@@ -10,6 +10,7 @@
 #include <vector>
 #include <memory>
 #include "Program.h"
+#include "Compute.h"
 
 class Particles {
     public:
@@ -26,7 +27,6 @@ class Particles {
     std::vector<unsigned char> colors;
     std::vector<float> lifetimes;
     std::vector<float> masses;
-    std::vector<float> sizes;
 
     std::normal_distribution<float> position_random;
     std::normal_distribution<float> velocity_random;
@@ -38,6 +38,7 @@ class Particles {
     std::default_random_engine engine;
 
     private: 
+    Compute compute;
     GLuint pid, billboard_vertex_buffer, particles_position_buffer, particles_color_buffer, vaoId;
     GLfloat g_vertex_buffer_data[12];
     int amount, max_amount;

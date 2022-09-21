@@ -21,6 +21,7 @@
 #include "Object.h"
 #include "MatrixStack.h"
 #include "Particles.h"
+#include "GLSL.h"
 
 
 #include "imgui.h"
@@ -34,7 +35,7 @@ class Simulation {
         void operator=(Simulation const&);
         ~Simulation();
 
-        int create_window(const char * window_name);
+        int create_window(const char * window_name, const char * glsl_version);
         void init_program();
         void init_camera();
         void set_scene();
@@ -78,6 +79,7 @@ class Simulation {
         Particles p_sys;
 
         std::shared_ptr<Shape> create_ball_shape(int res);
+        std::shared_ptr<Shape> create_wall_shape();
         void update(float _dt);        
 
         void error_callback_impl(int error, const char *description);
@@ -99,8 +101,7 @@ class Simulation {
 
         GLFWwindow *window;                                 // Main application window
         std::shared_ptr<Camera> camera;                     // application window
-        std::shared_ptr<Program> program;                   // shader program
-        std::shared_ptr<Program> particles_program; 
+        std::shared_ptr<Program> program, particles_program; 
         std::vector< std::shared_ptr<Object> > objects;     // storage for all meshes + transforms + attributes
 };
 
