@@ -7,5 +7,9 @@ out vec4 fragColor;
 
 void main()
 {
-	fragColor = particleColor;
+	if (particleColor.w < 0.0) {
+		discard;
+	}	else {
+		fragColor = vec4(particleColor.xyz, 1.0);
+	}
 }

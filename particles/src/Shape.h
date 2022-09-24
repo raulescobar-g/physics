@@ -8,27 +8,20 @@
 
 class Program;
 
-/**
- * A shape defined by a list of triangles
- * - posBuf should be of length 3*ntris
- * - norBuf should be of length 3*ntris (if normals are available)
- * - texBuf should be of length 2*ntris (if texture coords are available)
- * posBufID, norBufID, and texBufID are OpenGL buffer identifiers.
- */
 class Shape
 {
 public:
 	Shape();
-	virtual ~Shape();
+	~Shape();
 	void loadMesh(const std::string &meshName);
 	void createSphere(int parameter);
-	void createQuad();
 	void fitToUnitBox();
 	void init();
 	void draw(const std::shared_ptr<Program> prog) const;
 
-	float getPosBuf(int i) {return posBuf[i];};
-	int getPosBufSize() {return posBuf.size();};
+	std::vector<float> getPosBuf() const { 
+		return posBuf; 
+	}
 	
 private:
 	std::vector<float> posBuf;
@@ -39,8 +32,6 @@ private:
 	unsigned norBufID;
 	unsigned texBufID;
 	unsigned indBufID;
-	unsigned vaoId;
-	std::string id;
 };
 
 #endif

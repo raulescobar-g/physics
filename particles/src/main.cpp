@@ -38,8 +38,8 @@ int main(int argc, char **argv)
 	}
 
 	const char* glsl_version = "#version 150";
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+	//glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	//glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	//glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // 3.2+ only
 	//glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // Required on Mac
 
@@ -73,14 +73,14 @@ int main(int argc, char **argv)
 	glGenVertexArrays(1, &vaoId);
 	glBindVertexArray(vaoId);
 
-	sim.init_program();
+	sim.init_programs();
 	sim.init_camera();
 	sim.set_scene();	
 	
 
 	while(!sim.window_closed()) {
-		sim.fixed_timestep_update();
 		sim.move_camera();
+		sim.fixed_timestep_update();
 		sim.render_scene();
 		sim.swap_buffers();
 	}

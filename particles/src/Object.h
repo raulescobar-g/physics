@@ -9,30 +9,26 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include "Material.h"
 #include "Shape.h"
 
 class Object {
     public: 
-        Object(std::shared_ptr<Material> m, std::shared_ptr<Shape> s, glm::vec3 position, glm::vec3 rotation, glm::vec3 velocity, bool dynamic, float scale=1.0f) {
-            material = m;
+        Object(std::shared_ptr<Shape> s, glm::vec3 position) {
             shape = s;
-            this->scale = scale;
+            this->scale = 1.0f;
             pos = position;
-            this->rotation = rotation;
-            this->velocity = velocity;
-            this->dynamic = dynamic; 
-            mass = 5.0f;
-            sleeping = !dynamic;
-            drag_coeff = 0.3f;
-            restitution = 0.5f;
-            mu = 0.2f;
+            this->rotation = glm::vec3(0.0f, 0.0f, 0.0f);
         }
 
-        bool dynamic, sleeping;
-        float drag_coeff, restitution, mu, mass, scale;
-        glm::vec3 pos, velocity, rotation;
-        std::shared_ptr<Material> material;
+        void set_scale(float obj_scale) {
+            scale = obj_scale;
+        }
+        void set_rotation(glm::vec3 rot) {
+            rotation = rot;
+        }
+
+        float scale;
+        glm::vec3 pos, rotation;
         std::shared_ptr<Shape> shape;
 };
 

@@ -11,7 +11,7 @@ Camera::Camera() :
 	aspect(1.0f),
 	fovy((float)(45.0*M_PI/180.0)),
 	znear(0.1f),
-	zfar(1000.0f),
+	zfar(100000.0f),
 	pos(0.0f,0.0f,-20.0f),
 	yaw(0.0f),
 	pitch(0.0f)

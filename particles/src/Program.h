@@ -10,26 +10,24 @@
 #include <GL/glew.h>
 
 /**
- * An OpenGL Program (vertex and fragment shaders)
+ * An OpenGL Program (vertex and fragment shaders) or (compute shaders)
  */
 class Program
 {
 public:
-	Program(std::string vert_shader, std::string frag_shader, const std::vector<std::string>& attributes, const std::vector<std::string>& uniforms);
-	Program(std::string vert_shader, std::string frag_shader, const std::vector<std::string>& attributes, const std::vector<std::string>& uniforms, std::string compute_shader);
-	virtual ~Program();
+	Program();
+	~Program();
 	
 	void setVerbose(bool v) { verbose = v; }
 	bool isVerbose() const { return verbose; }
 	
-	void setShaderNames(const std::string &v, const std::string &f, const std::string &c);
-	virtual bool init();
-	virtual void bind();
-	virtual void unbind();
+	void init(std::string vert_shader, std::string frag_shader, const std::vector<std::string>& attributes, const std::vector<std::string>& uniforms);
+	void init(std::string comp_shader, const std::vector<std::string>& uniforms);
 
-	void addAttribute(const std::string &name);
+	void bind();
+	void unbind();
+
 	void addAttributes(const std::vector<std::string> &names);
-	void addUniform(const std::string &name);
 	void addUniforms(const std::vector<std::string> &names);
 	GLint getAttribute(const std::string &name) const;
 	GLint getUniform(const std::string &name) const;
@@ -40,6 +38,8 @@ protected:
 	std::string cShaderName;
 	
 private:
+	bool compile_shaders();
+
 	GLuint pid;
 	std::map<std::string,GLint> attributes;
 	std::map<std::string,GLint> uniforms;

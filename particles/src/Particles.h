@@ -10,27 +10,41 @@
 #include <vector>
 #include <memory>
 #include "Program.h"
-#include "Compute.h"
+#include "Object.h"
+
+struct position;
+struct velocity;
+struct color;
+struct triangle;
 
 class Particles {
     public:
-    Particles() = default; 
-    Particles(int amount);
-    ~Particles();
+        Particles(); 
+        ~Particles();
 
-    void init();
-    void update(float _dt);
-    void draw(const std::shared_ptr<Program> prog);
+        void init(int max_amount, const std::shared_ptr<Program> compute_program);
+        void load_particle_mesh();
+        void buffer_world_geometry(const std::vector<std::shared_ptr<Object> >& objects);
+        // void detach_spawner();
+        void update();
+        void draw(const std::shared_ptr<Program>, const std::shared_ptr<Program>) const;
 
+        int get_poly_count();
 
     private: 
-    Compute compute;
-    GLuint pid, billboard_vertex_buffer;
-    GLfloat g_vertex_buffer_data[12];
-    int amount, max_amount;
-	std::map<std::string,GLint> attributes;
-	std::map<std::string,GLint> uniforms;
-	bool verbose;
+        GLuint billboard_vertex_buffer;
+        GLfloat g_vertex_buffer_data[12];
+        int amount, max_amount, triangle_count;
+
+        std::default_random_engine engine;
+        std::normal_distribution<float> unit_normal;
+
+        struct color *colors;
+        struct position *positions;
+        struct velocity *velocities;
+        struct triangle *triangles;
+
+        GLuint posSSbo, velSSbo, colSSbo, objSSbo, transSSbo, dataSSbo;
 };
 
 #endif

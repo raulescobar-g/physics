@@ -36,7 +36,7 @@ class Simulation {
         ~Simulation();
 
         int create_window(const char * window_name, const char * glsl_version);
-        void init_program();
+        void init_programs();
         void init_camera();
         void set_scene();
         void render_scene();
@@ -45,6 +45,7 @@ class Simulation {
         
         void swap_buffers();
         bool window_closed();
+        GLFWwindow * get_window(); 
 
         static Simulation& get_instance() {
             static Simulation instance; 
@@ -70,17 +71,11 @@ class Simulation {
         static void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods){
             get_instance().key_callback_impl(window, key, scancode, action, mods);
         }
-
-        GLFWwindow * get_window() {
-            return window;
-        } 
     
     private:
-        Particles p_sys;
+        
 
-        std::shared_ptr<Shape> create_ball_shape(int res);
-        std::shared_ptr<Shape> create_wall_shape();
-        void update(float _dt);        
+        void update(float dt);        
 
         void error_callback_impl(int error, const char *description);
         void char_callback_impl(GLFWwindow * window, unsigned int key);
@@ -89,20 +84,21 @@ class Simulation {
         void key_callback_impl(GLFWwindow *window, int key, int scancode, int action, int mods);
 
         
-        float dt, current_time, total_time, new_time, frame_time, fps, eps, ball_size;
+        float dt, current_time, total_time, new_time, frame_time, eps, ball_size;
 
         glm::vec3 gravity, wind;
 
-        double o_x, o_y;                                    // buffer for previous cursor positions
-        int width, height;                                  // window details
-        bool keyToggles[256], inputs[256];                  // user input storage
+        double o_x, o_y;                                    
+        int width, height;                                  
+        bool keyToggles[256], inputs[256];                 
 
-        float movement_speed, sensitivity;                  // camera movement speed, cursor sensitivity
+        float movement_speed, sensitivity;                 
 
-        GLFWwindow *window;                                 // Main application window
-        std::shared_ptr<Camera> camera;                     // application window
-        std::shared_ptr<Program> program, particles_program; 
-        std::vector< std::shared_ptr<Object> > objects;     // storage for all meshes + transforms + attributes
+        GLFWwindow *window; 
+        std::shared_ptr<Particles> particles;                                
+        std::shared_ptr<Camera> camera;                     
+        std::shared_ptr<Program> meshes_program, particles_program, compute_program; 
+        std::vector< std::shared_ptr<Object> > objects;     
 };
 
 #endif

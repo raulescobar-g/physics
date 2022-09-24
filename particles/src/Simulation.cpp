@@ -1,8 +1,8 @@
 #include "Simulation.h"
 
 Simulation::Simulation() {
-    o_x = 0.0f;
-    o_y = 0.0f;
+    o_x = -1.0;
+    o_y = -1.0;
 
 
 	for (int i = 0; i < 256; ++i) {
@@ -10,12 +10,10 @@ Simulation::Simulation() {
 		inputs[i] = false;
 	}
 
-	movement_speed = 5.0f;
+	movement_speed = 0.5f;
 	sensitivity = 0.005f;
-
 	eps = 0.01f;
-
-	fps = 0.0f;
+	dt = 1.0f/24.0f;
 }
 
 Simulation::~Simulation() {
@@ -38,8 +36,6 @@ int Simulation::create_window(const char * window_name, const char * glsl_versio
 	}
 	// Make the window's context current.
 	glfwMakeContextCurrent(window);
-
-	
 	glfwSwapInterval(1);
 
 	IMGUI_CHECKVERSION();
@@ -48,7 +44,6 @@ int Simulation::create_window(const char * window_name, const char * glsl_versio
 
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
-    //ImGui::StyleColorsLight();
 
     // Setup Platform/Renderer backends
     ImGui_ImplGlfw_InitForOpenGL(window, true);
@@ -57,14 +52,21 @@ int Simulation::create_window(const char * window_name, const char * glsl_versio
     return 0;
 }
 
-void Simulation::init_program(){
-	std::vector<std::string> attributes = {"aPos", "aNor"};
-	std::vector<std::string> uniforms = {"MV", "iMV", "P"};
-	program = std::make_shared<Program>("../resources/phong_vert.glsl", "../resources/phong_frag.glsl", attributes, uniforms);
+void Simulation::init_programs(){
+	std::vector<std::string> mesh_attributes = {"aPos", "aNor"};
+	std::vector<std::string> mesh_uniforms = {"MV", "iMV", "P"};
+	meshes_program = std::make_shared<Program>();
+	meshes_program->init("../resources/phong_vert.glsl", "../resources/phong_frag.glsl", mesh_attributes, mesh_uniforms);
 
-	std::vector<std::string> attributes_p = {"position", "color", "vertices"};
-	std::vector<std::string> uniforms_p = {"pP","V"};
-	particles_program = std::make_shared<Program>("../resources/particle_vert.glsl", "../resources/particle_frag.glsl", attributes_p, uniforms_p);
+
+	std::vector<std::string> particles_attributes = {"position", "color", "vertices"};
+	std::vector<std::string> particles_uniforms = {"pP","V"};
+	particles_program = std::make_shared<Program>();
+	particles_program->init("../resources/particle_vert.glsl", "../resources/particle_frag.glsl", particles_attributes, particles_uniforms);
+
+	std::vector<std::string> compute_uniforms = {"dt", "gravity", "wind", "polygons", "objects" };//, , "attractors"};
+	compute_program = std::make_shared<Program>();
+	compute_program->init("../resources/particle_comp.glsl", compute_uniforms);
 }
 
 void Simulation::init_camera(){
@@ -72,34 +74,36 @@ void Simulation::init_camera(){
 }
 
 void Simulation::set_scene() {
-	objects.clear();
-
-	dt = 1.0f/24.0f;
-	ball_size = 10.0f;
 	
-	glm::vec4 background_color = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
-	glClearColor(background_color.x, background_color.y, background_color.z, background_color.w);
+	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
 	glEnable(GL_DEPTH_TEST);
 
-	program->bind();
-	std::shared_ptr<Shape> ball = create_ball_shape(30);
-	program->unbind();
-	Material ball_mat(glm::vec3(0.01f, 0.01f, 0.3f), glm::vec3(0.01f, 0.01f, 0.3f), glm::vec3(0.0f, 0.0f, 0.0f), 10.0f);
-	std::shared_ptr<Material> ball_material = std::make_shared<Material>(ball_mat);
+	meshes_program->bind();
+	int resolution = 100;
+	std::shared_ptr<Shape> ball = std::make_shared<Shape>();
+	ball->createSphere(30);
+	ball->fitToUnitBox();
+	ball->init();
+	meshes_program->unbind();
 
-	objects.push_back(std::make_shared<Object>(ball_material, ball, glm::vec3(1.0f , -1.0f, 2.0f), glm::vec3(0.0f,0.0f,0.0f), glm::vec3(0.0f,0.0f,0.0f), false, ball_size));
+	std::shared_ptr<Object> ball_ptr = std::make_shared<Object>(ball, glm::vec3(0.0f , 0.0f, 0.0f));
+	ball_ptr->set_scale(30.0f);
+	//ball_ptr->set_rotation(glm::vec3(-glm::pi<float>() / 2.0f, 0.0f, 0.0f));
+	objects.push_back(ball_ptr);
 	
 	// set all time params
 	current_time = glfwGetTime();
 	total_time = 0.0f;
 	
-	gravity = glm::vec3(0.0f, -9.8f, 0.0f);
+	gravity = glm::vec3(0.0f, -0.5f, 0.0f);
 	wind = glm::vec3(0.0f, 0.0f, 0.0f);
 
 	particles_program->bind();
-	p_sys = Particles(10000);
-	p_sys.init();
+	particles= std::make_shared<Particles>();
+	particles->load_particle_mesh();
+	particles->buffer_world_geometry(objects);
+	particles->init(1024 * 1024 , compute_program);
 	particles_program->unbind();
 
 	GLSL::checkError(GET_FILE_LINE);
@@ -121,7 +125,14 @@ void Simulation::fixed_timestep_update() {
 }
 
 void Simulation::update(float _dt) {
-	p_sys.update(_dt);
+	compute_program->bind();
+	glUniform1f(compute_program->getUniform("dt"), _dt);
+	glUniform1i(compute_program->getUniform("polygons"), particles->get_poly_count());
+	glUniform1i(compute_program->getUniform("objects"), objects.size());
+	glUniform3f(compute_program->getUniform("gravity"), gravity.x, gravity.y, gravity.z);
+	glUniform3f(compute_program->getUniform("wind"), wind.x, wind.y, wind.z);
+	particles->update();
+	compute_program->unbind();
 }
 
 void Simulation::render_scene() {
@@ -148,7 +159,7 @@ void Simulation::render_scene() {
 	camera->applyViewMatrix(MV);	
 	MV->pushMatrix();
 
-	program->bind();
+	meshes_program->bind();
 	for (auto obj : objects){ 
 		MV->pushMatrix();
 		MV->translate(obj->pos);
@@ -157,16 +168,16 @@ void Simulation::render_scene() {
 		
 		iMV = glm::transpose(glm::inverse(glm::mat4(MV->topMatrix())));
 
-		glUniformMatrix4fv(program->getUniform("P"), 1, GL_FALSE, glm::value_ptr(P->topMatrix()));
-		glUniformMatrix4fv(program->getUniform("MV"), 1, GL_FALSE, glm::value_ptr(MV->topMatrix()));
-		glUniformMatrix4fv(program->getUniform("iMV"), 1, GL_FALSE, glm::value_ptr(iMV));
+		glUniformMatrix4fv(meshes_program->getUniform("P"), 1, GL_FALSE, glm::value_ptr(P->topMatrix()));
+		glUniformMatrix4fv(meshes_program->getUniform("MV"), 1, GL_FALSE, glm::value_ptr(MV->topMatrix()));
+		glUniformMatrix4fv(meshes_program->getUniform("iMV"), 1, GL_FALSE, glm::value_ptr(iMV));
 
-		obj->shape->draw(program); 	
+		obj->shape->draw(meshes_program); 	
 
 		MV->popMatrix();
 	} 
 
-	program->unbind();
+	meshes_program->unbind();
 
 	MV->popMatrix();	
 	P->popMatrix();	
@@ -181,7 +192,7 @@ void Simulation::render_scene() {
 	particles_program->bind();
 	glUniformMatrix4fv(particles_program->getUniform("pP"), 1, GL_FALSE, glm::value_ptr(_P->topMatrix()));
 	glUniformMatrix4fv(particles_program->getUniform("V"), 1, GL_FALSE, glm::value_ptr(_V->topMatrix()));
-	p_sys.draw(particles_program);
+	particles->draw(particles_program, compute_program);
 
 	particles_program->unbind();
 	_V->popMatrix();
@@ -244,22 +255,6 @@ void Simulation::move_camera() {
 	if (inputs[(unsigned) 'Z']){camera->increment_fovy();}
 }
 
-std::shared_ptr<Shape> Simulation::create_ball_shape(int resolution) {
-	std::shared_ptr<Shape> ball = std::make_shared<Shape>();
-	ball->createSphere(resolution);
-	ball->fitToUnitBox();
-	ball->init();
-	return ball;
-}
-
-std::shared_ptr<Shape> Simulation::create_wall_shape() {
-	std::shared_ptr<Shape> wall = std::make_shared<Shape>();
-	wall->loadMesh("../resources/square.obj"); // TODO: fix generation script later
-	wall->fitToUnitBox();
-	wall->init();
-	return wall;
-}
-
 void Simulation::error_callback_impl(int error, const char *description) { 
 	std::cerr << description << std::endl; 
 }
@@ -298,16 +293,21 @@ void Simulation::key_callback_impl(GLFWwindow *window, int key, int scancode, in
 
 void Simulation::cursor_position_callback_impl(GLFWwindow* window, double xmouse, double ymouse){
 	if (keyToggles[(unsigned) 'f']) {
-		float xdiff = (xmouse - o_x) * sensitivity;
-		float ydiff = (ymouse - o_y) * sensitivity;
+		if (o_x > 0.0 && o_y > 0.0) {
+			float xdiff = (xmouse - o_x) * sensitivity;
+			float ydiff = (ymouse - o_y) * sensitivity;
 
-		camera->yaw -= xdiff;
-		camera->pitch -= ydiff;
+			camera->yaw -= xdiff;
+			camera->pitch -= ydiff;
 
-		camera->pitch = glm::min(glm::pi<float>()/3.0f, camera->pitch);
-		camera->pitch = glm::max(-glm::pi<float>()/3.0f, camera->pitch);
-		o_x = xmouse;
-		o_y = ymouse;
+			camera->pitch = glm::min(glm::pi<float>()/3.0f, camera->pitch);
+			camera->pitch = glm::max(-glm::pi<float>()/3.0f, camera->pitch);
+			o_x = xmouse;
+			o_y = ymouse;
+		} else {
+			o_x = xmouse;
+			o_y = ymouse;
+		}
 	}
 }
 
@@ -317,4 +317,8 @@ void Simulation::char_callback_impl(GLFWwindow *window, unsigned int key){
 
 void Simulation::resize_callback_impl(GLFWwindow *window, int width, int height){ 
 	glViewport(0, 0, width, height);
+}
+
+GLFWwindow * Simulation::get_window() {
+	return window;
 }

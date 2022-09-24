@@ -14,20 +14,11 @@
 
 using namespace std;
 
-Shape::Shape() :
-	posBufID(0),
-	norBufID(0),
-	texBufID(0),
-	indBufID(0)
-{
-}
+Shape::Shape() : posBufID(0), norBufID(0), texBufID(0), indBufID(0){}
 
-Shape::~Shape()
-{
-}
+Shape::~Shape(){}
 
-void Shape::loadMesh(const string &meshName)
-{
+void Shape::loadMesh(const string &meshName){
 	// Load geometry
 	tinyobj::attrib_t attrib;
 	std::vector<tinyobj::shape_t> shapes;
@@ -72,64 +63,6 @@ void Shape::loadMesh(const string &meshName)
 	}
 }
 
-void Shape::createQuad() {
-	posBuf.push_back(-0.5f);
-	posBuf.push_back(-0.5f);
-	posBuf.push_back(0.0f);
-
-	norBuf.push_back(0.0f);
-	norBuf.push_back(0.0f);
-	norBuf.push_back(1.0f);
-
-	posBuf.push_back(0.5f);
-	posBuf.push_back(0.5f);
-	posBuf.push_back(0.0f);
-
-	norBuf.push_back(0.0f);
-	norBuf.push_back(0.0f);
-	norBuf.push_back(1.0f);
-
-	posBuf.push_back(0.5f);
-	posBuf.push_back(-0.5f);
-	posBuf.push_back(0.0f);
-
-	norBuf.push_back(0.0f);
-	norBuf.push_back(0.0f);
-	norBuf.push_back(1.0f);
-
-	posBuf.push_back(-0.5f);
-	posBuf.push_back(-0.5f);
-	posBuf.push_back(0.0f);
-
-	norBuf.push_back(0.0f);
-	norBuf.push_back(0.0f);
-	norBuf.push_back(1.0f);
-
-	posBuf.push_back(0.5f);
-	posBuf.push_back(0.5f);
-	posBuf.push_back(0.0f);
-
-	norBuf.push_back(0.0f);
-	norBuf.push_back(0.0f);
-	norBuf.push_back(1.0f);
-
-	posBuf.push_back(-0.5f);
-	posBuf.push_back(0.5f);
-	posBuf.push_back(0.0f);
-
-	norBuf.push_back(0.0f);
-	norBuf.push_back(0.0f);
-	norBuf.push_back(1.0f);
-
-	indBuf.push_back(0);
-	indBuf.push_back(1);
-	indBuf.push_back(3);
-	
-	indBuf.push_back(0);
-	indBuf.push_back(3);
-	indBuf.push_back(2);
-}
-
 void Shape::createSphere(int parameter) {
 	
 	int res = parameter;
@@ -170,8 +103,7 @@ void Shape::createSphere(int parameter) {
 	
 }
 
-void Shape::fitToUnitBox()
-{
+void Shape::fitToUnitBox(){
 	// Scale the vertex positions so that they fit within [-1, +1] in all three dimensions.
 	glm::vec3 vmin(posBuf[0], posBuf[1], posBuf[2]);
 	glm::vec3 vmax(posBuf[0], posBuf[1], posBuf[2]);
@@ -198,9 +130,7 @@ void Shape::fitToUnitBox()
 	}
 }
 
-
-void Shape::init()
-{
+void Shape::init(){
 	// Send the position array to the GPU
 	glGenBuffers(1, &posBufID);
 	glBindBuffer(GL_ARRAY_BUFFER, posBufID);
@@ -219,8 +149,6 @@ void Shape::init()
 		glBindBuffer(GL_ARRAY_BUFFER, texBufID);
 		glBufferData(GL_ARRAY_BUFFER, texBuf.size()*sizeof(float), &texBuf[0], GL_STATIC_DRAW);
 	}
-	// Unbind the arrays
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	
 	if (!indBuf.empty()) {
 		glGenBuffers(1, &indBufID);
@@ -232,12 +160,7 @@ void Shape::init()
 	
 }
 
-void Shape::draw(shared_ptr<Program> prog) const
-{
-	// for (int i = 0 ; i < norBuf.size(); i+= 3) {
-	// 	std::cout<<norBuf[i]<<", "<< norBuf[i+1]<<", "<<norBuf[i+2]<<std::endl;
-	// }
-	// std::cout<<std::endl;
+void Shape::draw(shared_ptr<Program> prog) const {
 	// Bind position buffer
 	GLint h_pos = prog->getAttribute("aPos");
 	glEnableVertexAttribArray(h_pos);

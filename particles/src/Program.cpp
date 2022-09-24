@@ -7,148 +7,135 @@
 
 using namespace std;
 
-Program::Program(string vert_shader, string frag_shader, const vector<string>& attributes, const vector<string>& uniforms) :
-	vShaderName(""),
-	cShaderName(""),
-	fShaderName(""),
-	pid(0),
-	verbose(true)
-{
-	setShaderNames(vert_shader, frag_shader, "");
-	setVerbose(true);
-	init();
+Program::Program() {};
+
+void Program::init(string vert_shader, string frag_shader, const vector<string>& attributes, const vector<string>& uniforms){
+	vShaderName = vert_shader;
+	cShaderName = "";
+	fShaderName = frag_shader;
+	pid = 0;
+	verbose = true;
+	if (!compile_shaders()){
+		std::cout<<"Something went wrong with the shaders. \n";
+		exit(-1);
+	}
 	addAttributes(attributes);
 	addUniforms(uniforms);
-	setVerbose(false);
+	verbose = false;
 }
 
-Program::Program(string vert_shader, string frag_shader, const vector<string>& attributes, const vector<string>& uniforms, string compute_shader) :
-	vShaderName(""),
-	cShaderName(""),
-	fShaderName(""),
-	pid(0),
-	verbose(true)
-{
-	setShaderNames(vert_shader, frag_shader, compute_shader);
-	setVerbose(true);
-	init();
-	addAttributes(attributes);
+void Program::init(std::string comp_shader, const std::vector<std::string>& uniforms){
+	vShaderName = "";
+	cShaderName = comp_shader;
+	fShaderName = "";
+	pid = 0;
+	verbose = true;
+	if (!compile_shaders()){
+		std::cout<<"Something went wrong with the shaders. \n";
+		exit(-1);
+	}
 	addUniforms(uniforms);
-	setVerbose(false);
+	verbose = false;
 }
 
-Program::~Program()
-{
-	
-}
+Program::~Program(){}
 
-void Program::setShaderNames(const string &v, const string &f, const string &c)
-{
-	vShaderName = v;
-	fShaderName = f;
-	cShaderName = c;
-}
 
-bool Program::init()
-{
+bool Program::compile_shaders(){
 	GLint rc;
-	
-	// Create shader handles
-	GLuint VS = glCreateShader(GL_VERTEX_SHADER);
-	GLuint FS = glCreateShader(GL_FRAGMENT_SHADER);
 
-	// Read shader sources
-	const char *vshader = GLSL::textFileRead(vShaderName.c_str());
-	const char *fshader = GLSL::textFileRead(fShaderName.c_str());
-	glShaderSource(VS, 1, &vshader, NULL);
-	glShaderSource(FS, 1, &fshader, NULL);
-	
-	// Compile vertex shader
-	glCompileShader(VS);
-	glGetShaderiv(VS, GL_COMPILE_STATUS, &rc);
-	if(!rc) {
-		if(isVerbose()) {
-			GLSL::printShaderInfoLog(VS);
-			cout << "Error compiling vertex shader " << vShaderName << endl;
-		}
-		return false;
-	}
-	
-	// Compile fragment shader
-	glCompileShader(FS);
-	glGetShaderiv(FS, GL_COMPILE_STATUS, &rc);
-	if(!rc) {
-		if(isVerbose()) {
-			GLSL::printShaderInfoLog(FS);
-			cout << "Error compiling fragment shader " << fShaderName << endl;
-		}
-		return false;
-	}
-	
-	// Create the program and link
-	pid = glCreateProgram();
-	glAttachShader(pid, VS);
-	glAttachShader(pid, FS);
-	if (cShaderName != "") {
-		GLuint CS = glCreateShader(GL_COMPUTE_SHADER);
-		const char *cshader = GLSL::textFileRead(cShaderName.c_str());
-		glShaderSource(CS, 1, &cshader, NULL);
+	if (cShaderName == "") {
+		// Create shader handles
+		GLuint VS = glCreateShader(GL_VERTEX_SHADER);
+		GLuint FS = glCreateShader(GL_FRAGMENT_SHADER);
 
+		// Read shader sources
+		const char *vshader = GLSL::textFileRead(vShaderName.c_str());
+		const char *fshader = GLSL::textFileRead(fShaderName.c_str());
+		glShaderSource(VS, 1, &vshader, NULL);
+		glShaderSource(FS, 1, &fshader, NULL);
+		
 		// Compile vertex shader
-		glCompileShader(CS);
-		glGetShaderiv(CS, GL_COMPILE_STATUS, &rc);
+		glCompileShader(VS);
+		glGetShaderiv(VS, GL_COMPILE_STATUS, &rc);
 		if(!rc) {
 			if(isVerbose()) {
-				GLSL::printShaderInfoLog(CS);
-				cout << "Error compiling compute shader " << cShaderName << endl;
+				GLSL::printShaderInfoLog(VS);
+				cout << "Error compiling vertex shader " << vShaderName << endl;
 			}
 			return false;
 		}
-		glAttachShader(pid, CS);
-	}
-	glLinkProgram(pid);
-	glGetProgramiv(pid, GL_LINK_STATUS, &rc);
-	if(!rc) {
-		if(isVerbose()) {
-			GLSL::printProgramInfoLog(pid);
-			cout << "Error linking shaders " << vShaderName << " and " << fShaderName << endl;
+		
+		// Compile fragment shader
+		glCompileShader(FS);
+		glGetShaderiv(FS, GL_COMPILE_STATUS, &rc);
+		if(!rc) {
+			if(isVerbose()) {
+				GLSL::printShaderInfoLog(FS);
+				cout << "Error compiling fragment shader " << fShaderName << endl;
+			}
+			return false;
 		}
-		return false;
+		
+		// Create the program and link
+		pid = glCreateProgram();
+		glAttachShader(pid, VS);
+		glAttachShader(pid, FS);
+		glLinkProgram(pid);
+		glGetProgramiv(pid, GL_LINK_STATUS, &rc);
+		if(!rc) {
+			if(isVerbose()) {
+				GLSL::printProgramInfoLog(pid);
+				cout << "Error linking shaders " << vShaderName << " and " << fShaderName << endl;
+			}
+			return false;
+		}
+	} else {
+		GLuint CS = glCreateShader(GL_COMPUTE_SHADER);
+		const char *cshader = GLSL::textFileRead(cShaderName.c_str());
+		glShaderSource(CS, 1, &cshader, NULL);
+		glCompileShader(CS);
+		glGetShaderiv(CS, GL_COMPILE_STATUS, &rc);
+		if(!rc) {
+			if(verbose) {
+				GLSL::printShaderInfoLog(CS);
+				std::cout << "Error compiling compute shader " << cShaderName << std::endl;
+			}
+			return false;
+		}
+		pid = glCreateProgram();
+		glAttachShader(pid, CS);
+
+        glLinkProgram(pid);
+        glGetProgramiv(pid, GL_LINK_STATUS, &rc);
+        if(!rc) {
+            if(isVerbose()) {
+                GLSL::printProgramInfoLog(pid);
+                std::cout << "Error linking compute shaders "<< std::endl;
+            }
+			return false;
+        }
 	}
 	
 	GLSL::checkError(GET_FILE_LINE);
 	return true;
 }
 
-void Program::bind()
-{
-	glUseProgram(pid);
-}
+void Program::bind(){ glUseProgram(pid); }
 
-void Program::unbind()
-{
-	glUseProgram(0);
-}
+void Program::unbind() { glUseProgram(0); }
 
-void Program::addAttribute(const string &name)
-{
-	attributes[name] = glGetAttribLocation(pid, name.c_str());
-}
 
 void Program::addAttributes(const vector<string>& names) {
 	for (auto name : names) {
-		addAttribute(name);
+		attributes[name] = glGetAttribLocation(pid, name.c_str());
 	}
 }
 
-void Program::addUniform(const string &name)
-{
-	uniforms[name] = glGetUniformLocation(pid, name.c_str());
-}
 
 void Program::addUniforms(const vector<string>& names) {
 	for (auto name : names) {
-		addUniform(name);
+		uniforms[name] = glGetUniformLocation(pid, name.c_str());
 	}
 }
 
