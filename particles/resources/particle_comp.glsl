@@ -57,7 +57,7 @@ void main(){
 	uint gid = gl_GlobalInvocationID.x;
 
 	if (Colors[ gid ].w > 0.0) {
-		float cr = 0.95;
+		float cr = 0.3;
 		float cf = 0.05;
 
 		Colors[ gid ].w -= dt;

@@ -89,7 +89,7 @@ void Simulation::set_scene() {
 
 	std::shared_ptr<Object> ball_ptr = std::make_shared<Object>(ball, glm::vec3(0.0f , 0.0f, 0.0f));
 	ball_ptr->set_scale(30.0f);
-	//ball_ptr->set_rotation(glm::vec3(-glm::pi<float>() / 2.0f, 0.0f, 0.0f));
+	ball_ptr->set_rotation(glm::vec3(-glm::pi<float>() / 2.0f, 0.0f, 0.0f));
 	objects.push_back(ball_ptr);
 	
 	// set all time params
