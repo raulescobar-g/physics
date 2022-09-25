@@ -87,6 +87,7 @@ class Simulation {
         float dt, current_time, total_time, new_time, frame_time, eps, ball_size;
 
         glm::vec3 gravity, wind;
+        std::vector<glm::vec4> point_attractors;
 
         double o_x, o_y;                                    
         int width, height;                                  

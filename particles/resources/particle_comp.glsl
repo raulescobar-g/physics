@@ -8,6 +8,7 @@ uniform vec3 gravity;
 uniform vec3 wind;
 uniform int polygons;
 uniform int objects;
+uniform int point_attractors;
 
 
 layout( std140, binding=4 ) buffer Pos {
@@ -30,8 +31,12 @@ layout(std140, binding=8 ) buffer Trans {
 	mat4 Transforms[ ];
 };
 
-layout(std140, binding=9) buffer Data {
+layout(std430, binding=9) buffer Data {
 	int Amount[ ];  
+};
+
+layout(std430, binding=10) buffer Attr {
+	vec4 Point_attractors[ ];  
 };
 
 layout( local_size_x = 1024, local_size_y = 1, local_size_z = 1 ) in;
@@ -48,7 +53,7 @@ bool inside(vec3 x , vec3 v0, vec3 v1, vec3 v2, vec3 _n) {
 	float beta = dot(cross(w, v), n) / dot(n,n);
 	float alpha = 1.0 - gamma - beta;
 
-	return alpha > 0.0 && beta > 0.0 && gamma > 0.0;
+	return alpha >= -0.00001 && beta >= -0.00001 && gamma >= -0.00001;
 };
 
 
@@ -57,19 +62,23 @@ void main(){
 	uint gid = gl_GlobalInvocationID.x;
 
 	if (Colors[ gid ].w > 0.0) {
-		float cr = 0.3;
+		float cr = 0.95;
 		float cf = 0.05;
+		float cd = 0.1;
+		float G = 1.0;
 
 		Colors[ gid ].w -= dt;
 
-		// delete these
-		vec3 p = Positions[ gid ].xyz;
-		float size = Positions[ gid ].w;
-		vec3 v = Velocities[ gid ].xyz;
-		float m = Velocities[ gid ].w;
-		vec3 color = Colors[ gid ].xyz;
+		vec3 pull = gravity; 
 
-		vec3 acceleration = gravity;
+		for (int k = 0; k < point_attractors; ++k) {
+			float r = length(Point_attractors[k].yzw - Positions[ gid ].xyz) ;
+			float magnitude = (((G * Point_attractors[ k ].x) / (r*r  + 0.00001)));
+			pull += magnitude  * normalize(Point_attractors[ k ].yzw - Positions[ gid ].xyz);
+		}
+
+
+		vec3 acceleration = pull + (cd / Velocities[ gid ].w) * (wind - Velocities[ gid ].xyz);
 		
 		vec3 pp = Positions[ gid ].xyz + Velocities[ gid ].xyz * dt;
 		vec3 vp = Velocities[ gid ].xyz + acceleration * dt;
@@ -95,13 +104,17 @@ void main(){
 				vec3 x = Positions[ gid ].xyz + Velocities[ gid ].xyz * dt * f;
 
 				if ( disB * disA < 0.0 && inside(x, v0, v1, v2, perp)){
-					
-					Colors[ gid ].xyz = vec3(1.0,1.0,1.0); // delete here
-					pp = pp - (1 + cr) * disA * perp;
+
+					Colors[ gid ].xyz = vec3(1.0, 1.0, 1.0);
+					pp = pp - (1 + cr) * disB * perp;
 					vec3 vn = dot(vp , perp) * perp;
 					vec3 vt = vp - vn;
 					vp = -cr * vn + (1 - cf) * vt;
 					found = true;
+
+					if (length(vp) < 0.1) {
+						Colors[ gid ].w = -dt;
+					}
 					break;
 				}
 			}
