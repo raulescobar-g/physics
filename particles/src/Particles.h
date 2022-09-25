@@ -9,18 +9,13 @@
 #include <random>
 #include <vector>
 #include <memory>
-#include <thread>
-#include "atomic_queue/atomic_queue.h"
+#include <queue>
 #include "Program.h"
 #include "Object.h"
 
 struct position;
 struct velocity;
 struct color;
-
-using Element = uint32_t; 
-Element constexpr NIL = static_cast<Element>(-1);
-using Queue = atomic_queue::AtomicQueueB<Element, std::allocator<Element>, NIL>;
 
 class Particles {
     public:
@@ -31,8 +26,8 @@ class Particles {
         void load_particle_mesh();
         void buffer_world_geometry(const std::vector<std::shared_ptr<Object> >& objects);
         void buffer_attractors(std::vector<glm::vec4> attractors);
-        void set_watcher();
-        void set_reviver();
+        void add_to_queue();
+        void update_buffers();
         void update();
         void draw(const std::shared_ptr<Program>, const std::shared_ptr<Program>) const;
 
@@ -40,18 +35,18 @@ class Particles {
         glm::vec4 get_particle_count_data();
 
     private: 
-        Queue queue{1024};
+        std::queue<int> queue;
 
         GLuint billboard_vertex_buffer;
         GLfloat g_vertex_buffer_data[12];
-        int initial, current, target, max_amount, triangle_count;
+        int initial, current, target, max_amount, triangle_count, spawns_per_cycle;
 
         std::default_random_engine engine;
         std::normal_distribution<float> unit_normal;
 
-        struct color *colors;
+        // struct color *colors;
         struct position *positions;
-        struct velocity *velocities;
+        // struct velocity *velocities;
 
         int current_particle;
 

@@ -132,6 +132,7 @@ void Simulation::set_scene() {
 }
 
 void Simulation::fixed_timestep_update() {
+	
 	glfwPollEvents();
 	new_time = glfwGetTime();
 	frame_time = new_time - current_time;
@@ -147,6 +148,7 @@ void Simulation::fixed_timestep_update() {
 }
 
 void Simulation::update(float _dt) {
+	//particles->update_buffers();
 	compute_program->bind();
 	glUniform1f(compute_program->getUniform("dt"), _dt);
 	glUniform1i(compute_program->getUniform("polygons"), particles->get_poly_count());
@@ -156,6 +158,7 @@ void Simulation::update(float _dt) {
 	glUniform1i(compute_program->getUniform("point_attractors"), point_attractors.size()); 
 	particles->update();
 	compute_program->unbind();
+	//particles->add_to_queue();
 }
 
 void Simulation::render_scene() {

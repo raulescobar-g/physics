@@ -4,7 +4,6 @@
 #include <GL/glew.h>
 
 #include "GLSL.h"
-#include "MatrixStack.h"
 
 #include <iostream>
 
@@ -139,22 +138,27 @@ void Particles::init(int max, int desired, int start, const std::shared_ptr<Prog
     initial = start;
     target = desired;
     current = 0;
+    spawns_per_cycle = 5;
 
     engine = std::default_random_engine((unsigned) 1);
     unit_normal = std::normal_distribution<float>(0.0f, 1.0f);
 
-    GLint bufMask = GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT;
+    GLint bufMask = GL_MAP_WRITE_BIT;// | GL_MAP_INVALIDATE_BUFFER_BIT;
 
     // render stuff
     glGenBuffers(1, &billboard_vertex_buffer);
     glBindBuffer(GL_ARRAY_BUFFER, billboard_vertex_buffer);
     glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data), g_vertex_buffer_data, GL_STATIC_DRAW);
 
+    // ---------------------------------------------
+
     // compute stuff
     glGenBuffers( 1, &posSSbo);
     glBindBuffer( GL_SHADER_STORAGE_BUFFER, posSSbo );
-    glBufferData( GL_SHADER_STORAGE_BUFFER, max_amount * sizeof(struct position), NULL, GL_STATIC_DRAW );
-    positions = (struct position *) glMapBufferRange( GL_SHADER_STORAGE_BUFFER, 0, max_amount * sizeof(struct position), bufMask );
+    glBufferStorage( GL_SHADER_STORAGE_BUFFER, max_amount * sizeof(struct position), NULL, bufMask | GL_DYNAMIC_STORAGE_BIT | GL_DYNAMIC_STORAGE_BIT |  GL_MAP_READ_BIT |  GL_MAP_PERSISTENT_BIT |  GL_MAP_COHERENT_BIT);
+    GLSL::checkError(GET_FILE_LINE);
+    positions = (struct position *) glMapBufferRange( GL_SHADER_STORAGE_BUFFER, 0, max_amount * sizeof(struct position), bufMask |  GL_DYNAMIC_STORAGE_BIT |  GL_MAP_READ_BIT |  GL_MAP_PERSISTENT_BIT |  GL_MAP_COHERENT_BIT);
+    GLSL::checkError(GET_FILE_LINE); 
     for( int i = 0; i < initial; ++i )
     {
         positions[ i ].x = unit_normal(engine) * 3.0f;
@@ -162,12 +166,14 @@ void Particles::init(int max, int desired, int start, const std::shared_ptr<Prog
         positions[ i ].z = unit_normal(engine) * 3.0f;
         positions[ i ].size = std::abs(unit_normal(engine)) * 0.01 + 0.03;
     }
-    glUnmapBuffer( GL_SHADER_STORAGE_BUFFER );
+    //glUnmapBuffer( GL_SHADER_STORAGE_BUFFER );
+
+    // ---------------------------------------------
 
     glGenBuffers( 1, &velSSbo);
     glBindBuffer( GL_SHADER_STORAGE_BUFFER, velSSbo );
     glBufferData( GL_SHADER_STORAGE_BUFFER, max_amount * sizeof(struct velocity), NULL, GL_STATIC_DRAW );
-    velocities = (struct velocity *) glMapBufferRange( GL_SHADER_STORAGE_BUFFER, 0, max_amount * sizeof(struct velocity), bufMask );
+    struct velocity *velocities = (struct velocity *) glMapBufferRange( GL_SHADER_STORAGE_BUFFER, 0, max_amount * sizeof(struct velocity), bufMask );
     for( int i = 0; i < initial ; ++i )
     {
         velocities[ i ].x = unit_normal(engine) * 2.0f;
@@ -180,7 +186,7 @@ void Particles::init(int max, int desired, int start, const std::shared_ptr<Prog
     glGenBuffers( 1, &colSSbo);
     glBindBuffer( GL_SHADER_STORAGE_BUFFER, colSSbo );
     glBufferData( GL_SHADER_STORAGE_BUFFER, max_amount * sizeof(struct color), NULL, GL_STATIC_DRAW );
-    colors = (struct color *) glMapBufferRange( GL_SHADER_STORAGE_BUFFER, 0, max_amount * sizeof(struct color), bufMask );
+    struct color *colors = (struct color *) glMapBufferRange( GL_SHADER_STORAGE_BUFFER, 0, max_amount * sizeof(struct color), bufMask );
     for( int i = 0; i < initial; ++i )
     {
         colors[ i ].r = abs(unit_normal(engine) / 4.0f + 0.5f);
@@ -197,8 +203,6 @@ void Particles::init(int max, int desired, int start, const std::shared_ptr<Prog
 
 Particles::~Particles() {};
 
-// void Particles::detach_spawner() {}
-
 void Particles::update(){
     glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 4, posSSbo );
     glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 5, velSSbo );
@@ -213,7 +217,6 @@ void Particles::update(){
 };
 
 void Particles::draw(const std::shared_ptr<Program> particle_render_program, const std::shared_ptr<Program> compute_program) const {
-
     int verticesID = particle_render_program->getAttribute("vertices");
     glEnableVertexAttribArray(verticesID);
     glBindBuffer(GL_ARRAY_BUFFER, billboard_vertex_buffer);
@@ -244,16 +247,82 @@ void Particles::draw(const std::shared_ptr<Program> particle_render_program, con
 };
 
 
-// void set_watcher(int current_particle, int max_amount, GLuint& colSSbo ,Queue& queue) {
 
-//         glBindBuffer( GL_SHADER_STORAGE_BUFFER, colSSbo );
-//         colors = (struct color *) glMapBufferRange( GL_SHADER_STORAGE_BUFFER, 0, max_amount * sizeof(struct color), GL_MAP_READ_BIT);
 
-//         while () {
+void Particles::add_to_queue() {
+    int added = 0;
+    
+    if (current_particle < max_amount) {
+        while (added < spawns_per_cycle) {
+            queue.push(current_particle);
+            ++added;
+            ++current_particle;
+            if (current_particle >= max_amount) return;
+        }
+    } else {
+        glBindBuffer( GL_SHADER_STORAGE_BUFFER, colSSbo );
+        struct color *colors = (struct color *) glMapBufferRange( GL_SHADER_STORAGE_BUFFER, 0, max_amount * sizeof(struct color), GL_MAP_READ_BIT);
+        while (added < spawns_per_cycle) {
+            if (colors[current_particle % max_amount].lifetime < 0.0f) {
+                queue.push(current_particle % max_amount);
+                ++added;
+                ++current_particle;
+            }
+        }
+        glUnmapBuffer( GL_SHADER_STORAGE_BUFFER );
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    }
+}
 
-//         }
-// }
+void Particles::update_buffers() {
+    std::cout<<"howdy"<<std::endl;
 
-// void set_reviver() {
+    std::vector<int> idx;
+    for (int i = 0; i < spawns_per_cycle; ++i) {
+        idx.push_back(queue.front());
+        queue.pop();
+    }
 
-// }
+    GLint bufMask = GL_MAP_WRITE_BIT;
+
+    glBindBuffer( GL_SHADER_STORAGE_BUFFER, colSSbo );
+    std::cout<<"howdy"<<std::endl;
+    struct color *colors = (struct color *) glMapBufferRange( GL_SHADER_STORAGE_BUFFER, 0, max_amount * sizeof(struct color), bufMask );
+    std::cout<<"howdy"<<std::endl;
+    GLSL::checkError(GET_FILE_LINE); 
+    for (int i : idx) {
+        GLSL::checkError(GET_FILE_LINE); 
+        std::cout<<"howdy"<<std::endl;
+        colors[ i ].r = abs(unit_normal(engine) / 4.0f + 0.5f);
+        std::cout<<"howdy"<<std::endl;
+        colors[ i ].g = abs(unit_normal(engine) / 4.0f + 0.5f);
+        colors[ i ].b = abs(unit_normal(engine) / 4.0f + 0.5f);
+        colors[ i ].lifetime = unit_normal(engine) + 50.0f;
+    }
+
+    glUnmapBuffer( GL_SHADER_STORAGE_BUFFER );
+
+    glBindBuffer( GL_SHADER_STORAGE_BUFFER, posSSbo );
+    struct position *positions = (struct position *) glMapBufferRange( GL_SHADER_STORAGE_BUFFER, 0, max_amount * sizeof(struct position), bufMask );
+    for (int i : idx) {
+        positions[ i ].x = unit_normal(engine) * 3.0f;
+        positions[ i ].y = 30.0f + unit_normal(engine) * 10.0f;
+        positions[ i ].z = unit_normal(engine) * 3.0f;
+        positions[ i ].size = std::abs(unit_normal(engine)) * 0.01 + 0.03;
+    }
+
+    glUnmapBuffer( GL_SHADER_STORAGE_BUFFER );
+
+    glBindBuffer( GL_SHADER_STORAGE_BUFFER, velSSbo );
+    struct velocity *velocities = (struct velocity *) glMapBufferRange( GL_SHADER_STORAGE_BUFFER, 0, max_amount * sizeof(struct velocity), bufMask );
+    for (int i : idx) {
+        velocities[ i ].x = unit_normal(engine) * 2.0f;
+        velocities[ i ].y = unit_normal(engine) * 2.0f;
+        velocities[ i ].z = unit_normal(engine) * 2.0f;
+        velocities[ i ].mass = std::abs(unit_normal(engine)) * 5.0f;
+    }
+
+    glUnmapBuffer( GL_SHADER_STORAGE_BUFFER );
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    std::cout<<"howdy"<<std::endl;
+}
