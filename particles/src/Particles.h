@@ -22,7 +22,7 @@ class Particles {
         Particles(); 
         ~Particles();
 
-        void init(int max, int target, int initial, const std::shared_ptr<Program> compute_program);
+        void init(int max, int spawns, int initial, const std::shared_ptr<Program> compute_program);
         void load_particle_mesh();
         void buffer_world_geometry(const std::vector<std::shared_ptr<Object> >& objects);
         void buffer_attractors(std::vector<glm::vec4> attractors);
@@ -39,14 +39,14 @@ class Particles {
 
         GLuint billboard_vertex_buffer;
         GLfloat g_vertex_buffer_data[12];
-        int initial, current, target, max_amount, triangle_count, spawns_per_cycle;
+        int initial, current, max_amount, triangle_count, spawns_per_cycle;
 
         std::default_random_engine engine;
         std::normal_distribution<float> unit_normal;
 
-        // struct color *colors;
+        struct color *colors;
         struct position *positions;
-        // struct velocity *velocities;
+        struct velocity *velocities;
 
         int current_particle;
 

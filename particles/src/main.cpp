@@ -19,15 +19,19 @@
 
 #include "GLSL.h"
 #include "Simulation.h"
-
+#define IMGUI_IMPL_OPENGL_LOADER_GLEW
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
-#include "atomic_queue/atomic_queue.h"
+#include <chrono>
 
 int main(int argc, char **argv)
 {
+	using std::chrono::high_resolution_clock;
+    using std::chrono::duration_cast;
+    using std::chrono::duration;
+    using std::chrono::microseconds;
 
 	Simulation &sim = Simulation::get_instance();
 
@@ -39,11 +43,7 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	const char* glsl_version = "#version 150";
-	//glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-	//glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-	//glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // 3.2+ only
-	//glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // Required on Mac
+	const char* glsl_version = "#version 330";
 
 
 	if (sim.create_window("Particles", glsl_version) == -1) {
@@ -79,12 +79,39 @@ int main(int argc, char **argv)
 	sim.init_camera();
 	sim.set_scene();	
 	
+	std::vector<int> times;
+	std::vector<int> camera;
+	std::vector<int> fixed;
+	std::vector<int> render;
+	std::vector<int> swap;
 
 	while(!sim.window_closed()) {
+		auto begin = high_resolution_clock::now();
 		sim.move_camera();
+		auto t1 = high_resolution_clock::now();
 		sim.fixed_timestep_update();
+		auto t2 = high_resolution_clock::now();
 		sim.render_scene();
+		auto t3 = high_resolution_clock::now();
 		sim.swap_buffers();
+		auto end = high_resolution_clock::now();
+
+		auto time = duration_cast<microseconds>(end - begin);
+		
+		auto time2 = duration_cast<microseconds>(t2 - t1);
+		auto time3 = duration_cast<microseconds>(t3 - t2);
+		auto time4  = duration_cast<microseconds>(end - t3);
+		times.push_back(time.count());
+		fixed.push_back(time2.count());
+		render.push_back(time3.count());
+		swap.push_back(time4.count());
+	}
+
+	for (int i = 0; i < times.size(); ++i){
+		std::cout<<"full: "<< times[i]<<std::endl;
+		std::cout<<"fixed: "<< fixed[i]<<std::endl;
+		std::cout<<"render: "<< render[i]<<std::endl;
+		std::cout<<"swap: "<< swap[i]<<std::endl;
 	}
 
 	return 0;

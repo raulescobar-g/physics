@@ -99,7 +99,7 @@ class Simulation {
         std::shared_ptr<Particles> particles;                                
         std::shared_ptr<Camera> camera;                     
         std::shared_ptr<Program> meshes_program, particles_program, compute_program; 
-        std::vector< std::shared_ptr<Object> > objects;     
+        std::vector< std::shared_ptr<Object> > objects, visual_objects;     
 };
 
 #endif

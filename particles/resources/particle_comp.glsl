@@ -62,12 +62,16 @@ void main(){
 	uint gid = gl_GlobalInvocationID.x;
 
 	if (Colors[ gid ].w > 0.0) {
-		float cr = 0.95;
+		float cr = 0.1;
 		float cf = 0.05;
 		float cd = 0.1;
 		float G = 1.0;
 
 		Colors[ gid ].w -= dt;
+
+		Colors[ gid ].x = 1.0 - (length(Positions[ gid ].xyz - Point_attractors[ 0 ].yzw) / 50.0);
+		Colors[ gid ].z = length(Positions[ gid ].xyz - Point_attractors[ 0 ].yzw) / 100.0;
+		Colors[ gid ].y = 0.0;
 
 		vec3 pull = gravity; 
 
@@ -84,42 +88,42 @@ void main(){
 		vec3 vp = Velocities[ gid ].xyz + acceleration * dt;
 
 
-		int last = 0;
-		bool found = false;
-		for (int j = 0; j < objects; ++j){
-			if (found) break;
+		// int last = 0;
+		// bool found = false;
+		// for (int j = 0; j < objects; ++j){
+		// 	if (found) break;
 
-			for (int i = last; i < last + Amount[j]; ++i) {
+		// 	for (int i = last; i < last + Amount[j]; ++i) {
 
-				vec3 v0 = (Transforms[j] * Triangles[ i ][0]).xyz;
-				vec3 v1 = (Transforms[j] * Triangles[ i ][1]).xyz;
-				vec3 v2 = (Transforms[j] * Triangles[ i ][2]).xyz;
+		// 		vec3 v0 = (Transforms[j] * Triangles[ i ][0]).xyz;
+		// 		vec3 v1 = (Transforms[j] * Triangles[ i ][1]).xyz;
+		// 		vec3 v2 = (Transforms[j] * Triangles[ i ][2]).xyz;
 
-				vec3 perp = normalize(cross(v1 - v0, v2 - v0));
+		// 		vec3 perp = normalize(cross(v1 - v0, v2 - v0));
 
-				float disA = dot(Positions[ gid ].xyz - v0, perp);
-				float disB = dot(pp - v0, perp);
+		// 		float disA = dot(Positions[ gid ].xyz - v0, perp);
+		// 		float disB = dot(pp - v0, perp);
 
-				float f = abs(disA) / abs(disB - disA);
-				vec3 x = Positions[ gid ].xyz + Velocities[ gid ].xyz * dt * f;
+		// 		float f = abs(disA) / abs(disB - disA);
+		// 		vec3 x = Positions[ gid ].xyz + Velocities[ gid ].xyz * dt * f;
 
-				if ( disB * disA < 0.0 && inside(x, v0, v1, v2, perp)){
+		// 		if ( disB * disA < 0.0 && inside(x, v0, v1, v2, perp)){
 
-					Colors[ gid ].xyz = vec3(1.0, 1.0, 1.0);
-					pp = pp - (1 + cr) * disB * perp;
-					vec3 vn = dot(vp , perp) * perp;
-					vec3 vt = vp - vn;
-					vp = -cr * vn + (1 - cf) * vt;
-					found = true;
+		// 			Colors[ gid ].xyz += vec3(0.5, 0.5, 0.0);
+		// 			pp = pp - (1 + cr) * disB * perp;
+		// 			vec3 vn = dot(vp , perp) * perp;
+		// 			vec3 vt = vp - vn;
+		// 			vp = -cr * vn + (1 - cf) * vt;
+		// 			found = true;
 
-					if (length(vp) < 0.1) {
-						Colors[ gid ].w = -dt;
-					}
-					break;
-				}
-			}
-			last += Amount[j];
-		}
+		// 			if (length(vp) < 0.1) {
+		// 				Colors[ gid ].w = -dt;
+		// 			}
+		// 			break;
+		// 		}
+		// 	}
+		// 	last += Amount[j];
+		// }
 
 		Positions[ gid ].xyz = pp;
 		Velocities[ gid ].xyz = vp;
