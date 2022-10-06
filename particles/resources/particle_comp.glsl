@@ -1,53 +1,181 @@
-#version 330
-#extension GL_ARB_compute_shader: enable
-#extension GL_ARB_shader_storage_buffer_object: enable
-#extension GL_ARB_arrays_of_arrays: enable
+#version 460
+#extension GL_ARB_shading_language_include : require
 
 uniform float dt;
 uniform vec3 gravity;
 uniform vec3 wind;
 uniform int polygons;
 uniform int objects;
-uniform int point_attractors;
+uniform int point_attractors_amount;
+uniform float time;
+
+layout (binding = 0, offset=0) uniform atomic_uint counters[3];
 
 
 layout( std140, binding=4 ) buffer Pos {
-	vec4 Positions[ ]; 
+	vec4 positions[ ]; 
 };
 
 layout( std140, binding=5 ) buffer Vel {
-	vec4 Velocities[ ];
+	vec4 velocities[ ];
 };
 
 layout( std140, binding=6 ) buffer Col {
-	vec4 Colors[ ]; 
+	vec4 colors[ ]; 
 };
 
 layout(std140, binding=7 ) buffer Tri {
-	vec4[3] Triangles[ ];
+	vec4[3] triangles[ ];
 };
 
 layout(std140, binding=8 ) buffer Trans {
-	mat4 Transforms[ ];
+	mat4 transforms[ ];
 };
 
 layout(std430, binding=9) buffer Data {
-	int Amount[ ];  
+	int poly_count[ ];  
 };
 
 layout(std430, binding=10) buffer Attr {
-	vec4 Point_attractors[ ];  
+	vec4 point_attractors[ ];  
 };
 
-layout( local_size_x = 1024, local_size_y = 1, local_size_z = 1 ) in;
+layout( local_size_x = 1, local_size_y = 1, local_size_z = 1 ) in;
 
+
+// all of the noise functions found on github, not mine
+vec4 mod289(vec4 x) {
+  return x - floor(x * (1.0 / 289.0)) * 289.0; }
+
+float mod289(float x) {
+  return x - floor(x * (1.0 / 289.0)) * 289.0; }
+
+vec4 permute(vec4 x) {
+     return mod289(((x*34.0)+10.0)*x);
+}
+
+float permute(float x) {
+     return mod289(((x*34.0)+10.0)*x);
+}
+
+vec4 taylorInvSqrt(vec4 r)
+{
+  return 1.79284291400159 - 0.85373472095314 * r;
+}
+
+float taylorInvSqrt(float r)
+{
+  return 1.79284291400159 - 0.85373472095314 * r;
+}
+
+vec4 grad4(float j, vec4 ip)
+  {
+  const vec4 ones = vec4(1.0, 1.0, 1.0, -1.0);
+  vec4 p,s;
+
+  p.xyz = floor( fract (vec3(j) * ip.xyz) * 7.0) * ip.z - 1.0;
+  p.w = 1.5 - dot(abs(p.xyz), ones.xyz);
+  s = vec4(lessThan(p, vec4(0.0)));
+  p.xyz = p.xyz + (s.xyz*2.0 - 1.0) * s.www; 
+
+  return p;
+  }
+						
+// (sqrt(5) - 1)/4 = F4, used once below
+#define F4 0.309016994374947451
+
+float snoise(vec4 v)
+  {
+  const vec4  C = vec4( 0.138196601125011,  // (5 - sqrt(5))/20  G4
+                        0.276393202250021,  // 2 * G4
+                        0.414589803375032,  // 3 * G4
+                       -0.447213595499958); // -1 + 4 * G4
+
+// First corner
+  vec4 i  = floor(v + dot(v, vec4(F4)) );
+  vec4 x0 = v -   i + dot(i, C.xxxx);
+
+// Other corners
+
+// Rank sorting originally contributed by Bill Licea-Kane, AMD (formerly ATI)
+  vec4 i0;
+  vec3 isX = step( x0.yzw, x0.xxx );
+  vec3 isYZ = step( x0.zww, x0.yyz );
+//  i0.x = dot( isX, vec3( 1.0 ) );
+  i0.x = isX.x + isX.y + isX.z;
+  i0.yzw = 1.0 - isX;
+//  i0.y += dot( isYZ.xy, vec2( 1.0 ) );
+  i0.y += isYZ.x + isYZ.y;
+  i0.zw += 1.0 - isYZ.xy;
+  i0.z += isYZ.z;
+  i0.w += 1.0 - isYZ.z;
+
+  // i0 now contains the unique values 0,1,2,3 in each channel
+  vec4 i3 = clamp( i0, 0.0, 1.0 );
+  vec4 i2 = clamp( i0-1.0, 0.0, 1.0 );
+  vec4 i1 = clamp( i0-2.0, 0.0, 1.0 );
+
+  //  x0 = x0 - 0.0 + 0.0 * C.xxxx
+  //  x1 = x0 - i1  + 1.0 * C.xxxx
+  //  x2 = x0 - i2  + 2.0 * C.xxxx
+  //  x3 = x0 - i3  + 3.0 * C.xxxx
+  //  x4 = x0 - 1.0 + 4.0 * C.xxxx
+  vec4 x1 = x0 - i1 + C.xxxx;
+  vec4 x2 = x0 - i2 + C.yyyy;
+  vec4 x3 = x0 - i3 + C.zzzz;
+  vec4 x4 = x0 + C.wwww;
+
+// Permutations
+  i = mod289(i); 
+  float j0 = permute( permute( permute( permute(i.w) + i.z) + i.y) + i.x);
+  vec4 j1 = permute( permute( permute( permute (
+             i.w + vec4(i1.w, i2.w, i3.w, 1.0 ))
+           + i.z + vec4(i1.z, i2.z, i3.z, 1.0 ))
+           + i.y + vec4(i1.y, i2.y, i3.y, 1.0 ))
+           + i.x + vec4(i1.x, i2.x, i3.x, 1.0 ));
+
+// Gradients: 7x7x6 points over a cube, mapped onto a 4-cross polytope
+// 7*7*6 = 294, which is close to the ring size 17*17 = 289.
+  vec4 ip = vec4(1.0/294.0, 1.0/49.0, 1.0/7.0, 0.0) ;
+
+  vec4 p0 = grad4(j0,   ip);
+  vec4 p1 = grad4(j1.x, ip);
+  vec4 p2 = grad4(j1.y, ip);
+  vec4 p3 = grad4(j1.z, ip);
+  vec4 p4 = grad4(j1.w, ip);
+
+// Normalise gradients
+  vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));
+  p0 *= norm.x;
+  p1 *= norm.y;
+  p2 *= norm.z;
+  p3 *= norm.w;
+  p4 *= taylorInvSqrt(dot(p4,p4));
+
+// Mix contributions from the five corners
+  vec3 m0 = max(0.6 - vec3(dot(x0,x0), dot(x1,x1), dot(x2,x2)), 0.0);
+  vec2 m1 = max(0.6 - vec2(dot(x3,x3), dot(x4,x4)            ), 0.0);
+  m0 = m0 * m0;
+  m1 = m1 * m1;
+  return 49.0 * ( dot(m0*m0, vec3( dot( p0, x0 ), dot( p1, x1 ), dot( p2, x2 )))
+               + dot(m1*m1, vec2( dot( p3, x3 ), dot( p4, x4 ) ) ) ) ;
+
+  }
+
+vec3 noiseMe( vec3 p, float t ){
+	//float n = snoise(vec4(p) * 0.1);
+	float x = snoise(vec4(p, 0.0) * 0.2);
+	float y = snoise(vec4(p, 100.0) * 0.2);
+	float z = snoise(vec4(p, 200.0) * 0.2);
+	return vec3(x, y, z) * 50.0;
+};
 
 // https://math.stackexchange.com/questions/544946/determine-if-projection-of-3d-point-onto-plane-is-within-a-triangle
-bool inside(vec3 x , vec3 v0, vec3 v1, vec3 v2, vec3 _n) {
-	vec3 u = v1 - v0;
-	vec3 v = v2 - v0;
+bool inside(vec3 collision_position , vec3 vertex_0, vec3 vertex_1, vec3 vertex_2) {
+	vec3 u = vertex_1 - vertex_0;
+	vec3 v = vertex_2 - vertex_0;
 	vec3 n = cross(u, v);
-	vec3 w = x - v0;
+	vec3 w = collision_position - vertex_0;
 
 	float gamma = dot(cross(u, w), n) / dot(n,n);
 	float beta = dot(cross(w, v), n) / dot(n,n);
@@ -56,76 +184,87 @@ bool inside(vec3 x , vec3 v0, vec3 v1, vec3 v2, vec3 _n) {
 	return alpha >= -0.00001 && beta >= -0.00001 && gamma >= -0.00001;
 };
 
+bool is_dead(uint gid) {
+	return colors[ gid ].w > 0.0;
+};
+
+vec3 attractor_forces(uint gid) {
+	float G = 1.0;	//gravitational constant
+
+	vec3 pull = vec3(0.0, 0.0, 0.0);
+	for (int k = 0; k < point_attractors_amount; ++k) {
+		float r = length(point_attractors[k].yzw - positions[ gid ].xyz) ;
+		float magnitude = (((G * point_attractors[ k ].x) / ((r*r/2.0)  + 0.00001)));
+		pull += magnitude  * normalize(point_attractors[ k ].yzw - positions[ gid ].xyz);
+	}
+	return pull;
+};
+
 
 void main(){
 
 	uint gid = gl_GlobalInvocationID.x;
 
-	if (Colors[ gid ].w > 0.0) {
-		float cr = 0.1;
-		float cf = 0.05;
-		float cd = 0.1;
-		float G = 1.0;
+	if (is_dead(gid)) {
+		atomicCounterIncrement(counters[0]);
 
-		Colors[ gid ].w -= dt;
+		float cr = 0.7;					//restitution
+		float cf = 0.05;				//friction
+		float cd = 0.1;					//air resistance
 
-		Colors[ gid ].x = 1.0 - (length(Positions[ gid ].xyz - Point_attractors[ 0 ].yzw) / 50.0);
-		Colors[ gid ].z = length(Positions[ gid ].xyz - Point_attractors[ 0 ].yzw) / 100.0;
-		Colors[ gid ].y = 0.0;
+		colors[ gid ].w -= dt;			//particle aging
 
-		vec3 pull = gravity; 
+		vec3 pull = gravity + attractor_forces(gid); 
 
-		for (int k = 0; k < point_attractors; ++k) {
-			float r = length(Point_attractors[k].yzw - Positions[ gid ].xyz) ;
-			float magnitude = (((G * Point_attractors[ k ].x) / (r*r  + 0.00001)));
-			pull += magnitude  * normalize(Point_attractors[ k ].yzw - Positions[ gid ].xyz);
+		vec3 acceleration = pull + (cd / velocities[ gid ].w) * (wind - velocities[ gid ].xyz);
+
+		vec3 next_position = positions[ gid ].xyz + velocities[ gid ].xyz * dt;
+		vec3 next_velocity = velocities[ gid ].xyz + acceleration * dt;
+		
+		int last = 0;
+		bool collision_found = false;
+		for (int j = 0; j < objects; ++j){
+			if (collision_found) break;
+
+			vec3 object_origin = vec3(transforms[j][3][0], transforms[j][3][1], transforms[j][3][2]);
+			float object_radius = length(vec3(transforms[j][0][0], transforms[j][0][1], transforms[j][0][2]));
+
+			if (length(object_origin - next_position) > object_radius && length(object_origin - positions[ gid ].xyz) > object_radius) {
+				continue; // sphere bounding box lets us skip mesh if particle outside sphere, good for high poly meshes
+			}
+
+			for (int i = last; i < last + poly_count[j]; ++i) {
+
+				vec3 vertex_0 = (transforms[j] * triangles[ i ][0]).xyz;
+				vec3 vertex_1 = (transforms[j] * triangles[ i ][1]).xyz;
+				vec3 vertex_2 = (transforms[j] * triangles[ i ][2]).xyz;
+
+				vec3 normal = normalize(cross(vertex_1 - vertex_0, vertex_2 - vertex_0));
+
+				float d_A = dot(positions[ gid ].xyz - vertex_0, normal);
+				float d_B = dot(next_position - vertex_0, normal);
+
+				float f = abs(d_A) / abs(d_B - d_A);
+				vec3 collision_position = positions[ gid ].xyz + velocities[ gid ].xyz * dt * f;
+
+				if ( d_B * d_A < 0.0 && inside(collision_position, vertex_0, vertex_1, vertex_2)){
+					atomicCounterIncrement(counters[2]);
+					next_position = next_position - (1 + cr) * d_B * normal;
+
+					vec3 velocity_normal = dot(next_velocity , normal) * normal;
+					vec3 velocity_tangent = next_velocity - velocity_normal;
+					next_velocity = -cr * velocity_normal + (1 - cf) * velocity_tangent;
+
+					collision_found = true;
+					break;
+				}
+			}
+			last += poly_count[j];
 		}
 
-
-		vec3 acceleration = pull + (cd / Velocities[ gid ].w) * (wind - Velocities[ gid ].xyz);
-		
-		vec3 pp = Positions[ gid ].xyz + Velocities[ gid ].xyz * dt;
-		vec3 vp = Velocities[ gid ].xyz + acceleration * dt;
-
-
-		// int last = 0;
-		// bool found = false;
-		// for (int j = 0; j < objects; ++j){
-		// 	if (found) break;
-
-		// 	for (int i = last; i < last + Amount[j]; ++i) {
-
-		// 		vec3 v0 = (Transforms[j] * Triangles[ i ][0]).xyz;
-		// 		vec3 v1 = (Transforms[j] * Triangles[ i ][1]).xyz;
-		// 		vec3 v2 = (Transforms[j] * Triangles[ i ][2]).xyz;
-
-		// 		vec3 perp = normalize(cross(v1 - v0, v2 - v0));
-
-		// 		float disA = dot(Positions[ gid ].xyz - v0, perp);
-		// 		float disB = dot(pp - v0, perp);
-
-		// 		float f = abs(disA) / abs(disB - disA);
-		// 		vec3 x = Positions[ gid ].xyz + Velocities[ gid ].xyz * dt * f;
-
-		// 		if ( disB * disA < 0.0 && inside(x, v0, v1, v2, perp)){
-
-		// 			Colors[ gid ].xyz += vec3(0.5, 0.5, 0.0);
-		// 			pp = pp - (1 + cr) * disB * perp;
-		// 			vec3 vn = dot(vp , perp) * perp;
-		// 			vec3 vt = vp - vn;
-		// 			vp = -cr * vn + (1 - cf) * vt;
-		// 			found = true;
-
-		// 			if (length(vp) < 0.1) {
-		// 				Colors[ gid ].w = -dt;
-		// 			}
-		// 			break;
-		// 		}
-		// 	}
-		// 	last += Amount[j];
-		// }
-
-		Positions[ gid ].xyz = pp;
-		Velocities[ gid ].xyz = vp;
+		positions[ gid ].xyz = next_position;
+		velocities[ gid ].xyz = next_velocity;
+	} else {
+		atomicCounterIncrement(counters[1]);
 	}
 }

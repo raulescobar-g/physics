@@ -47,10 +47,11 @@ class Particles {
         struct color *colors;
         struct position *positions;
         struct velocity *velocities;
+        GLuint *atomic_counters;
 
-        int current_particle;
+        int current_particle, counters;
 
-        GLuint posSSbo, velSSbo, colSSbo, objSSbo, transSSbo, dataSSbo, attrSSbo;
+        GLuint posSSbo, velSSbo, colSSbo, objSSbo, transSSbo, dataSSbo, attrSSbo, atomicsBuffer;
 };
 
 #endif

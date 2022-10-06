@@ -28,10 +28,6 @@
 
 int main(int argc, char **argv)
 {
-	using std::chrono::high_resolution_clock;
-    using std::chrono::duration_cast;
-    using std::chrono::duration;
-    using std::chrono::microseconds;
 
 	Simulation &sim = Simulation::get_instance();
 
@@ -78,40 +74,12 @@ int main(int argc, char **argv)
 	sim.init_programs();
 	sim.init_camera();
 	sim.set_scene();	
-	
-	std::vector<int> times;
-	std::vector<int> camera;
-	std::vector<int> fixed;
-	std::vector<int> render;
-	std::vector<int> swap;
 
 	while(!sim.window_closed()) {
-		auto begin = high_resolution_clock::now();
 		sim.move_camera();
-		auto t1 = high_resolution_clock::now();
 		sim.fixed_timestep_update();
-		auto t2 = high_resolution_clock::now();
 		sim.render_scene();
-		auto t3 = high_resolution_clock::now();
 		sim.swap_buffers();
-		auto end = high_resolution_clock::now();
-
-		auto time = duration_cast<microseconds>(end - begin);
-		
-		auto time2 = duration_cast<microseconds>(t2 - t1);
-		auto time3 = duration_cast<microseconds>(t3 - t2);
-		auto time4  = duration_cast<microseconds>(end - t3);
-		times.push_back(time.count());
-		fixed.push_back(time2.count());
-		render.push_back(time3.count());
-		swap.push_back(time4.count());
-	}
-
-	for (int i = 0; i < times.size(); ++i){
-		std::cout<<"full: "<< times[i]<<std::endl;
-		std::cout<<"fixed: "<< fixed[i]<<std::endl;
-		std::cout<<"render: "<< render[i]<<std::endl;
-		std::cout<<"swap: "<< swap[i]<<std::endl;
 	}
 
 	return 0;

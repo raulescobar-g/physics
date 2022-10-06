@@ -125,7 +125,6 @@ void Particles::buffer_attractors(std::vector<glm::vec4> attractors) {
     }
 
     if (attractor_structs.size() > 0){
-        std::cout<<"here\n";
         glGenBuffers( 1, &attrSSbo);
         glBindBuffer( GL_SHADER_STORAGE_BUFFER, attrSSbo );
         glBufferData( GL_SHADER_STORAGE_BUFFER, attractor_structs.size() * sizeof(point_attractor), &attractor_structs[0], GL_STATIC_DRAW );
@@ -136,7 +135,14 @@ void Particles::buffer_attractors(std::vector<glm::vec4> attractors) {
 }
 
 glm::vec4 Particles::get_particle_count_data() {
-    return glm::vec4(initial, current, spawns_per_cycle, max_amount);
+    glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, atomicsBuffer);
+    atomic_counters = (GLuint*)glMapBufferRange(GL_ATOMIC_COUNTER_BUFFER, 0, sizeof(GLuint) * 3, GL_MAP_READ_BIT);
+    int alive = atomic_counters[0];
+    int dead = atomic_counters[1];
+    int collision = atomic_counters[2];
+    glUnmapBuffer(GL_ATOMIC_COUNTER_BUFFER);
+
+    return glm::vec4(alive, dead, max_amount, collision);
 }
 
 void Particles::init(int max, int spawns, int start, const std::shared_ptr<Program> compute_program) {
@@ -150,10 +156,21 @@ void Particles::init(int max, int spawns, int start, const std::shared_ptr<Progr
 
     GLint bufMask = GL_MAP_WRITE_BIT |  GL_MAP_READ_BIT |  GL_MAP_PERSISTENT_BIT |  GL_MAP_COHERENT_BIT;
 
+    counters = 3;
     // render stuff
     glGenBuffers(1, &billboard_vertex_buffer);
     glBindBuffer(GL_ARRAY_BUFFER, billboard_vertex_buffer);
     glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data), g_vertex_buffer_data, GL_STATIC_DRAW);
+
+    glGenBuffers(1, &atomicsBuffer);
+    glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, atomicsBuffer);
+    glBufferData(GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint) * counters, NULL, GL_DYNAMIC_DRAW);
+    
+    glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, atomicsBuffer);
+    atomic_counters = (GLuint*)glMapBufferRange(GL_ATOMIC_COUNTER_BUFFER, 0 ,sizeof(GLuint) * counters, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+    memset(atomic_counters, 0, sizeof(GLuint) * counters );
+    glUnmapBuffer(GL_ATOMIC_COUNTER_BUFFER);
+    glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, 0);
 
     // compute stuff
     glGenBuffers( 1, &posSSbo);
@@ -162,10 +179,10 @@ void Particles::init(int max, int spawns, int start, const std::shared_ptr<Progr
     positions = (struct position *) glMapBufferRange( GL_SHADER_STORAGE_BUFFER, 0, max_amount * sizeof(struct position), bufMask );
     for( int i = 0; i < initial; ++i )
     {
-        positions[ i ].x = unit_normal(engine) * 6.0f;
-        positions[ i ].y = unit_normal(engine) * 6.0f;;
-        positions[ i ].z = unit_normal(engine) * 6.0f;
-        positions[ i ].size = std::abs(unit_normal(engine)) * 0.01 + 0.03;
+        positions[ i ].x = unit_normal(engine) * 1.0f;
+        positions[ i ].y = unit_normal(engine) * 1.0f;
+        positions[ i ].z = unit_normal(engine) * 1.0f;
+        positions[ i ].size =  0.01f + std::abs(unit_normal(engine)) * 0.01;
     }
 
     glGenBuffers( 1, &velSSbo);
@@ -174,10 +191,10 @@ void Particles::init(int max, int spawns, int start, const std::shared_ptr<Progr
     velocities = (struct velocity *) glMapBufferRange( GL_SHADER_STORAGE_BUFFER, 0, max_amount * sizeof(struct velocity), bufMask );
     for( int i = 0; i < initial ; ++i )
     {
-        velocities[ i ].x = unit_normal(engine) * 2.0f;
-        velocities[ i ].y = unit_normal(engine) * 2.0f;
-        velocities[ i ].z = unit_normal(engine) * 2.0f;
-        velocities[ i ].mass = std::abs(unit_normal(engine)) * 5.0f;
+        velocities[ i ].x =  unit_normal(engine) * 1.0f;
+        velocities[ i ].y =  std::abs(unit_normal(engine)) * 3.0f;
+        velocities[ i ].z =  unit_normal(engine) * 1.0f;
+        velocities[ i ].mass = 0.1f + std::abs(unit_normal(engine)) *  0.1f;
     }
 
     glGenBuffers( 1, &colSSbo);
@@ -186,10 +203,14 @@ void Particles::init(int max, int spawns, int start, const std::shared_ptr<Progr
     colors = (struct color *) glMapBufferRange( GL_SHADER_STORAGE_BUFFER, 0, max_amount * sizeof(struct color), bufMask );
     for( int i = 0; i < initial; ++i )
     {
-        colors[ i ].r = abs(unit_normal(engine));// / 2.0f;
-        colors[ i ].g = abs(unit_normal(engine));// / 2.0f;
-        colors[ i ].b = abs(unit_normal(engine));//  / 2.0f + 0.5f;
-        colors[ i ].lifetime = unit_normal(engine) * 2.0f + 100.0f;
+        colors[ i ].r = 0.0f;
+        colors[ i ].g = 0.0f;
+        colors[ i ].b = 0.0f;
+        colors[ i ].lifetime = std::abs(unit_normal(engine) * 2.0f) + 6.0f;
+    }
+    for( int i = initial; i < max_amount; ++i )
+    {
+        colors[ i ].lifetime = -1.0f;
     }
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
@@ -201,6 +222,12 @@ void Particles::init(int max, int spawns, int start, const std::shared_ptr<Progr
 Particles::~Particles() {};
 
 void Particles::update(){
+    glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, atomicsBuffer);
+    atomic_counters = (GLuint*)glMapBufferRange(GL_ATOMIC_COUNTER_BUFFER, 0 ,sizeof(GLuint) * counters, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+    memset(atomic_counters, 0, sizeof(GLuint) * counters );
+    glUnmapBuffer(GL_ATOMIC_COUNTER_BUFFER);
+
+    glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 0, atomicsBuffer);
     glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 4, posSSbo );
     glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 5, velSSbo );
     glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 6, colSSbo );
@@ -208,9 +235,10 @@ void Particles::update(){
     glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 8, transSSbo );
     glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 9, dataSSbo );
     glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 10, attrSSbo );
-
-    glDispatchCompute( std::ceil((float) max_amount / 1024.0f), 1, 1 );
-    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    
+    
+    glDispatchCompute( max_amount, 1, 1 );
+    glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);    
 };
 
 void Particles::draw(const std::shared_ptr<Program> particle_render_program, const std::shared_ptr<Program> compute_program) const {
@@ -246,21 +274,26 @@ void Particles::draw(const std::shared_ptr<Program> particle_render_program, con
 
 void Particles::add_to_queue() {
     int added = 0;
-    
+    int i = 0;
+    int lim = spawns_per_cycle * 3;
     if (current_particle < max_amount) {
         while (added < spawns_per_cycle) {
+            if (i > lim) return;
             queue.push(current_particle);
             ++added;
             ++current_particle;
             if (current_particle >= max_amount) return;
+            ++i;
         }
     } else {
         while (added < spawns_per_cycle) {
+            if (i > lim) return;
             if (colors[current_particle % max_amount].lifetime < 0.0f) {
                 queue.push(current_particle % max_amount);
                 ++added;
                 ++current_particle;
             }
+            ++i;
         }
     }
 }
@@ -269,20 +302,20 @@ void Particles::update_buffers() {
 
     for (int j = 0; j < spawns_per_cycle && !queue.empty(); ++j) {
         int i = queue.front(); 
-        colors[ i ].r = abs(unit_normal(engine)) / 4.0f;
-        colors[ i ].g = abs(unit_normal(engine)) / 4.0f;
-        colors[ i ].b = abs(unit_normal(engine))  / 2.0f + 0.5f;
-        colors[ i ].lifetime = unit_normal(engine) * 0.5f + 3.0f;
+        colors[ i ].r = 0.0f;
+        colors[ i ].g = 0.0f;
+        colors[ i ].b = 0.0f;
+        colors[ i ].lifetime = std::abs(unit_normal(engine) * 2.0f) + 6.0f;
 
-        positions[ i ].x = unit_normal(engine) * 6.0f;
-        positions[ i ].y = 30.0f + unit_normal(engine);
-        positions[ i ].z = unit_normal(engine) * 6.0f;
-        positions[ i ].size = std::abs(unit_normal(engine)) * 0.01 + 0.03;
+        positions[ i ].x = unit_normal(engine) * 1.0f;
+        positions[ i ].y = unit_normal(engine) * 1.0f;
+        positions[ i ].z = unit_normal(engine) * 1.0f;
+        positions[ i ].size = 0.01f + std::abs(unit_normal(engine)) * 0.01;
 
-        velocities[ i ].x = unit_normal(engine) * 0.2f;
-        velocities[ i ].y = -2.0f * std::abs(unit_normal(engine));
-        velocities[ i ].z = unit_normal(engine) * 0.2f;
-        velocities[ i ].mass = std::abs(unit_normal(engine)) * 5.0f;
+        velocities[ i ].x =  unit_normal(engine) * 1.0f;
+        velocities[ i ].y =  unit_normal(engine) * 1.0f;
+        velocities[ i ].z =  unit_normal(engine) * 1.0f;
+        velocities[ i ].mass = 0.1f + std::abs(unit_normal(engine)) *  0.1f ;
         queue.pop();
     }
 }

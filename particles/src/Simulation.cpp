@@ -29,7 +29,7 @@ Simulation::~Simulation() {
 
 int Simulation::create_window(const char * window_name, const char * glsl_version) {
     // Create a windowed mode window and its OpenGL context.
-	window = glfwCreateWindow(640 * 2, 480 * 2, window_name, NULL, NULL);
+	window = glfwCreateWindow(640 * 3, 480 * 3, window_name, NULL, NULL);
 	if(!window) {
 		glfwTerminate();
 		return -1;
@@ -48,7 +48,7 @@ int Simulation::create_window(const char * window_name, const char * glsl_versio
     // Setup Platform/Renderer backends
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init(glsl_version);
-	// glfwSwapInterval(0);
+	glfwSwapInterval(1);
 
     return 0;
 }
@@ -65,7 +65,7 @@ void Simulation::init_programs(){
 	particles_program = std::make_shared<Program>();
 	particles_program->init("C:\\Users\\raul3\\Programming\\physics\\particles\\resources\\particle_vert.glsl", "C:\\Users\\raul3\\Programming\\physics\\particles\\resources\\particle_frag.glsl", particles_attributes, particles_uniforms);
 
-	std::vector<std::string> compute_uniforms = {"dt", "gravity", "wind", "polygons", "objects", "point_attractors" };
+	std::vector<std::string> compute_uniforms = {"dt", "gravity", "wind", "polygons", "objects", "point_attractors_amount","time", "counters" };
 	compute_program = std::make_shared<Program>();
 	compute_program->init("C:\\Users\\raul3\\Programming\\physics\\particles\\resources\\particle_comp.glsl", compute_uniforms);
 }
@@ -76,7 +76,7 @@ void Simulation::init_camera(){
 
 void Simulation::set_scene() {
 	
-	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 
 	glEnable(GL_DEPTH_TEST);
 
@@ -92,9 +92,20 @@ void Simulation::set_scene() {
 	wall->init();
 	meshes_program->unbind();
 
-	std::shared_ptr<Object> wall_ptr = std::make_shared<Object>(wall, glm::vec3(0.0f , -5.0f, 0.0f));
-	wall_ptr->set_scale(10.0f);
-	wall_ptr->set_rotation(glm::vec3(-glm::pi<float>() * 15.0f / 32.0f, 0.0f, 0.0f));
+	std::shared_ptr<Shape> bunny = std::make_shared<Shape>();
+	bunny->loadMesh("C:\\Users\\raul3\\Programming\\physics\\particles\\resources\\bunny.obj");
+	bunny->fitToUnitBox();
+	bunny->init();
+	meshes_program->unbind();
+
+	std::shared_ptr<Object> bunny_ptr = std::make_shared<Object>(bunny, glm::vec3(0.0f , 0.0f, 0.0f));
+	bunny_ptr->set_scale(10.0f);
+	bunny_ptr->set_rotation(glm::vec3(0.0f, glm::pi<float>(), 0.0f));
+	//objects.push_back(bunny_ptr);
+
+	std::shared_ptr<Object> wall_ptr = std::make_shared<Object>(wall, glm::vec3(0.0f , -0.1f, 0.0f));
+	wall_ptr->set_scale(300.0f);
+	wall_ptr->set_rotation(glm::vec3(-glm::pi<float>() / 2.0f, 0.0f, 0.0f));
 	//objects.push_back(wall_ptr);
 
 	std::shared_ptr<Object> second_wall_ptr = std::make_shared<Object>(wall, glm::vec3(0.0f , -15.0f, 10.0f));
@@ -102,10 +113,10 @@ void Simulation::set_scene() {
 	second_wall_ptr->set_rotation(glm::vec3(-glm::pi<float>() * 17.0f / 32.0f, 0.0f, 0.0f));
 	//objects.push_back(second_wall_ptr);
 
-	// std::shared_ptr<Object> ball_ptr = std::make_shared<Object>(ball, glm::vec3(30.0f, 30.0f, 30.0f));
-	// ball_ptr->set_scale(10.0f);
-	// ball_ptr->set_rotation(glm::vec3(-glm::pi<float>() / 2.0f, 0.0f, 0.0f));
-	// objects.push_back(ball_ptr);
+	std::shared_ptr<Object> ball_ptr = std::make_shared<Object>(ball, glm::vec3(0.0f, 0.0f, 0.0f));
+	ball_ptr->set_scale(10.0f);
+	ball_ptr->set_rotation(glm::vec3(-glm::pi<float>() / 2.0f, 0.0f, 0.0f));
+	//objects.push_back(ball_ptr);
 
 	// set all time params
 	current_time = glfwGetTime();
@@ -115,7 +126,7 @@ void Simulation::set_scene() {
 	wind = glm::vec3(0.0f, 0.0f, 0.0f);
 
 	//point_attractors.push_back(glm::vec4(300.0f, 30.0f, 30.0f, 30.0f));
-	point_attractors.push_back(glm::vec4(500.0f, -30.0f, -30.0f, -30.0f));
+	//point_attractors.push_back(glm::vec4(600.0f, -30.0f, -30.0f, -30.0f));
 
 	for (auto attr : point_attractors) { 
 		std::shared_ptr<Object> ball_ptr = std::make_shared<Object>(ball, glm::vec3(attr.y, attr.z, attr.w));
@@ -131,7 +142,7 @@ void Simulation::set_scene() {
 	particles->buffer_world_geometry(objects);
 	particles->buffer_attractors(point_attractors);
 	int amount = 1024 * 128;
-	particles->init(1024 * 1024, 0 ,amount, compute_program); // max at 1 million particles
+	particles->init(1024 * 1024, 512 ,amount, compute_program); // max at 1 million particles
 	particles_program->unbind();
 	GLSL::checkError(GET_FILE_LINE);
 }
@@ -161,21 +172,28 @@ void Simulation::update(float _dt) {
 	glUniform3f(compute_program->getUniform("gravity"), gravity.x, gravity.y, gravity.z);
 	glUniform3f(compute_program->getUniform("wind"), wind.x, wind.y, wind.z);
 	glUniform1i(compute_program->getUniform("point_attractors"), point_attractors.size()); 
+	glUniform1f(compute_program->getUniform("time"), glfwGetTime());
 	particles->update();
 	compute_program->unbind();
 	particles->add_to_queue();
 }
 
 void Simulation::render_scene() {
-	auto begin = std::chrono::high_resolution_clock::now();
 	glfwPollEvents();
 	ImGui_ImplOpenGL3_NewFrame();
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
 
-	ImGui::Begin("info : ");
+	ImGui::Begin("Info: ");
 	glm::vec4 data = particles->get_particle_count_data();
-	ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
+	int alive = data.x;
+	int dead = data.y;
+	int collision = data.w;
+	int max_amount = data.z;
+	ImGui::Text("%.3f dt", dt);
+	ImGui::Text("%.1f fps", ImGui::GetIO().Framerate);
+	ImGui::Text("alive: %d | dead: %d", alive, dead);
+	ImGui::Text("collisions: %d | max_amount: %d", collision, max_amount);
 	ImGui::End();
 
 	ImGui::Render();
@@ -256,10 +274,6 @@ void Simulation::render_scene() {
 
 	
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-	auto end = std::chrono::high_resolution_clock::now();
-	
-	auto time = std::chrono::duration_cast<std::chrono::microseconds>(end - begin);
-	std::cout<<"particle render: "<<time.count()<<std::endl;
 }
 
 bool Simulation::window_closed() {
