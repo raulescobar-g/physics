@@ -13,14 +13,18 @@ Simulation::Simulation() {
 	movement_speed = 0.5f;
 	sensitivity = 0.005f;
 	eps = 0.01f;
-	dt = 1.0f/60.0f;
+	dt = 1.0f/144.0f;
 
-	boids_k = glm::vec3(1.0f, 1.0f, 1.0f);
+	boids_k = glm::vec3(3.0f, 3.0f, 0.3f);
 	float pi = glm::pi<float>();
-	attention = glm::vec4(5.0f, 6.0f, pi/4.0, 3.0f*pi/4.0f );
+	attention = glm::vec4(2.0f, 4.0f, pi/4.0, 3.0f*pi/4.0f );
 	gravity = glm::vec3(0.0f, 0.0f, 0.0f);
 	wind = glm::vec3(0.0f, 0.0f, 0.0f);
+	lightPos = glm::vec3(0.0f, 30.0f, 0.0f);
 
+	limits = glm::vec4(10.0f, 50.0f, 20.0f, 0.01f);
+
+	steering_speed = 20.0f;
 	box_sidelength = 100.0f;
 }
 
@@ -72,7 +76,9 @@ void Simulation::init_programs(){
 	boids_program = std::make_shared<Program>();
 	boids_program->init("C:\\Users\\raul3\\Programming\\physics\\boids\\resources\\boid_vert.glsl", "C:\\Users\\raul3\\Programming\\physics\\boids\\resources\\boid_frag.glsl", boids_attributes, boids_uniforms);
 
-	std::vector<std::string> compute_uniforms = {"dt", "gravity", "wind", "polygons", "objects","time", "counters", "k", "attention" };
+	std::vector<std::string> compute_uniforms = {"dt", "gravity", "wind", 
+												"objects", "time", "counters", "k", 
+												"attention", "steering_speed", "limits" };
 	compute_program = std::make_shared<Program>();
 	compute_program->init("C:\\Users\\raul3\\Programming\\physics\\boids\\resources\\boid_comp.glsl", compute_uniforms);
 }
@@ -112,7 +118,7 @@ void Simulation::set_scene() {
 	wall_material->s = 10.0f;
 
 	boid_material = std::make_shared<Material>();
-	boid_material->ka = glm::vec3(0.7f, 0.7f, 0.7f);
+	boid_material->ka = glm::vec3(0.1f, 0.1f, 0.1f);
 	boid_material->kd = glm::vec3(0.7f, 0.7f, 0.7f);
 	boid_material->ks = glm::vec3(0.7f, 0.7f, 0.7f);
 	boid_material->s = 5.0f;
@@ -121,7 +127,7 @@ void Simulation::set_scene() {
 	first_wall_ptr->shape = wall;
 	first_wall_ptr->material = wall_material;
 	first_wall_ptr->position = glm::vec3(0.0f , box_sidelength/2.0f, 0.0f);
-	first_wall_ptr->scale = glm::vec3(box_sidelength);
+	first_wall_ptr->scale = glm::vec3(box_sidelength + 0.000001f);
 	first_wall_ptr->rotation = glm::vec3(glm::pi<float>() / 2.0f, 0.0f, 0.0f);
 	objects.push_back(first_wall_ptr);
 
@@ -129,7 +135,7 @@ void Simulation::set_scene() {
 	second_wall_ptr->shape = wall;
 	second_wall_ptr->material = wall_material;
 	second_wall_ptr->position = glm::vec3(0.0f , -box_sidelength/2.0f, 0.0f);
-	second_wall_ptr->scale = glm::vec3(box_sidelength);
+	second_wall_ptr->scale = glm::vec3(box_sidelength + 0.000001f);
 	second_wall_ptr->rotation = glm::vec3(-glm::pi<float>() / 2.0f, 0.0f, 0.0f);
 	objects.push_back(second_wall_ptr);
 
@@ -137,7 +143,7 @@ void Simulation::set_scene() {
 	third_wall_ptr->shape = wall;
 	third_wall_ptr->material = wall_material;
 	third_wall_ptr->position =  glm::vec3(box_sidelength/2.0f , 0.0f, 0.0f);
-	third_wall_ptr->scale = glm::vec3(box_sidelength);
+	third_wall_ptr->scale = glm::vec3(box_sidelength + 0.000001f);
 	third_wall_ptr->rotation = glm::vec3(0.0f, -glm::pi<float>() / 2.0f, 0.0f);
 	objects.push_back(third_wall_ptr);
 
@@ -145,7 +151,7 @@ void Simulation::set_scene() {
 	fourth_wall_ptr->shape = wall;
 	fourth_wall_ptr->material = wall_material;
 	fourth_wall_ptr->position = glm::vec3(-box_sidelength/2.0f , 0.0f, 0.0f);
-	fourth_wall_ptr->scale = glm::vec3(box_sidelength);
+	fourth_wall_ptr->scale = glm::vec3(box_sidelength + 0.000001f);
 	fourth_wall_ptr->rotation = glm::vec3(0.0f, glm::pi<float>() / 2.0f, 0.0f);
 	objects.push_back(fourth_wall_ptr);
 
@@ -153,7 +159,7 @@ void Simulation::set_scene() {
 	fifth_wall_ptr->shape = wall;
 	fifth_wall_ptr->material = wall_material;
 	fifth_wall_ptr->position = glm::vec3(0.0f , 0.0f, box_sidelength/2.0f);
-	fifth_wall_ptr->scale = glm::vec3(box_sidelength);
+	fifth_wall_ptr->scale = glm::vec3(box_sidelength + 0.000001f);
 	fifth_wall_ptr->rotation = glm::vec3(0.0f,  glm::pi<float>(), 0.0f);
 	objects.push_back(fifth_wall_ptr);
 
@@ -161,10 +167,10 @@ void Simulation::set_scene() {
 	sixth_wall_ptr->shape = wall;
 	sixth_wall_ptr->material = wall_material;
 	sixth_wall_ptr->position = glm::vec3(0.0f , 0.0f, -box_sidelength/2.0f);
-	sixth_wall_ptr->scale = glm::vec3(box_sidelength);
+	sixth_wall_ptr->scale = glm::vec3(box_sidelength + 0.000001f);
 	objects.push_back(sixth_wall_ptr);
 
-	lightPos = glm::vec3(0.0f, 4.5f, 0.0f);
+	
 
 
 	// set all time params
@@ -202,13 +208,14 @@ void Simulation::fixed_timestep_update() {
 void Simulation::update(float _dt) {
 	compute_program->bind();
 	glUniform1f(compute_program->getUniform("dt"), _dt);
-	glUniform1i(compute_program->getUniform("polygons"), boids->get_poly_count());
 	glUniform1i(compute_program->getUniform("objects"), objects.size());
 	glUniform3f(compute_program->getUniform("gravity"), gravity.x, gravity.y, gravity.z);
 	glUniform3f(compute_program->getUniform("wind"), wind.x, wind.y, wind.z);
 	glUniform1f(compute_program->getUniform("time"), glfwGetTime());
 	glUniform3f(compute_program->getUniform("k"), boids_k.x, boids_k.y, boids_k.z);
 	glUniform4f(compute_program->getUniform("attention"), attention.x, attention.y, attention.z, attention.w);
+	glUniform1f(compute_program->getUniform("steering_speed"), steering_speed);
+	glUniform4f(compute_program->getUniform("limits"), limits.x, limits.y, limits.z, limits.w);
 	boids->update();
 	compute_program->unbind();
 }
@@ -227,15 +234,21 @@ void Simulation::render_scene() {
 	ImGui::Text("Boids: %d ", amount);
 
 	float *lightPos_pointer = &lightPos.x;
-	ImGui::DragFloat3("light position", lightPos_pointer);
-	ImGui::DragFloat("avoidance", &boids_k.x, 0.1f, 0.0f, 50.0f);
-	ImGui::DragFloat("velocity_matching", &boids_k.y, 0.1f, 0.0f, 50.0f);
-	ImGui::DragFloat("centering", &boids_k.z, 0.1f, 0.0f, 50.0f);
 
-	ImGui::DragFloat("attention radius", &attention.x, 0.1f, 0.0f, 50.0f);
-	ImGui::DragFloat("attention radius max", &attention.y, 0.1f, 0.0f, 50.0f);
+	ImGui::DragFloat3("light position", lightPos_pointer);
+	ImGui::DragFloat("velocity limit", &limits.x);
+	ImGui::DragFloat("acceleration budget", &limits.y);
+	ImGui::DragFloat("obstacle vision distance",&limits.z);
+	ImGui::DragFloat("sleep velocity", &limits.w, 0.001f, 0.0f, 1.0f);
+	ImGui::DragFloat("steering speed", &steering_speed);
+	ImGui::DragFloat("avoidance", &boids_k.x, 0.1f, 0.0001f, 50.0f);
+	ImGui::DragFloat("velocity_matching", &boids_k.y, 0.1f, 0.0001f, 50.0f);
+	ImGui::DragFloat("centering", &boids_k.z, 0.1f, 0.0001f, 50.0f);
+
+	ImGui::DragFloat("attention radius", &attention.x, 0.1f, 0.01f, 50.0f);
+	ImGui::DragFloat("attention radius max", &attention.y, 0.1f, attention.x, 50.0f);
 	ImGui::DragFloat("attention angle", &attention.z, 0.1f, 0.0f, 50.0f);
-	ImGui::DragFloat("attention angle max", &attention.w, 0.1f, 0.0f, 50.0f);
+	ImGui::DragFloat("attention angle max", &attention.w, 0.1f, attention.z, 50.0f);
 
 	if (ImGui::Button("Cull backfaces"))
 		options[(unsigned) 'c'] = !options[(unsigned) 'c'];
@@ -246,7 +259,9 @@ void Simulation::render_scene() {
 		options[(unsigned) 'x'] = !options[(unsigned) 'x'];
 	if (ImGui::Button("Fullscreen"))
 		options[(unsigned) 'f'] = !options[(unsigned) 'f'];
-	
+	if (ImGui::Button("Reset Simulation"))
+		boids->spawn_boids();	
+
 	ImGui::End();
 
 	ImGui::Render();

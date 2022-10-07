@@ -28,6 +28,7 @@ class Boids {
         void buffer_world_geometry(const std::vector<std::shared_ptr<Object> >& objects);
         void update();
         void draw(const std::shared_ptr<Program>, const std::shared_ptr<Program>) const;
+        void spawn_boids();
 
         int get_poly_count();
         glm::vec4 get_display_data();
@@ -48,7 +49,7 @@ class Boids {
 
         int current_particle, counters;
 
-        GLuint posSSbo, velSSbo, colSSbo, objSSbo, transSSbo, dataSSbo, atomicsBuffer;
+        GLuint posSSbo, velSSbo, colSSbo, objSSbo, transSSbo, dataSSbo, atomicsBuffer, aabbSSbo;
 };
 
 #endif

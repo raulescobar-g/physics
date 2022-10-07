@@ -29,21 +29,63 @@ struct data {
     int amount_of_triangles;
 };
 
+struct aabb {
+    glm::vec4 minimum, maximum;
+};
 
 Boids::Boids(){};
 
-void extract_triangles(std::shared_ptr<Object> obj, std::vector<triangle>& triangles, std::vector<data>& amount_of_triangles) {
+void extract_triangles(std::shared_ptr<Object> obj, std::vector<triangle>& triangles, std::vector<aabb>& boxes, std::vector<data>& amount_of_triangles) {
     std::vector<float> posBuf = obj->shape->getPosBuf();
     int sum = 0;
+
+    glm::vec4 minimum = glm::vec4(10000.0f, 10000.0f, 10000.0f, 1.0f);
+    glm::vec4 maximum = glm::vec4(-10000.0f, -10000.0f, -10000.0f, 1.0f);
+
+    glm::mat4 MV = glm::translate(glm::mat4(1.0f), obj->position);
+    MV *= glm::scale(glm::mat4(1.0f), obj->scale);
+    if (glm::length(obj->rotation) > 0.001f) MV *= glm::rotate(glm::mat4(1.0f), glm::length(obj->rotation), glm::normalize(obj->rotation));
+            
     
     for (int i = 0; i < posBuf.size(); i += 9){
         triangle tri;
-        tri.v1 = glm::vec4(posBuf[i], posBuf[i+1], posBuf[i+2], 1.0f);
-        tri.v2 = glm::vec4(posBuf[i+3], posBuf[i+4], posBuf[i+5], 1.0f);
-        tri.v3 = glm::vec4(posBuf[i+6], posBuf[i+7], posBuf[i+8], 1.0f);
+        tri.v1 = MV * glm::vec4(posBuf[i], posBuf[i+1], posBuf[i+2], 1.0f);
+        tri.v2 = MV * glm::vec4(posBuf[i+3], posBuf[i+4], posBuf[i+5], 1.0f);
+        tri.v3 = MV * glm::vec4(posBuf[i+6], posBuf[i+7], posBuf[i+8], 1.0f);
+            
+        minimum.x = glm::min(minimum.x, tri.v1.x);
+        minimum.y = glm::min(minimum.y, tri.v1.y);
+        minimum.z = glm::min(minimum.z, tri.v1.z);
+
+        maximum.x = glm::max(maximum.x, tri.v1.x);
+        maximum.y = glm::max(maximum.y, tri.v1.y);
+        maximum.z = glm::max(maximum.z, tri.v1.z);
+
+        minimum.x = glm::min(minimum.x, tri.v2.x);
+        minimum.y = glm::min(minimum.y, tri.v2.y);
+        minimum.z = glm::min(minimum.z, tri.v2.z);
+
+        maximum.x = glm::max(maximum.x, tri.v2.x);
+        maximum.y = glm::max(maximum.y, tri.v2.y);
+        maximum.z = glm::max(maximum.z, tri.v2.z);
+
+        minimum.x = glm::min(minimum.x, tri.v3.x);
+        minimum.y = glm::min(minimum.y, tri.v3.y);
+        minimum.z = glm::min(minimum.z, tri.v3.z);
+
+        maximum.x = glm::max(maximum.x, tri.v3.x);
+        maximum.y = glm::max(maximum.y, tri.v3.y);
+        maximum.z = glm::max(maximum.z, tri.v3.z);
+
         triangles.push_back(tri);
         sum += 1;
     }
+
+    struct aabb box;
+    box.minimum = minimum - glm::vec4(0.1f, 0.1f, 0.1f, 0.0f);
+    box.maximum = maximum + glm::vec4(0.1f, 0.1f, 0.1f, 0.0f);
+    boxes.push_back(box);
+
     data temp;
     temp.amount_of_triangles = sum;
     amount_of_triangles.push_back(temp);
@@ -66,27 +108,24 @@ void Boids::buffer_world_geometry(const std::vector<std::shared_ptr<Object> >& o
         // compute stuff
         std::vector<triangle> triangles;
         std::vector<data> amount_of_triangles;
+        std::vector<aabb> boxes;
+
         for (auto obj : objects) {
-            extract_triangles(obj, triangles, amount_of_triangles);
+            extract_triangles(obj, triangles, boxes, amount_of_triangles);
         }
+
+        for (int i = 0; i < boxes.size(); ++i) {
+            std::cout<<boxes[i].minimum.x<<", "<<boxes[i].minimum.y<<", "<<boxes[i].minimum.z<<std::endl;
+            std::cout<<boxes[i].maximum.x<<", "<<boxes[i].maximum.y<<", "<<boxes[i].maximum.z<<std::endl;
+        }
+
         glGenBuffers( 1, &objSSbo);
         glBindBuffer( GL_SHADER_STORAGE_BUFFER, objSSbo );
         glBufferData( GL_SHADER_STORAGE_BUFFER, triangles.size() * sizeof(struct triangle), &triangles[0], GL_STATIC_DRAW );
 
-        std::vector<transform> transforms;
-        for (auto obj : objects) {
-            glm::mat4 MV = glm::translate(glm::mat4(1.0f), obj->position);
-            MV *= glm::scale(glm::mat4(1.0f), obj->scale);
-            if (glm::length(obj->rotation) > 0.001f) MV *= glm::rotate(glm::mat4(1.0f), glm::length(obj->rotation), glm::normalize(obj->rotation));
-            
-            transform t;
-            t.T = MV;
-            transforms.push_back(t);
-        }
-        glGenBuffers( 1, &transSSbo);
-        glBindBuffer( GL_SHADER_STORAGE_BUFFER, transSSbo );
-        glBufferData( GL_SHADER_STORAGE_BUFFER, transforms.size() * sizeof(struct transform), &transforms[0], GL_STATIC_DRAW );
-
+        glGenBuffers( 1, &aabbSSbo);
+        glBindBuffer( GL_SHADER_STORAGE_BUFFER, aabbSSbo );
+        glBufferData( GL_SHADER_STORAGE_BUFFER, boxes.size() * sizeof(struct aabb), &boxes[0], GL_STATIC_DRAW );
 
         triangle_count = triangles.size();
         glGenBuffers( 1, &dataSSbo);
@@ -151,27 +190,32 @@ void Boids::init(int max, const std::shared_ptr<Program> compute_program) {
     glBindBuffer( GL_SHADER_STORAGE_BUFFER, colSSbo );
     glBufferStorage( GL_SHADER_STORAGE_BUFFER, max_amount * sizeof(struct color), NULL, bufMask | GL_DYNAMIC_STORAGE_BIT );
     colors = (struct color *) glMapBufferRange( GL_SHADER_STORAGE_BUFFER, 0, max_amount * sizeof(struct color), bufMask );
+    
+    spawn_boids();
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    GLSL::checkError(GET_FILE_LINE); 
+}
+
+void Boids::spawn_boids() {
     for( int i = 0; i < max_amount; ++i )
     {   
-        positions[ i ].x = unit_normal(engine) * 10.0f;
-        positions[ i ].y = unit_normal(engine) * 10.0f;
-        positions[ i ].z = unit_normal(engine) * 10.0f;
+        positions[ i ].x = glm::clamp(unit_normal(engine) * 15.0f, -50.0f, 50.0f);
+        positions[ i ].y = glm::clamp(unit_normal(engine) * 15.0f, -50.0f, 50.0f);
+        positions[ i ].z = glm::clamp(unit_normal(engine) * 15.0f, -50.0f, 50.0f);
 
-        velocities[ i ].x = unit_normal(engine);
-        velocities[ i ].y = unit_normal(engine);
-        velocities[ i ].z = unit_normal(engine);
+        velocities[ i ].x = unit_normal(engine) * 10.0f;
+        velocities[ i ].y = unit_normal(engine) * 10.0f;
+        velocities[ i ].z = unit_normal(engine) * 10.0f;
 
         colors[ i ].r = std::abs(unit_normal(engine))/2;
         colors[ i ].g = std::abs(unit_normal(engine))/2;
         colors[ i ].b = std::abs(unit_normal(engine))/2;
 
-        positions[ i ].size = 0.05f;
+        positions[ i ].size = 0.5f + std::abs(unit_normal(engine));
         velocities[ i ].mass = 1.0f;
-        colors[ i ].lifetime = 100.0f;
+        colors[ i ].lifetime = 1.0f;
     }
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-    GLSL::checkError(GET_FILE_LINE); 
 }
 
 Boids::~Boids() {};
@@ -183,13 +227,13 @@ void Boids::update(){
     memset(atomic_counters, 0, sizeof(GLuint) * counters );
     glUnmapBuffer(GL_ATOMIC_COUNTER_BUFFER);
 
-    glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 0, atomicsBuffer);
+    glBindBufferBase( GL_ATOMIC_COUNTER_BUFFER, 0, atomicsBuffer);
     glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 4, posSSbo );
     glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 5, velSSbo );
     glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 6, colSSbo );
     glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 7, objSSbo );
-    glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 8, transSSbo );
-    glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 9, dataSSbo );
+    glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 8, dataSSbo );
+    glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 9, aabbSSbo);
     
     
     glDispatchCompute( max_amount, 1, 1 );

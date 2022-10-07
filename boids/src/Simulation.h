@@ -62,10 +62,10 @@ class Simulation {
 
         void error_callback_impl(int error, const char *description);
         
-        float dt, current_time, total_time, new_time, frame_time, eps, movement_speed, sensitivity, box_sidelength;
+        float dt, current_time, total_time, new_time, frame_time, eps, movement_speed, sensitivity, box_sidelength, steering_speed;
 
         glm::vec3 gravity, wind, boids_k, lightPos;
-        glm::vec4 attention;
+        glm::vec4 attention, limits;
 
         double o_x, o_y;                                    
         int width, height;                                  
