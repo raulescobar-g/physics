@@ -62,7 +62,8 @@ class Simulation {
 
         void error_callback_impl(int error, const char *description);
         
-        float dt, current_time, total_time, new_time, frame_time, eps, movement_speed, sensitivity, box_sidelength, steering_speed;
+        float dt, current_time, total_time, new_time, frame_time, eps, movement_speed, sensitivity, 
+                box_sidelength, steering_speed, h, mu, k, rho, radius, damping;
 
         glm::vec3 gravity, wind, boids_k, lightPos;
         glm::vec4 attention, limits;
@@ -75,7 +76,7 @@ class Simulation {
         std::shared_ptr<Boids> boids;
         std::shared_ptr<Material> boid_material;                                
         std::shared_ptr<Camera> camera;                     
-        std::shared_ptr<Program> meshes_program, boids_program, compute_program; 
+        std::shared_ptr<Program> meshes_program, boids_program, compute_program, compute_density_program; 
         std::vector< std::shared_ptr<Object> > objects;     
         
 };

@@ -17,17 +17,20 @@
 struct position;
 struct velocity;
 struct color;
+struct density;
+struct pressure;
 
 class Boids {
     public:
         Boids(); 
         ~Boids();
 
-        void init(int max, const std::shared_ptr<Program> compute_program);
-        void load_boid_mesh();
+        void init(int max);
+        void load_particle_mesh();
         void buffer_world_geometry(const std::vector<std::shared_ptr<Object> >& objects);
         void update();
-        void draw(const std::shared_ptr<Program>, const std::shared_ptr<Program>) const;
+        void update_density();
+        void draw(const std::shared_ptr<Program>) const;
         void spawn_boids();
 
         int get_poly_count();
@@ -43,13 +46,20 @@ class Boids {
         struct color *colors;
         struct position *positions;
         struct velocity *velocities;
+        struct acceleration *accelerations;
+        struct density *densities;
+        struct pressure *pressures;
+
         GLuint *atomic_counters;
 
-        std::shared_ptr<Shape> boid_mesh;
+        std::shared_ptr<Shape> particle_mesh;
 
         int current_particle, counters;
 
-        GLuint posSSbo, velSSbo, colSSbo, objSSbo, transSSbo, dataSSbo, atomicsBuffer, aabbSSbo;
+        GLuint  posSSbo, velSSbo, colSSbo, 
+                objSSbo, transSSbo, dataSSbo, 
+                atomicsBuffer, aabbSSbo, denSSbo, 
+                accSSbo, preSSbo;
 };
 
 #endif

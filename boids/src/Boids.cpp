@@ -14,6 +14,9 @@ struct position {
 struct velocity {
     float x, y, z, mass;
 };
+struct acceleration {
+    float x, y, z, none;
+};
 struct color {
     float r, g, b, lifetime;
 };
@@ -31,6 +34,14 @@ struct data {
 
 struct aabb {
     glm::vec4 minimum, maximum;
+};
+
+struct density {
+    float value;
+};
+
+struct pressure {
+    float value;
 };
 
 Boids::Boids(){};
@@ -95,11 +106,11 @@ int Boids::get_poly_count() {
     return triangle_count;
 }
 
-void Boids::load_boid_mesh() {
-    boid_mesh = std::make_shared<Shape>();
-    boid_mesh->loadMesh("C:\\Users\\raul3\\Programming\\physics\\boids\\resources\\fishy.obj");
-    boid_mesh->fitToUnitBox();
-    boid_mesh->init();
+void Boids::load_particle_mesh() {
+    particle_mesh = std::make_shared<Shape>();
+    particle_mesh->loadMesh("C:\\Users\\raul3\\Programming\\physics\\boids\\resources\\sphere.obj");
+    particle_mesh->fitToUnitBox();
+    particle_mesh->init();
     
 }
 
@@ -112,11 +123,6 @@ void Boids::buffer_world_geometry(const std::vector<std::shared_ptr<Object> >& o
 
         for (auto obj : objects) {
             extract_triangles(obj, triangles, boxes, amount_of_triangles);
-        }
-
-        for (int i = 0; i < boxes.size(); ++i) {
-            std::cout<<boxes[i].minimum.x<<", "<<boxes[i].minimum.y<<", "<<boxes[i].minimum.z<<std::endl;
-            std::cout<<boxes[i].maximum.x<<", "<<boxes[i].maximum.y<<", "<<boxes[i].maximum.z<<std::endl;
         }
 
         glGenBuffers( 1, &objSSbo);
@@ -154,7 +160,7 @@ glm::vec4 Boids::get_display_data() {
     return glm::vec4(max_amount, dead, max_amount, collision);
 }
 
-void Boids::init(int max, const std::shared_ptr<Program> compute_program) {
+void Boids::init(int max) {
     max_amount = max;
     current = 0;
 
@@ -186,11 +192,27 @@ void Boids::init(int max, const std::shared_ptr<Program> compute_program) {
     glBufferStorage( GL_SHADER_STORAGE_BUFFER, max_amount * sizeof(struct velocity), NULL, bufMask | GL_DYNAMIC_STORAGE_BIT );
     velocities = (struct velocity *) glMapBufferRange( GL_SHADER_STORAGE_BUFFER, 0, max_amount * sizeof(struct velocity), bufMask );
 
+    glGenBuffers( 1, &accSSbo);
+    glBindBuffer( GL_SHADER_STORAGE_BUFFER, accSSbo );
+    glBufferStorage( GL_SHADER_STORAGE_BUFFER, max_amount * sizeof(struct acceleration), NULL, bufMask | GL_DYNAMIC_STORAGE_BIT );
+    accelerations = (struct acceleration *) glMapBufferRange( GL_SHADER_STORAGE_BUFFER, 0, max_amount * sizeof(struct acceleration), bufMask );
+
     glGenBuffers( 1, &colSSbo);
     glBindBuffer( GL_SHADER_STORAGE_BUFFER, colSSbo );
     glBufferStorage( GL_SHADER_STORAGE_BUFFER, max_amount * sizeof(struct color), NULL, bufMask | GL_DYNAMIC_STORAGE_BIT );
     colors = (struct color *) glMapBufferRange( GL_SHADER_STORAGE_BUFFER, 0, max_amount * sizeof(struct color), bufMask );
+
+    glGenBuffers( 1, &denSSbo);
+    glBindBuffer( GL_SHADER_STORAGE_BUFFER, denSSbo );
+    glBufferStorage( GL_SHADER_STORAGE_BUFFER, max_amount * sizeof(struct density), NULL, bufMask | GL_DYNAMIC_STORAGE_BIT );
+    densities = (struct density *) glMapBufferRange( GL_SHADER_STORAGE_BUFFER, 0, max_amount * sizeof(struct density), bufMask );
     
+    glGenBuffers( 1, &preSSbo);
+    glBindBuffer( GL_SHADER_STORAGE_BUFFER, preSSbo );
+    glBufferStorage( GL_SHADER_STORAGE_BUFFER, max_amount * sizeof(struct pressure), NULL, bufMask | GL_DYNAMIC_STORAGE_BIT );
+    pressures = (struct pressure *) glMapBufferRange( GL_SHADER_STORAGE_BUFFER, 0, max_amount * sizeof(struct pressure), bufMask );
+    
+
     spawn_boids();
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
@@ -200,13 +222,17 @@ void Boids::init(int max, const std::shared_ptr<Program> compute_program) {
 void Boids::spawn_boids() {
     for( int i = 0; i < max_amount; ++i )
     {   
-        positions[ i ].x = glm::clamp(unit_normal(engine) * 15.0f, -50.0f, 50.0f);
-        positions[ i ].y = glm::clamp(unit_normal(engine) * 15.0f, -50.0f, 50.0f);
-        positions[ i ].z = glm::clamp(unit_normal(engine) * 15.0f, -50.0f, 50.0f);
+        positions[ i ].x = glm::clamp(unit_normal(engine) * 2.0f, -5.0f, 5.0f);
+        positions[ i ].y = glm::clamp(unit_normal(engine) * 2.0f, -5.0f, 5.0f);
+        positions[ i ].z = glm::clamp(unit_normal(engine) * 2.0f, -5.0f, 5.0f);
 
-        velocities[ i ].x = unit_normal(engine) * 10.0f;
-        velocities[ i ].y = unit_normal(engine) * 10.0f;
-        velocities[ i ].z = unit_normal(engine) * 10.0f;
+        velocities[ i ].x = 0.0f;
+        velocities[ i ].y = 0.0f;
+        velocities[ i ].z = 0.0f;
+
+        accelerations[ i ].x = 0.0f;
+        accelerations[ i ].y = 0.0f;
+        accelerations[ i ].z = 0.0f;
 
         colors[ i ].r = std::abs(unit_normal(engine))/2;
         colors[ i ].g = std::abs(unit_normal(engine))/2;
@@ -221,7 +247,16 @@ void Boids::spawn_boids() {
 Boids::~Boids() {};
 
 void Boids::update(){
-    //std::cout<<"("<<velocities[0].x<<", "<<velocities[0].y<<", "<<velocities[0].z<<"), ";
+    // for (int i= 0; i < 1; ++i) {
+    //     std::cout<<"d: <"<<densities[i].value<<"> \t";
+	// 	std::cout<<"p: <"<<positions[i].x<<", "<<positions[i].y<<", "<<positions[i].z<<"> \t";
+    //     std::cout<<"v: <"<<velocities[i].x<<", "<<velocities[i].y<<", "<<velocities[i].z<<"> \t";
+    //     std::cout<<"a: <"<<accelerations[i].x<<", "<<accelerations[i].y<<", "<<accelerations[i].z<<"> \n";
+	// }
+    // for (int i = 0; i < 100; ++i) {
+    //     std::cout<<"("<<densities[i].value<<"), ";
+    // }
+    // std::cout<<"("<<velocities[0].x<<", "<<velocities[0].y<<", "<<velocities[0].z<<"), ";
     glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, atomicsBuffer);
     atomic_counters = (GLuint*)glMapBufferRange(GL_ATOMIC_COUNTER_BUFFER, 0 ,sizeof(GLuint) * counters, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
     memset(atomic_counters, 0, sizeof(GLuint) * counters );
@@ -234,24 +269,37 @@ void Boids::update(){
     glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 7, objSSbo );
     glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 8, dataSSbo );
     glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 9, aabbSSbo);
+    glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 10, denSSbo );
+    glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 11, accSSbo );
+    glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 12, preSSbo );
     
     
     glDispatchCompute( max_amount, 1, 1 );
     glMemoryBarrier(GL_ALL_BARRIER_BITS);   
 };
 
-void Boids::draw(const std::shared_ptr<Program> particle_render_program, const std::shared_ptr<Program> compute_program) const {
+void Boids::update_density() {
+    glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 4, posSSbo );
+    glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 5, velSSbo );
+    glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 10, denSSbo );
+    glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 12, preSSbo );
+    
+    glDispatchCompute( max_amount, 1, 1 );
+    glMemoryBarrier(GL_ALL_BARRIER_BITS);   
+}
+
+void Boids::draw(const std::shared_ptr<Program> particle_render_program) const {
     // Bind position buffer
 	int h_pos = particle_render_program->getAttribute("aPos");
 	glEnableVertexAttribArray(h_pos);
-	glBindBuffer(GL_ARRAY_BUFFER, boid_mesh->getPosBufID());
+	glBindBuffer(GL_ARRAY_BUFFER, particle_mesh->getPosBufID());
 	glVertexAttribPointer(h_pos, 3, GL_FLOAT, GL_FALSE, 0, (const void *)0);
 	
 	// Bind normal buffer
 	int h_nor = particle_render_program->getAttribute("aNor");
-	if(h_nor != -1 && boid_mesh->getNorBufID() != 0) {
+	if(h_nor != -1 && particle_mesh->getNorBufID() != 0) {
 		glEnableVertexAttribArray(h_nor);
-		glBindBuffer(GL_ARRAY_BUFFER, boid_mesh->getNorBufID());
+		glBindBuffer(GL_ARRAY_BUFFER, particle_mesh->getNorBufID());
 		glVertexAttribPointer(h_nor, 3, GL_FLOAT, GL_FALSE, 0, (const void *)0);
 	}
 
@@ -276,7 +324,7 @@ void Boids::draw(const std::shared_ptr<Program> particle_render_program, const s
     glVertexAttribDivisor(colorsID, 1); 
     glVertexAttribDivisor(velocityID, 1); 
     
-    glDrawArraysInstanced(GL_TRIANGLES, 0, boid_mesh->getPosBuf().size() / 3, max_amount);
+    glDrawArraysInstanced(GL_TRIANGLES, 0, particle_mesh->getPosBuf().size() / 3, max_amount);
 
     glDisableVertexAttribArray(h_pos);
     glDisableVertexAttribArray(h_nor);

@@ -42,7 +42,7 @@ int main(int argc, char **argv)
 	const char* glsl_version = "#version 460";
 
 
-	if (sim.create_window("Boids", glsl_version) == -1) {
+	if (sim.create_window("Smooth particle hydrodynamics", glsl_version) == -1) {
 		std::cout<<"Error creating simulation window."<<std::endl;
 		return -1;
 	}
@@ -67,14 +67,15 @@ int main(int argc, char **argv)
 
 	sim.init_programs();
 	sim.init_camera();
-	sim.set_scene();	
-
+	sim.set_scene();
+	int i = 0;
 	while(!sim.window_closed()) {
 		sim.input_capture();
 		sim.move_camera();
 		sim.fixed_timestep_update();
 		sim.render_scene();
 		sim.swap_buffers();
+		++i;
 	}
 
 	return 0;

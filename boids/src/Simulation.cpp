@@ -13,19 +13,20 @@ Simulation::Simulation() {
 	movement_speed = 0.5f;
 	sensitivity = 0.005f;
 	eps = 0.01f;
-	dt = 1.0f/144.0f;
+	dt = 1.0f/20.0f;
 
-	boids_k = glm::vec3(3.0f, 3.0f, 0.3f);
-	float pi = glm::pi<float>();
-	attention = glm::vec4(2.0f, 4.0f, pi/4.0, 3.0f*pi/4.0f );
-	gravity = glm::vec3(0.0f, 0.0f, 0.0f);
+	box_sidelength = 10.0f;
+
+	gravity = glm::vec3(0.0f, -1.0f, 0.0f);
 	wind = glm::vec3(0.0f, 0.0f, 0.0f);
-	lightPos = glm::vec3(0.0f, 30.0f, 0.0f);
+	lightPos = glm::vec3(0.0f, 2.0f, 0.0f);
+	radius = 0.5f;
+	h = radius * 4.0f;
+	damping = -0.99f;
+	mu = 0.5f;
+	k = 2000.0f;
+	rho = 1.0f;
 
-	limits = glm::vec4(10.0f, 50.0f, 20.0f, 0.01f);
-
-	steering_speed = 20.0f;
-	box_sidelength = 100.0f;
 }
 
 Simulation::~Simulation() {
@@ -77,10 +78,15 @@ void Simulation::init_programs(){
 	boids_program->init("C:\\Users\\raul3\\Programming\\physics\\boids\\resources\\boid_vert.glsl", "C:\\Users\\raul3\\Programming\\physics\\boids\\resources\\boid_frag.glsl", boids_attributes, boids_uniforms);
 
 	std::vector<std::string> compute_uniforms = {"dt", "gravity", "wind", 
-												"objects", "time", "counters", "k", 
-												"attention", "steering_speed", "limits" };
+												"objects", "time", "h", "k", "mu", "rho", "damping"};
+
 	compute_program = std::make_shared<Program>();
 	compute_program->init("C:\\Users\\raul3\\Programming\\physics\\boids\\resources\\boid_comp.glsl", compute_uniforms);
+
+
+	std::vector<std::string> compute_density_uniforms = {"h"};
+	compute_density_program = std::make_shared<Program>();
+	compute_density_program->init("C:\\Users\\raul3\\Programming\\physics\\boids\\resources\\density_comp.glsl", compute_uniforms);
 }
 
 void Simulation::init_camera(){
@@ -181,10 +187,10 @@ void Simulation::set_scene() {
 	boids_program->bind();
 	
 	boids = std::make_shared<Boids>();
-	boids->load_boid_mesh();
+	boids->load_particle_mesh();
 	boids->buffer_world_geometry(objects);
-	int boid_amount = 1024;
-	boids->init(boid_amount, compute_program);
+	int boid_amount = 128;
+	boids->init(boid_amount);
 	boids_program->unbind();
 	GLSL::checkError(GET_FILE_LINE);
 }
@@ -206,16 +212,25 @@ void Simulation::fixed_timestep_update() {
 }
 
 void Simulation::update(float _dt) {
+	
+	compute_density_program->bind();
+	glUniform1f(compute_program->getUniform("k"), k);
+	glUniform1f(compute_program->getUniform("rho"), rho);
+	glUniform1f(compute_density_program->getUniform("h"), h);
+	boids->update_density();
+	compute_density_program->unbind();
+
 	compute_program->bind();
 	glUniform1f(compute_program->getUniform("dt"), _dt);
 	glUniform1i(compute_program->getUniform("objects"), objects.size());
 	glUniform3f(compute_program->getUniform("gravity"), gravity.x, gravity.y, gravity.z);
 	glUniform3f(compute_program->getUniform("wind"), wind.x, wind.y, wind.z);
 	glUniform1f(compute_program->getUniform("time"), glfwGetTime());
-	glUniform3f(compute_program->getUniform("k"), boids_k.x, boids_k.y, boids_k.z);
-	glUniform4f(compute_program->getUniform("attention"), attention.x, attention.y, attention.z, attention.w);
-	glUniform1f(compute_program->getUniform("steering_speed"), steering_speed);
-	glUniform4f(compute_program->getUniform("limits"), limits.x, limits.y, limits.z, limits.w);
+	glUniform1f(compute_program->getUniform("h"), h);
+	glUniform1f(compute_program->getUniform("mu"), mu);
+	glUniform1f(compute_program->getUniform("k"), k);
+	glUniform1f(compute_program->getUniform("rho"), rho);
+	glUniform1f(compute_program->getUniform("damping"), rho);
 	boids->update();
 	compute_program->unbind();
 }
@@ -231,25 +246,16 @@ void Simulation::render_scene() {
 	glm::vec4 data = boids->get_display_data();
 	int amount = data.x;
 	ImGui::Text("%.3f dt / %.1f fps", dt, ImGui::GetIO().Framerate);
-	ImGui::Text("Boids: %d ", amount);
+	ImGui::Text("Particles: %d ", amount);
 
 	float *lightPos_pointer = &lightPos.x;
 
 	ImGui::DragFloat3("light position", lightPos_pointer);
-	ImGui::DragFloat("velocity limit", &limits.x);
-	ImGui::DragFloat("acceleration budget", &limits.y);
-	ImGui::DragFloat("obstacle vision distance",&limits.z);
-	ImGui::DragFloat("sleep velocity", &limits.w, 0.001f, 0.0f, 1.0f);
-	ImGui::DragFloat("steering speed", &steering_speed);
-	ImGui::DragFloat("avoidance", &boids_k.x, 0.1f, 0.0001f, 50.0f);
-	ImGui::DragFloat("velocity_matching", &boids_k.y, 0.1f, 0.0001f, 50.0f);
-	ImGui::DragFloat("centering", &boids_k.z, 0.1f, 0.0001f, 50.0f);
-
-	ImGui::DragFloat("attention radius", &attention.x, 0.1f, 0.01f, 50.0f);
-	ImGui::DragFloat("attention radius max", &attention.y, 0.1f, attention.x, 50.0f);
-	ImGui::DragFloat("attention angle", &attention.z, 0.1f, 0.0f, 50.0f);
-	ImGui::DragFloat("attention angle max", &attention.w, 0.1f, attention.z, 50.0f);
-
+	ImGui::DragFloat("sphere radius",&radius);
+	ImGui::DragFloat("k",&k);
+	ImGui::DragFloat("mu",&mu);
+	ImGui::DragFloat("rho",&rho);
+	
 	if (ImGui::Button("Cull backfaces"))
 		options[(unsigned) 'c'] = !options[(unsigned) 'c'];
 	if (ImGui::Button("Wireframes"))
@@ -308,7 +314,9 @@ void Simulation::render_scene() {
 
 	meshes_program->unbind();
 
+	MV->pushMatrix();
 	boids_program->bind();
+	MV->scale(glm::vec3(radius, radius, radius));
 	glUniform3f(boids_program->getUniform("lightPos"), world_light_pos.x, world_light_pos.y, world_light_pos.z);
 	glUniformMatrix4fv(boids_program->getUniform("P"), 1, GL_FALSE, glm::value_ptr(P->topMatrix()));
 	glUniformMatrix4fv(boids_program->getUniform("MV"), 1, GL_FALSE, glm::value_ptr(MV->topMatrix()));
@@ -317,8 +325,9 @@ void Simulation::render_scene() {
 	glUniform3f(boids_program->getUniform("kd"), boid_material->kd.x, boid_material->kd.y, boid_material->kd.z);
 	glUniform3f(boids_program->getUniform("ks"), boid_material->ks.x, boid_material->ks.y, boid_material->ks.z);
 	glUniform1f(boids_program->getUniform("s"), boid_material->s );
-	boids->draw(boids_program, compute_program);
+	boids->draw(boids_program);
 	boids_program->unbind();
+	MV->popMatrix();
 
 	MV->popMatrix();	
 	P->popMatrix();	
