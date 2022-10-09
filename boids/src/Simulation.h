@@ -62,18 +62,21 @@ class Simulation {
 
         void error_callback_impl(int error, const char *description);
         
-        float dt, current_time, total_time, new_time, frame_time, eps, movement_speed, sensitivity, box_sidelength, steering_speed;
+        float   dt, current_time, total_time, new_time, frame_time, eps, movement_speed, 
+                sensitivity, box_sidelength, steering_speed, speed_limit, acceleration_limit, 
+                vision_distance, minimum_speed, predator_speed, predator_avoidance, 
+                predator_attention_radius, predator_avoidance_internal;
 
         glm::vec3 gravity, wind, boids_k, lightPos;
-        glm::vec4 attention, limits;
+        glm::vec4 attention;
 
         double o_x, o_y;                                    
-        int width, height;                                  
+        int width, height, boid_amount;                                  
         bool options[256], inputs[256];                 
 
         GLFWwindow *window; 
         std::shared_ptr<Boids> boids;
-        std::shared_ptr<Material> boid_material;                                
+        std::shared_ptr<Material> boid_material, predator_material;                                
         std::shared_ptr<Camera> camera;                     
         std::shared_ptr<Program> meshes_program, boids_program, compute_program; 
         std::vector< std::shared_ptr<Object> > objects;     

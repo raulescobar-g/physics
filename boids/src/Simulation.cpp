@@ -15,16 +15,23 @@ Simulation::Simulation() {
 	eps = 0.01f;
 	dt = 1.0f/144.0f;
 
-	boids_k = glm::vec3(3.0f, 3.0f, 0.3f);
+	boids_k = glm::vec3(3.0f, 5.0f, 0.3f);
 	float pi = glm::pi<float>();
-	attention = glm::vec4(2.0f, 4.0f, pi/4.0, 3.0f*pi/4.0f );
+	attention = glm::vec4(2.0f, 10.0f, pi/4.0, 2.0f*pi/4.0f );
 	gravity = glm::vec3(0.0f, 0.0f, 0.0f);
 	wind = glm::vec3(0.0f, 0.0f, 0.0f);
-	lightPos = glm::vec3(0.0f, 30.0f, 0.0f);
+	lightPos = glm::vec3(0.0f, 300.0f, 0.0f);
 
-	limits = glm::vec4(10.0f, 50.0f, 20.0f, 0.01f);
+	speed_limit = 10.0f;
+	acceleration_limit = 30.0f;
+	vision_distance = 20.0f;
+	minimum_speed = 5.0f;
+	predator_speed = 30.0f;
+	predator_avoidance = 30.0f;
+	predator_avoidance_internal = 90.0f;
+	predator_attention_radius = 30.0f;
 
-	steering_speed = 20.0f;
+	steering_speed = 30.0f;
 	box_sidelength = 100.0f;
 }
 
@@ -72,13 +79,15 @@ void Simulation::init_programs(){
 
 
 	std::vector<std::string> boids_attributes = {"aPos", "aNor", "position", "color", "velocity"};
-	std::vector<std::string> boids_uniforms = {"P","MV", "iMV", "ka", "kd", "ks", "s", "lightPos"};
+	std::vector<std::string> boids_uniforms = {"P","MV", "iMV", "ka", "kd", "ks", "s", "lightPos",};
 	boids_program = std::make_shared<Program>();
 	boids_program->init("C:\\Users\\raul3\\Programming\\physics\\boids\\resources\\boid_vert.glsl", "C:\\Users\\raul3\\Programming\\physics\\boids\\resources\\boid_frag.glsl", boids_attributes, boids_uniforms);
 
-	std::vector<std::string> compute_uniforms = {"dt", "gravity", "wind", 
-												"objects", "time", "counters", "k", 
-												"attention", "steering_speed", "limits" };
+	std::vector<std::string> compute_uniforms = {"dt", "gravity", "wind", "objects", "time", "counters", "k", 
+												"attention", "steering_speed", "boid_count", "speed_limit", 
+												"acceleration_limit", "vision_distance", "minimum_speed", 
+												"predator_speed", "predator_avoidance", "predator_attention_radius",
+												"predator_avoidance_internal"};
 	compute_program = std::make_shared<Program>();
 	compute_program->init("C:\\Users\\raul3\\Programming\\physics\\boids\\resources\\boid_comp.glsl", compute_uniforms);
 }
@@ -90,6 +99,8 @@ void Simulation::init_camera(){
 void Simulation::set_scene() {
 
 	glEnable(GL_DEPTH_TEST);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glEnable(GL_BLEND);
 	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 
 	meshes_program->bind();
@@ -110,18 +121,46 @@ void Simulation::set_scene() {
 	bunny->init();
 	meshes_program->unbind();
 
+	std::shared_ptr<Material> obstacle_material = std::make_shared<Material>();
+	obstacle_material->ka = glm::vec3(0.3f, 0.3f, 0.3f);
+	obstacle_material->kd = glm::vec3(0.5f, 0.5f, 0.1f);
+	obstacle_material->ks = glm::vec3(0.5f, 0.5f, 0.5f);
+	obstacle_material->s = 1.0f;
+
 
 	std::shared_ptr<Material> wall_material = std::make_shared<Material>();
-	wall_material->ka = glm::vec3(0.5f, 0.5f, 0.5f);
-	wall_material->kd = glm::vec3(0.5f, 0.5f, 0.5f);
+	wall_material->ka = glm::vec3(0.3f, 0.3f, 1.0f);
+	wall_material->kd = glm::vec3(0.5f, 0.5f, 0.1f);
 	wall_material->ks = glm::vec3(0.5f, 0.5f, 0.5f);
-	wall_material->s = 10.0f;
+	wall_material->s = 1.0f;
+
+	std::shared_ptr<Material> floor_material = std::make_shared<Material>();
+	floor_material->ka = glm::vec3(1.0f, 0.6f, 0.6f);
+	floor_material->kd = glm::vec3(0.5f, 0.5f, 0.1f);
+	floor_material->ks = glm::vec3(0.5f, 0.5f, 0.5f);
+	floor_material->s = 1000000.0f;
 
 	boid_material = std::make_shared<Material>();
-	boid_material->ka = glm::vec3(0.1f, 0.1f, 0.1f);
+	boid_material->ka = glm::vec3(1.0f, 0.6f, 0.3f);
 	boid_material->kd = glm::vec3(0.7f, 0.7f, 0.7f);
 	boid_material->ks = glm::vec3(0.7f, 0.7f, 0.7f);
-	boid_material->s = 5.0f;
+	boid_material->s = 1.0f;
+
+	predator_material = std::make_shared<Material>();
+	predator_material->ka = glm::vec3(0.3f, 0.3f, 0.5f);
+	predator_material->kd = glm::vec3(0.7f, 0.7f, 0.7f);
+	predator_material->ks = glm::vec3(0.7f, 0.7f, 0.7f);
+	predator_material->s = 1.0f;
+
+
+	std::shared_ptr<Object> ball_obstacle = std::make_shared<Object>();
+	ball_obstacle->shape = ball;
+	ball_obstacle->material = obstacle_material;
+	ball_obstacle->position = glm::vec3(0.0f);
+	ball_obstacle->scale = glm::vec3(20.0f);
+	objects.push_back(ball_obstacle);
+
+
 
 	std::shared_ptr<Object> first_wall_ptr = std::make_shared<Object>();
 	first_wall_ptr->shape = wall;
@@ -133,7 +172,7 @@ void Simulation::set_scene() {
 
 	std::shared_ptr<Object> second_wall_ptr = std::make_shared<Object>();
 	second_wall_ptr->shape = wall;
-	second_wall_ptr->material = wall_material;
+	second_wall_ptr->material = floor_material;
 	second_wall_ptr->position = glm::vec3(0.0f , -box_sidelength/2.0f, 0.0f);
 	second_wall_ptr->scale = glm::vec3(box_sidelength + 0.000001f);
 	second_wall_ptr->rotation = glm::vec3(-glm::pi<float>() / 2.0f, 0.0f, 0.0f);
@@ -170,8 +209,6 @@ void Simulation::set_scene() {
 	sixth_wall_ptr->scale = glm::vec3(box_sidelength + 0.000001f);
 	objects.push_back(sixth_wall_ptr);
 
-	
-
 
 	// set all time params
 	current_time = glfwGetTime();
@@ -183,8 +220,9 @@ void Simulation::set_scene() {
 	boids = std::make_shared<Boids>();
 	boids->load_boid_mesh();
 	boids->buffer_world_geometry(objects);
-	int boid_amount = 1024;
-	boids->init(boid_amount, compute_program);
+	boid_amount = 1024;
+	int predators_amount = 8;
+	boids->init(boid_amount, predators_amount);
 	boids_program->unbind();
 	GLSL::checkError(GET_FILE_LINE);
 }
@@ -215,7 +253,15 @@ void Simulation::update(float _dt) {
 	glUniform3f(compute_program->getUniform("k"), boids_k.x, boids_k.y, boids_k.z);
 	glUniform4f(compute_program->getUniform("attention"), attention.x, attention.y, attention.z, attention.w);
 	glUniform1f(compute_program->getUniform("steering_speed"), steering_speed);
-	glUniform4f(compute_program->getUniform("limits"), limits.x, limits.y, limits.z, limits.w);
+	glUniform1f(compute_program->getUniform("speed_limit"), speed_limit);
+	glUniform1f(compute_program->getUniform("acceleration_limit"), acceleration_limit);
+	glUniform1f(compute_program->getUniform("vision_distance"), vision_distance);
+	glUniform1f(compute_program->getUniform("minimum_speed"), minimum_speed);
+	glUniform1f(compute_program->getUniform("predator_avoidance"), predator_avoidance);
+	glUniform1f(compute_program->getUniform("predator_avoidance_internal"), predator_avoidance_internal);
+	glUniform1f(compute_program->getUniform("predator_speed") ,predator_speed);
+	glUniform1f(compute_program->getUniform("predator_attention_radius"), predator_attention_radius);
+	glUniform1i(compute_program->getUniform("boid_count"), boid_amount);
 	boids->update();
 	compute_program->unbind();
 }
@@ -236,13 +282,17 @@ void Simulation::render_scene() {
 	float *lightPos_pointer = &lightPos.x;
 
 	ImGui::DragFloat3("light position", lightPos_pointer);
-	ImGui::DragFloat("velocity limit", &limits.x);
-	ImGui::DragFloat("acceleration budget", &limits.y);
-	ImGui::DragFloat("obstacle vision distance",&limits.z);
-	ImGui::DragFloat("sleep velocity", &limits.w, 0.001f, 0.0f, 1.0f);
-	ImGui::DragFloat("steering speed", &steering_speed);
+	ImGui::DragFloat("predator avoidance", &predator_avoidance, 0.5f, 0.0001f, 50.0f);
+	ImGui::DragFloat("predator avoidance (internal)", &predator_avoidance_internal, 0.5f, 0.0001f, 50.0f);
+	ImGui::DragFloat("predator instince", &predator_speed, 0.5f, 0.0001f, 50.0f);
+	ImGui::DragFloat("predator attention radius", &predator_attention_radius, 0.5f, 0.0001f, 50.0f);
+	ImGui::DragFloat("velocity limit", &speed_limit, 0.5f, 0.0001f, 50.0f);
+	ImGui::DragFloat("acceleration budget", &acceleration_limit, 0.5f, 0.0001f, 50.0f);
+	ImGui::DragFloat("obstacle vision distance",&vision_distance, 0.5f, 0.0001f, 50.0f);
+	ImGui::DragFloat("minimum speed", &minimum_speed, 0.1f, 0.0001f, 10.0f);
+	ImGui::DragFloat("steering speed", &steering_speed, 0.5f, 0.0001f, 50.0f);
 	ImGui::DragFloat("avoidance", &boids_k.x, 0.1f, 0.0001f, 50.0f);
-	ImGui::DragFloat("velocity_matching", &boids_k.y, 0.1f, 0.0001f, 50.0f);
+	ImGui::DragFloat("velocity matching", &boids_k.y, 0.1f, 0.0001f, 50.0f);
 	ImGui::DragFloat("centering", &boids_k.z, 0.1f, 0.0001f, 50.0f);
 
 	ImGui::DragFloat("attention radius", &attention.x, 0.1f, 0.01f, 50.0f);
@@ -283,7 +333,10 @@ void Simulation::render_scene() {
 	MV->pushMatrix();
 
 	meshes_program->bind();
-	glm::vec3 world_light_pos = MV->topMatrix() * glm::vec4(lightPos, 1.0f);
+	MV->pushMatrix();
+		MV->translate(lightPos);
+		glm::vec3 world_light_pos = MV->topMatrix() * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+	MV->popMatrix();
 	glUniform3f(meshes_program->getUniform("lightPos"), world_light_pos.x, world_light_pos.y, world_light_pos.z);
 	for (auto obj : objects){ 
 		MV->pushMatrix();
@@ -317,7 +370,18 @@ void Simulation::render_scene() {
 	glUniform3f(boids_program->getUniform("kd"), boid_material->kd.x, boid_material->kd.y, boid_material->kd.z);
 	glUniform3f(boids_program->getUniform("ks"), boid_material->ks.x, boid_material->ks.y, boid_material->ks.z);
 	glUniform1f(boids_program->getUniform("s"), boid_material->s );
-	boids->draw(boids_program, compute_program);
+	boids->draw_boids(boids_program);
+
+
+	glUniform3f(boids_program->getUniform("lightPos"), world_light_pos.x, world_light_pos.y, world_light_pos.z);
+	glUniformMatrix4fv(boids_program->getUniform("P"), 1, GL_FALSE, glm::value_ptr(P->topMatrix()));
+	glUniformMatrix4fv(boids_program->getUniform("MV"), 1, GL_FALSE, glm::value_ptr(MV->topMatrix()));
+	glUniformMatrix4fv(boids_program->getUniform("iMV"), 1, GL_FALSE, glm::value_ptr(iMV));
+	glUniform3f(boids_program->getUniform("ka"), predator_material->ka.x, predator_material->ka.y, predator_material->ka.z);
+	glUniform3f(boids_program->getUniform("kd"), predator_material->kd.x, predator_material->kd.y, predator_material->kd.z);
+	glUniform3f(boids_program->getUniform("ks"), predator_material->ks.x, predator_material->ks.y, predator_material->ks.z);
+	glUniform1f(boids_program->getUniform("s"), predator_material->s );
+	boids->draw_predators(boids_program);
 	boids_program->unbind();
 
 	MV->popMatrix();	
