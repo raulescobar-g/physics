@@ -103,7 +103,6 @@ void Simulation::set_scene() {
 	glEnable(GL_BLEND);
 	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 
-	meshes_program->bind();
 	std::shared_ptr<Shape> ball = std::make_shared<Shape>();
 	ball->loadMesh("C:\\Users\\raul3\\Programming\\physics\\boids\\resources\\sphere.obj");
 	ball->fitToUnitBox();
@@ -119,14 +118,17 @@ void Simulation::set_scene() {
 	bunny->loadMesh("C:\\Users\\raul3\\Programming\\physics\\boids\\resources\\bunny.obj");
 	bunny->fitToUnitBox();
 	bunny->init();
-	meshes_program->unbind();
+
+	std::shared_ptr<Shape> ring = std::make_shared<Shape>();
+	ring->loadMesh("C:\\Users\\raul3\\Programming\\physics\\boids\\resources\\torus.obj");
+	ring->fitToUnitBox();
+	ring->init();
 
 	std::shared_ptr<Material> obstacle_material = std::make_shared<Material>();
 	obstacle_material->ka = glm::vec3(0.3f, 0.3f, 0.3f);
 	obstacle_material->kd = glm::vec3(0.5f, 0.5f, 0.1f);
 	obstacle_material->ks = glm::vec3(0.5f, 0.5f, 0.5f);
 	obstacle_material->s = 1.0f;
-
 
 	std::shared_ptr<Material> wall_material = std::make_shared<Material>();
 	wall_material->ka = glm::vec3(0.3f, 0.3f, 1.0f);
@@ -138,7 +140,7 @@ void Simulation::set_scene() {
 	floor_material->ka = glm::vec3(1.0f, 0.6f, 0.6f);
 	floor_material->kd = glm::vec3(0.5f, 0.5f, 0.1f);
 	floor_material->ks = glm::vec3(0.5f, 0.5f, 0.5f);
-	floor_material->s = 1000000.0f;
+	floor_material->s = 10000.0f;
 
 	boid_material = std::make_shared<Material>();
 	boid_material->ka = glm::vec3(1.0f, 0.6f, 0.3f);
@@ -152,15 +154,42 @@ void Simulation::set_scene() {
 	predator_material->ks = glm::vec3(0.7f, 0.7f, 0.7f);
 	predator_material->s = 1.0f;
 
-
 	std::shared_ptr<Object> ball_obstacle = std::make_shared<Object>();
 	ball_obstacle->shape = ball;
 	ball_obstacle->material = obstacle_material;
-	ball_obstacle->position = glm::vec3(0.0f);
-	ball_obstacle->scale = glm::vec3(20.0f);
+	ball_obstacle->position = glm::vec3(0.0f, 0.0f, 0.0f);
+	ball_obstacle->scale = glm::vec3(10.0f);
 	objects.push_back(ball_obstacle);
 
+	std::shared_ptr<Object> ring_obstacle1 = std::make_shared<Object>();
+	ring_obstacle1->shape = ring;
+	ring_obstacle1->material = obstacle_material;
+	ring_obstacle1->position = glm::vec3(0.0f, -20.0f, 0.0f);
+	ring_obstacle1->scale = glm::vec3(50.0f);
+	objects.push_back(ring_obstacle1);
 
+	std::shared_ptr<Object> ring_obstacle2 = std::make_shared<Object>();
+	ring_obstacle2->shape = ring;
+	ring_obstacle2->material = obstacle_material;
+	ring_obstacle2->position = glm::vec3(0.0f, 20.0f, 0.0f);
+	ring_obstacle2->scale = glm::vec3(50.0f);
+	objects.push_back(ring_obstacle2);
+
+	std::shared_ptr<Object> ring_obstacle3 = std::make_shared<Object>();
+	ring_obstacle3->shape = ring;
+	ring_obstacle3->material = obstacle_material;
+	ring_obstacle3->position = glm::vec3(-20.0f, 0.0f, 0.0f);
+	ring_obstacle3->scale = glm::vec3(50.0f);
+	ring_obstacle3->rotation = glm::vec3(0.0f, 0.0f, -glm::pi<float>() / 2.0f);
+	objects.push_back(ring_obstacle3);
+
+	std::shared_ptr<Object> ring_obstacle4 = std::make_shared<Object>();
+	ring_obstacle4->shape = ring;
+	ring_obstacle4->material = obstacle_material;
+	ring_obstacle4->position = glm::vec3(20.0f, 0.0f, 0.0f);
+	ring_obstacle4->scale = glm::vec3(50.0f);
+	ring_obstacle4->rotation = glm::vec3(0.0f, 0.0f, -glm::pi<float>() / 2.0f);
+	objects.push_back(ring_obstacle4);
 
 	std::shared_ptr<Object> first_wall_ptr = std::make_shared<Object>();
 	first_wall_ptr->shape = wall;
@@ -220,7 +249,7 @@ void Simulation::set_scene() {
 	boids = std::make_shared<Boids>();
 	boids->load_boid_mesh();
 	boids->buffer_world_geometry(objects);
-	boid_amount = 1024;
+	boid_amount = 1024 * 2;
 	int predators_amount = 8;
 	boids->init(boid_amount, predators_amount);
 	boids_program->unbind();

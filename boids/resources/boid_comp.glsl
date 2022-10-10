@@ -1,30 +1,27 @@
 #version 460
 #extension GL_ARB_shading_language_include : require
 
-uniform float dt;
-uniform vec3 gravity;
-uniform vec3 wind;
-uniform vec3 k;
-uniform vec4 attention; 
-uniform int objects;
-uniform float time;
-//
-uniform float steering_speed; // change these names for the love of god
-uniform float speed_limit;
-uniform float acceleration_limit;
-uniform float vision_distance;
-uniform float minimum_speed;
-uniform int boid_count;
-uniform float predator_speed;
-uniform float predator_avoidance;
-uniform float predator_avoidance_internal;
-uniform float predator_attention_radius;
+uniform float 	dt;
+uniform vec3 	gravity;
+uniform vec3 	wind;
+uniform vec3 	k;
+uniform vec4 	attention; 
+uniform int 	objects;
+uniform float 	time;
+uniform float 	steering_speed; 
+uniform float 	speed_limit;
+uniform float 	acceleration_limit;
+uniform float 	vision_distance;
+uniform float 	minimum_speed;
+uniform int 	boid_count;
+uniform float 	predator_speed;
+uniform float 	predator_avoidance;
+uniform float 	predator_avoidance_internal;
+uniform float 	predator_attention_radius;
 
-
-const float e = 0.00001;
+const float		e = 0.00001;
 
 layout (binding = 0, offset=0) uniform atomic_uint counters[3];
-
 
 layout( std140, binding=4 ) buffer Pos {
 	vec4 positions[ ]; 
@@ -41,7 +38,7 @@ layout(std140, binding=7 ) buffer Tri {
 layout(std430, binding=8) buffer Data {
 	int poly_count[ ];  
 };
-layout(std140, binding=9) buffer AABB {
+layout(std430, binding=9) buffer Aabb {
 	vec4[2] corners[ ];
 };
 layout( std140, binding=10 ) buffer Pred_Pos {
@@ -99,7 +96,7 @@ float triangle_hit(vec3 orig, vec3 dir, vec3 vert0, vec3 vert1, vec3 vert2) {
 // branchless aabb-ray intersection 
 // https://gamedev.stackexchange.com/questions/18436/most-efficient-aabb-vs-ray-collision-algorithms
 float ray_box_intersect ( vec3 rpos, vec3 rdir, vec3 vmin, vec3 vmax ){
-   float t[10];
+   	float t[10];
    t[1] = (vmin.x - rpos.x)/rdir.x;
    t[2] = (vmax.x - rpos.x)/rdir.x;
    t[3] = (vmin.y - rpos.y)/rdir.y;
@@ -108,7 +105,7 @@ float ray_box_intersect ( vec3 rpos, vec3 rdir, vec3 vmin, vec3 vmax ){
    t[6] = (vmax.z - rpos.z)/rdir.z;
    t[7] = max(max(min(t[1], t[2]), min(t[3], t[4])), min(t[5], t[6]));
    t[8] = min(min(max(t[1], t[2]), max(t[3], t[4])), max(t[5], t[6]));
-   t[9] = (t[8] < 0.0 || t[7] > t[8]) ? -1.0 : t[7];
+   t[9] = (t[8] < 0 || t[7] > t[8]) ? -1.0 : t[7];
    return t[9];
 }
 
@@ -120,24 +117,24 @@ vec3 obstacle_avoidance( uint gid , vec3 o, vec3 ray) {
 		vec3 minimum = corners[j][0].xyz;
 		vec3 maximum = corners[j][1].xyz;
 
-		// float box_hit = ray_box_intersect(o, ray, minimum, maximum);
+		float box_hit = ray_box_intersect(o, ray, minimum, maximum);
 
-		// if (box_hit < 0.0) {
-		// 	continue;
-		// }
+		if (box_hit > 0.0 && box_hit < vision_distance) {
+		
+			for (int i = last; i < last + poly_count[j]; ++i) {
 
-		for (int i = last; i < last + poly_count[j]; ++i) {
+				vec3 vertex_0 = triangles[ i ][0].xyz;
+				vec3 vertex_1 = triangles[ i ][1].xyz;
+				vec3 vertex_2 = triangles[ i ][2].xyz;
 
-			vec3 vertex_0 = triangles[ i ][0].xyz;
-			vec3 vertex_1 = triangles[ i ][1].xyz;
-			vec3 vertex_2 = triangles[ i ][2].xyz;
+				float t = triangle_hit(o, ray, vertex_0, vertex_1, vertex_2);
 
-			float t = triangle_hit(o, ray, vertex_0, vertex_1, vertex_2);
-
-			if (t > 0.0  && t < vision_distance && t < closest_obstacle){
-				vec3 n = normalize(cross(vertex_1 - vertex_0, vertex_2 - vertex_0));
-				closest_obstacle = t;
-				response = steering_speed * n / t;
+				if (t > 0.0  && t < vision_distance && t < closest_obstacle){
+					vec3 n = normalize(cross(vertex_1 - vertex_0, vertex_2 - vertex_0));
+					closest_obstacle = t;
+					float r = (t/vision_distance);
+					response = (steering_speed * n) / (r*r);
+				}
 			}
 		}
 		last += poly_count[j];
@@ -257,17 +254,15 @@ void main(){
 	vec3 forward = normalize(v);
 	vec3 up = vec3(0.0, 1.0, 0.0);
 	vec3 side = normalize(cross(forward, up));
-	vec3 up_right = normalize(up + side + forward);
-	vec3 up_left = normalize(up - side + forward);
-	vec3 down_left = normalize(-up - side + forward);
-	vec3 down_right = normalize(-up + side + forward);
+	vec3 up_right = normalize(up + side + 2.0 * forward);
+	vec3 up_left = normalize(up - side + 2.0 * forward);
+	vec3 down_left = normalize(-up - side + 2.0 * forward);
+	vec3 down_right = normalize(-up + side + 2.0 * forward);
 
 	// PRIORITY 1: AVOID OBSTACLES
 	vec3 unbounded_obstacle_avoidance = obstacle_avoidance(gid, o, forward) + 
-										obstacle_avoidance(gid, o, up_right) + 
-										obstacle_avoidance(gid, o, up_left) + 
-										obstacle_avoidance(gid, o, down_left) + 
-										obstacle_avoidance(gid, o, down_right);
+										obstacle_avoidance(gid, o, up_right) + obstacle_avoidance(gid, o, up_left) + 
+										obstacle_avoidance(gid, o, down_left) + obstacle_avoidance(gid, o, down_right);
 	vec3 acceleration = min(budget, length(unbounded_obstacle_avoidance)) * normalize(unbounded_obstacle_avoidance);
 	budget = acceleration_limit - length(acceleration);
 

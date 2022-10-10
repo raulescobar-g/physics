@@ -76,14 +76,17 @@ void extract_triangles(std::shared_ptr<Object> obj, std::vector<triangle>& trian
         maximum.x = glm::max(maximum.x, tri.v3.x);
         maximum.y = glm::max(maximum.y, tri.v3.y);
         maximum.z = glm::max(maximum.z, tri.v3.z);
+        
 
         triangles.push_back(tri);
         sum += 1;
     }
 
     struct aabb box;
-    box.minimum = minimum - glm::vec4(0.1f, 0.1f, 0.1f, 0.0f);
-    box.maximum = maximum + glm::vec4(0.1f, 0.1f, 0.1f, 0.0f);
+    minimum.w = 0.0f;
+    maximum.w = 0.0f;
+    box.minimum = minimum - glm::vec4(0.0001f, 0.0001f, 0.0001f, 0.0f);
+    box.maximum = maximum + glm::vec4(0.0001f, 0.0001, 0.0001f, 0.0f);
     boxes.push_back(box);
 
     data temp;
@@ -142,7 +145,6 @@ void Boids::buffer_world_geometry(const std::vector<std::shared_ptr<Object> >& o
         triangle_count = 0;
     } 
 }
-
 
 glm::vec4 Boids::get_display_data() {
     glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, atomicsBuffer);
@@ -260,6 +262,7 @@ void Boids::spawn_boids() {
 Boids::~Boids() {};
 
 void Boids::update(){
+
     glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, atomicsBuffer);
     atomic_counters = (GLuint*)glMapBufferRange(GL_ATOMIC_COUNTER_BUFFER, 0 ,sizeof(GLuint) * counters, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
     memset(atomic_counters, 0, sizeof(GLuint) * counters );
@@ -375,5 +378,3 @@ void Boids::draw_predators(const std::shared_ptr<Program> particle_render_progra
     glDisableVertexAttribArray(velocityID);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 };
-
-
