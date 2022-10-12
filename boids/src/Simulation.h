@@ -71,7 +71,7 @@ class Simulation {
         glm::vec4 attention;
 
         double o_x, o_y;                                    
-        int width, height, boid_amount;                                  
+        int width, height, boid_amount, predator_amount, dims, dups;                                  
         bool options[256], inputs[256];                 
 
         GLFWwindow *window; 

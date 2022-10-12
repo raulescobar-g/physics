@@ -4,9 +4,7 @@
 #include <GL/glew.h>
 
 #include "GLSL.h"
-
 #include <iostream>
-
 
 struct position {
     float x, y, z, size;
@@ -20,17 +18,17 @@ struct color {
 struct triangle { 
     glm::vec4 v1,v2,v3;
 };
-
 struct transform {
     glm::mat4 T;
 };
-
 struct data {
     int amount_of_triangles;
 };
-
 struct aabb {
     glm::vec4 minimum, maximum;
+};
+struct cell {
+    int idx;
 };
 
 Boids::Boids(){};
@@ -121,11 +119,6 @@ void Boids::buffer_world_geometry(const std::vector<std::shared_ptr<Object> >& o
             extract_triangles(obj, triangles, boxes, amount_of_triangles);
         }
 
-        for (int i = 0; i < boxes.size(); ++i) {
-            std::cout<<boxes[i].minimum.x<<", "<<boxes[i].minimum.y<<", "<<boxes[i].minimum.z<<std::endl;
-            std::cout<<boxes[i].maximum.x<<", "<<boxes[i].maximum.y<<", "<<boxes[i].maximum.z<<std::endl;
-        }
-
         glGenBuffers( 1, &objSSbo);
         glBindBuffer( GL_SHADER_STORAGE_BUFFER, objSSbo );
         glBufferData( GL_SHADER_STORAGE_BUFFER, triangles.size() * sizeof(struct triangle), &triangles[0], GL_STATIC_DRAW );
@@ -147,137 +140,113 @@ void Boids::buffer_world_geometry(const std::vector<std::shared_ptr<Object> >& o
 }
 
 glm::vec4 Boids::get_display_data() {
-    glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, atomicsBuffer);
-    atomic_counters = (GLuint*)glMapBufferRange(GL_ATOMIC_COUNTER_BUFFER, 0, sizeof(GLuint) * 3, GL_MAP_READ_BIT);
-
-    int alive = atomic_counters[0];
-    int dead = atomic_counters[1];
-    int collision = atomic_counters[2];
-    glUnmapBuffer(GL_ATOMIC_COUNTER_BUFFER);
 
     int amount = max_amount;
 
-    return glm::vec4(max_amount, dead, max_amount, collision);
+    return glm::vec4(max_amount, 0, 0, 0);
 }
 
-void Boids::init(int max, int _predators) {
+void Boids::init(int max, int _predators, int _dups, int _dims, float space) {
     max_amount = max;
     predators = _predators;
+
+    spacing = space;
+    dims = _dims;
+    dups = _dups; // how many should fit in a box 1/8 of total amount
+    int volume = dims * dims * dims * dups; // here
+    std::cout<<"volume: "<<volume<<", dims: "<<dims<<"\n";
 
     engine = std::default_random_engine((unsigned) 1);
     unit_normal = std::normal_distribution<float>(0.0f, 1.0f);
 
     GLint bufMask = GL_MAP_WRITE_BIT |  GL_MAP_READ_BIT |  GL_MAP_PERSISTENT_BIT |  GL_MAP_COHERENT_BIT;
 
-    counters = 3;
-
-    glGenBuffers(1, &atomicsBuffer);
-    glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, atomicsBuffer);
-    glBufferData(GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint) * counters, NULL, GL_DYNAMIC_DRAW);
-    
-    glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, atomicsBuffer);
-    atomic_counters = (GLuint*)glMapBufferRange(GL_ATOMIC_COUNTER_BUFFER, 0 ,sizeof(GLuint) * counters, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-    memset(atomic_counters, 0, sizeof(GLuint) * counters );
-    glUnmapBuffer(GL_ATOMIC_COUNTER_BUFFER);
-    glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, 0);
-
     // compute stuff
     glGenBuffers( 1, &posSSbo);
     glBindBuffer( GL_SHADER_STORAGE_BUFFER, posSSbo );
-    glBufferStorage( GL_SHADER_STORAGE_BUFFER, max_amount * sizeof(struct position), NULL, bufMask | GL_DYNAMIC_STORAGE_BIT);
-    positions = (struct position *) glMapBufferRange( GL_SHADER_STORAGE_BUFFER, 0, max_amount * sizeof(struct position), bufMask );
+    glBufferStorage( GL_SHADER_STORAGE_BUFFER, (max_amount+predators) * sizeof(struct position), NULL, bufMask | GL_DYNAMIC_STORAGE_BIT);
+    positions = (struct position *) glMapBufferRange( GL_SHADER_STORAGE_BUFFER, 0, (max_amount+predators) * sizeof(struct position), bufMask );
 
     glGenBuffers( 1, &velSSbo);
     glBindBuffer( GL_SHADER_STORAGE_BUFFER, velSSbo );
-    glBufferStorage( GL_SHADER_STORAGE_BUFFER, max_amount * sizeof(struct velocity), NULL, bufMask | GL_DYNAMIC_STORAGE_BIT );
-    velocities = (struct velocity *) glMapBufferRange( GL_SHADER_STORAGE_BUFFER, 0, max_amount * sizeof(struct velocity), bufMask );
+    glBufferStorage( GL_SHADER_STORAGE_BUFFER, (max_amount+predators) * sizeof(struct velocity), NULL, bufMask | GL_DYNAMIC_STORAGE_BIT );
+    velocities = (struct velocity *) glMapBufferRange( GL_SHADER_STORAGE_BUFFER, 0, (max_amount+predators) * sizeof(struct velocity), bufMask );
 
     glGenBuffers( 1, &colSSbo);
     glBindBuffer( GL_SHADER_STORAGE_BUFFER, colSSbo );
-    glBufferStorage( GL_SHADER_STORAGE_BUFFER, max_amount * sizeof(struct color), NULL, bufMask | GL_DYNAMIC_STORAGE_BIT );
-    colors = (struct color *) glMapBufferRange( GL_SHADER_STORAGE_BUFFER, 0, max_amount * sizeof(struct color), bufMask );
+    glBufferStorage( GL_SHADER_STORAGE_BUFFER, (max_amount+predators) * sizeof(struct color), NULL, bufMask | GL_DYNAMIC_STORAGE_BIT );
+    colors = (struct color *) glMapBufferRange( GL_SHADER_STORAGE_BUFFER, 0, (max_amount+predators) * sizeof(struct color), bufMask );
 
+    glGenBuffers( 1, &gridSSbo);
+    glBindBuffer( GL_SHADER_STORAGE_BUFFER, gridSSbo );
+    glBufferStorage( GL_SHADER_STORAGE_BUFFER, volume * sizeof(struct cell), NULL, bufMask | GL_DYNAMIC_STORAGE_BIT);
+    grid = (struct cell *) glMapBufferRange( GL_SHADER_STORAGE_BUFFER, 0, volume * sizeof(struct cell), bufMask );
 
-    glGenBuffers( 1, &pred_posSSbo);
-    glBindBuffer( GL_SHADER_STORAGE_BUFFER, pred_posSSbo );
-    glBufferStorage( GL_SHADER_STORAGE_BUFFER, predators * sizeof(struct position), NULL, bufMask | GL_DYNAMIC_STORAGE_BIT);
-    predator_positions = (struct position *) glMapBufferRange( GL_SHADER_STORAGE_BUFFER, 0, predators * sizeof(struct position), bufMask );
-
-    glGenBuffers( 1, &pred_velSSbo);
-    glBindBuffer( GL_SHADER_STORAGE_BUFFER, pred_velSSbo );
-    glBufferStorage( GL_SHADER_STORAGE_BUFFER, predators * sizeof(struct velocity), NULL, bufMask | GL_DYNAMIC_STORAGE_BIT );
-    predator_velocities = (struct velocity *) glMapBufferRange( GL_SHADER_STORAGE_BUFFER, 0, predators * sizeof(struct velocity), bufMask );
-
-    glGenBuffers( 1, &pred_colSSbo);
-    glBindBuffer( GL_SHADER_STORAGE_BUFFER, pred_colSSbo );
-    glBufferStorage( GL_SHADER_STORAGE_BUFFER, predators * sizeof(struct color), NULL, bufMask | GL_DYNAMIC_STORAGE_BIT );
-    predator_colors = (struct color *) glMapBufferRange( GL_SHADER_STORAGE_BUFFER, 0, predators * sizeof(struct color), bufMask );
-    
     spawn_boids();
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     GLSL::checkError(GET_FILE_LINE); 
 }
 
-void Boids::spawn_boids() {
-    for( int i = 0; i < max_amount - predators; ++i )
-    {   
-        positions[ i ].x = glm::clamp(unit_normal(engine) * 15.0f, -50.0f, 50.0f);
-        positions[ i ].y = glm::clamp(unit_normal(engine) * 15.0f, -50.0f, 50.0f);
-        positions[ i ].z = glm::clamp(unit_normal(engine) * 15.0f, -50.0f, 50.0f);
+int hash(float x, float y, float z, int dups, float spacing, int dims) {
+    float ds = spacing / (float)dims; 
+    float offset = spacing / 2.0f;
+    //std::cout<<"x: "<<x<<", y: "<<y<<", z: "<<z<<std::endl;
+    int xi = ((int) std::floor((x+offset) / ds)) * dups;
+    int yi = ((int) std::floor((y+offset) / ds)) * dims * dups;
+    int zi = ((int) std::floor((z+offset) / ds)) * dims * dims * dups;
+    return xi + yi + zi;
+}
 
-        velocities[ i ].x = unit_normal(engine) * 10.0f;
-        velocities[ i ].y = unit_normal(engine) * 10.0f;
-        velocities[ i ].z = unit_normal(engine) * 10.0f;
+void Boids::spawn_boids() {
+    for( int i = 0; i < max_amount + predators; ++i ){   
+        positions[ i ].x = glm::clamp(unit_normal(engine) * (spacing/4.0f), -2.0f * spacing/5.0f, 2.0f * spacing/5.0f);
+        positions[ i ].y = glm::clamp(unit_normal(engine) * (spacing/4.0f), -2.0f * spacing/5.0f, 2.0f * spacing/5.0f);
+        positions[ i ].z = glm::clamp(unit_normal(engine) * (spacing/4.0f), -2.0f * spacing/5.0f, 2.0f * spacing/5.0f);
+
+        velocities[ i ].x = unit_normal(engine) * 1.0f;
+        velocities[ i ].y = unit_normal(engine) * 1.0f;
+        velocities[ i ].z = unit_normal(engine) * 1.0f;
 
         colors[ i ].r = std::abs(unit_normal(engine))/2;
         colors[ i ].g = std::abs(unit_normal(engine))/2;
         colors[ i ].b = std::abs(unit_normal(engine))/2;
 
-        positions[ i ].size = 0.5f + std::abs(unit_normal(engine));
+        positions[ i ].size = i >= max_amount ? 10.0f : 0.5f + std::abs(unit_normal(engine));
         velocities[ i ].mass = 1.0f;
-        colors[ i ].lifetime = 1.0f;
+        colors[ i ].lifetime = i >= max_amount ? -1.0f : 1.0f; // lifetime signifies if predator or boid
     }
 
-    for( int i = 0; i < predators; ++i )
-    {   
-        predator_positions[ i ].x = glm::clamp(unit_normal(engine) * 15.0f, -50.0f, 50.0f);
-        predator_positions[ i ].y = glm::clamp(unit_normal(engine) * 15.0f, -50.0f, 50.0f);
-        predator_positions[ i ].z = glm::clamp(unit_normal(engine) * 15.0f, -50.0f, 50.0f);
 
-        predator_velocities[ i ].x = unit_normal(engine) * 1.0f;
-        predator_velocities[ i ].y = unit_normal(engine) * 1.0f;
-        predator_velocities[ i ].z = unit_normal(engine) * 1.0f;
-
-        predator_colors[ i ].r = std::abs(unit_normal(engine))/2;
-        predator_colors[ i ].g = std::abs(unit_normal(engine))/2;
-        predator_colors[ i ].b = std::abs(unit_normal(engine))/2;
-
-        predator_positions[ i ].size = 0.5f + std::abs(unit_normal(engine));
-        predator_velocities[ i ].mass = 1.0f;
-        predator_colors[ i ].lifetime = 5.0f;
+    for (int i = 0; i < dims * dims * dims * dups; ++i) {
+        grid[i].idx = -1;
     }
+    for( int i = 0; i < max_amount + predators; ++i ){
+        int idx = hash(positions[i].x, positions[i].y, positions[i].z, dups, spacing, dims);
+        int offset = 0;
+        while (grid[idx + offset].idx != -1) {
+            ++offset;
+            if (offset >= dups) {
+                std::cout<<"does not fit in here bro \n";
+                exit(-1);
+            }
+        }
+        grid[idx + offset].idx = i;
+    }
+
 }
 
 Boids::~Boids() {};
 
 void Boids::update(){
 
-    glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, atomicsBuffer);
-    atomic_counters = (GLuint*)glMapBufferRange(GL_ATOMIC_COUNTER_BUFFER, 0 ,sizeof(GLuint) * counters, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-    memset(atomic_counters, 0, sizeof(GLuint) * counters );
-    glUnmapBuffer(GL_ATOMIC_COUNTER_BUFFER);
-
-    glBindBufferBase( GL_ATOMIC_COUNTER_BUFFER, 0, atomicsBuffer);
     glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 4, posSSbo );
     glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 5, velSSbo );
     glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 6, colSSbo );
     glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 7, objSSbo );
     glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 8, dataSSbo );
     glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 9, aabbSSbo);
-    glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 10, pred_posSSbo );
-    glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 11, pred_velSSbo );
-    glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 12, pred_colSSbo );
+    glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 13, gridSSbo );
     
     
     glDispatchCompute( max_amount + predators, 1, 1 );
@@ -332,9 +301,6 @@ void Boids::draw_boids(const std::shared_ptr<Program> particle_render_program) c
 
 void Boids::draw_predators(const std::shared_ptr<Program> particle_render_program) const {
 
-
-    // again but for predators
-    // Bind position buffer
 	int h_pos = particle_render_program->getAttribute("aPos");
 	glEnableVertexAttribArray(h_pos);
 	glBindBuffer(GL_ARRAY_BUFFER, predator_mesh->getPosBufID());
@@ -348,20 +314,22 @@ void Boids::draw_predators(const std::shared_ptr<Program> particle_render_progra
 		glVertexAttribPointer(h_nor, 3, GL_FLOAT, GL_FALSE, 0, (const void *)0);
 	}
 
+    int offset = max_amount * 4 * sizeof(float);
+
     int positionsID = particle_render_program->getAttribute("position");
     glEnableVertexAttribArray(positionsID);
-    glBindBuffer(GL_ARRAY_BUFFER, pred_posSSbo); // diff
-    glVertexAttribPointer(positionsID, 4, GL_FLOAT, GL_FALSE, 0, (void*)0);
+    glBindBuffer(GL_ARRAY_BUFFER, posSSbo);
+    glVertexAttribPointer(positionsID, 4, GL_FLOAT, GL_FALSE, 0, (GLvoid*) offset);
 
     int colorsID = particle_render_program->getAttribute("color");
     glEnableVertexAttribArray(colorsID);
-    glBindBuffer(GL_ARRAY_BUFFER, pred_colSSbo);// diff
-    glVertexAttribPointer(colorsID, 4, GL_FLOAT, GL_TRUE, 0, (void*)0);
+    glBindBuffer(GL_ARRAY_BUFFER, colSSbo);
+    glVertexAttribPointer(colorsID, 4, GL_FLOAT, GL_TRUE, 0, (GLvoid*) offset);
 
     int velocityID = particle_render_program->getAttribute("velocity");
     glEnableVertexAttribArray(velocityID);
-    glBindBuffer(GL_ARRAY_BUFFER, pred_velSSbo);// diff
-    glVertexAttribPointer(velocityID, 4, GL_FLOAT, GL_TRUE, 0, (void*)0);
+    glBindBuffer(GL_ARRAY_BUFFER, velSSbo);
+    glVertexAttribPointer(velocityID, 4, GL_FLOAT, GL_TRUE, 0, (GLvoid*) offset);
 
     glVertexAttribDivisor(h_pos, 0); 
     glVertexAttribDivisor(h_nor, 0); 

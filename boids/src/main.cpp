@@ -68,7 +68,6 @@ int main(int argc, char **argv)
 	sim.init_programs();
 	sim.init_camera();
 	sim.set_scene();	
-
 	while(!sim.window_closed()) {
 		sim.input_capture();
 		sim.move_camera();
@@ -76,6 +75,5 @@ int main(int argc, char **argv)
 		sim.render_scene();
 		sim.swap_buffers();
 	}
-
 	return 0;
 }

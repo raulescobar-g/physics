@@ -18,10 +18,11 @@ uniform float 	predator_speed;
 uniform float 	predator_avoidance;
 uniform float 	predator_avoidance_internal;
 uniform float 	predator_attention_radius;
+uniform int		dups; 
+uniform int		dims; 
+uniform float 	spacing; // h
 
 const float		e = 0.00001;
-
-layout (binding = 0, offset=0) uniform atomic_uint counters[3];
 
 layout( std140, binding=4 ) buffer Pos {
 	vec4 positions[ ]; 
@@ -41,20 +42,24 @@ layout(std430, binding=8) buffer Data {
 layout(std430, binding=9) buffer Aabb {
 	vec4[2] corners[ ];
 };
-layout( std140, binding=10 ) buffer Pred_Pos {
-	vec4 predator_positions[ ]; 
-};
-layout( std140, binding=11 ) buffer Pred_Vel {
-	vec4 predator_velocities[ ];
-};
-layout( std140, binding=12 ) buffer Pred_Col {
-	vec4 predator_colors[ ]; 
+layout(std430, binding=13) buffer Grid {
+	int cells[ ];
 };
 
 layout( local_size_x = 1, local_size_y = 1, local_size_z = 1 ) in;
 
+// spatial hashing function
+int hash(float x, float y, float z) {
+    float ds = spacing / float(dims); 
+	float offset = spacing / 2.0;
+    int xi = int(floor((x + offset) / ds)) * dups;
+    int yi = int(floor((y + offset) / ds)) * dims * dups;
+    int zi = int(floor((z + offset) / ds)) * dims * dims * dups;
+    return xi + yi + zi;
+}
 
-// from some paper i forgot where i got this from
+
+// ray traced boid obstacle avoidance
 float triangle_hit(vec3 orig, vec3 dir, vec3 vert0, vec3 vert1, vec3 vert2) {
 
 	/* find vectors for two edges sharing vert0 */
@@ -92,9 +97,6 @@ float triangle_hit(vec3 orig, vec3 dir, vec3 vert0, vec3 vert1, vec3 vert2) {
 
 	return dot(edge2, qvec) * inv_det;
 }
-
-// branchless aabb-ray intersection 
-// https://gamedev.stackexchange.com/questions/18436/most-efficient-aabb-vs-ray-collision-algorithms
 float ray_box_intersect ( vec3 rpos, vec3 rdir, vec3 vmin, vec3 vmax ){
    	float t[10];
    t[1] = (vmin.x - rpos.x)/rdir.x;
@@ -108,8 +110,7 @@ float ray_box_intersect ( vec3 rpos, vec3 rdir, vec3 vmin, vec3 vmax ){
    t[9] = (t[8] < 0 || t[7] > t[8]) ? -1.0 : t[7];
    return t[9];
 }
-
-vec3 obstacle_avoidance( uint gid , vec3 o, vec3 ray) { 
+vec3 obstacle_avoidance( vec3 o, vec3 ray) { 
 	int last = 0;
 	float closest_obstacle = 1.0/e; // hacky
 	vec3 response = vec3(e);
@@ -142,17 +143,39 @@ vec3 obstacle_avoidance( uint gid , vec3 o, vec3 ray) {
 	return response;
 
 }
+vec3 path_tracing(vec3 o, vec3 v) {
+	vec3 result = vec3(0.0);
 
-vec3 boid_influences( uint gid ) {
-	vec3 boid_pos = positions[ gid ].xyz;
-	vec3 boid_vel = velocities[ gid ].xyz;
+	// directions to cast our rays for obstacle avoidance
+	vec3 forward = normalize(v);
+	vec3 up = vec3(0.0, 1.0, 0.0);
+	vec3 side = normalize(cross(forward, up));
+	vec3 up_right = normalize(up + side + 2.0 * forward);
+	vec3 up_left = normalize(up - side + 2.0 * forward);
+	vec3 down_left = normalize(-up - side + 2.0 * forward);
+	vec3 down_right = normalize(-up + side + 2.0 * forward);
+
+	result += obstacle_avoidance(o, forward);
+	result += obstacle_avoidance(o, up_right);
+	result += obstacle_avoidance(o, down_left);
+	result += obstacle_avoidance(o, up_left);
+	result += obstacle_avoidance(o, down_right);
+
+	return result;
+}
+
+
+// boid behavior
+vec3 boid_behavior_main(uint gid, int index, vec3 boid_pos, vec3 boid_vel) {
 	vec3 total = vec3(0.0);
 
-	for (int i = 0; i < boid_count; ++i) {
-		if (i == gid) continue;
+	for (int i = 0; i < dups && cells[index+i] != -1; ++i) {
+		int other_idx = cells[index+i];
+		
+		if (gid == other_idx || other_idx >= boid_count || other_idx == -2) continue;
 
-		vec3 other_boid_pos = positions[ i ].xyz;
-		vec3 other_boid_vel = velocities[ i ].xyz;
+		vec3 other_boid_pos = positions[ other_idx ].xyz;
+		vec3 other_boid_vel = velocities[ other_idx ].xyz;
 		
 		vec3 x = other_boid_pos - boid_pos;
 		float d = length(x);
@@ -169,124 +192,149 @@ vec3 boid_influences( uint gid ) {
 		vec3 centering = k.z * (x) * kd * kt;
 
 		total += collision_avoidance + velocity_matching + centering;
-		
 	}
+	return total;
+}
+vec3 boid_behavior( uint gid ) {
+	vec3 boid_pos = positions[ gid ].xyz;
+	vec3 boid_vel = velocities[ gid ].xyz;
+	vec3 total = vec3(0.0);
+	int index = hash(boid_pos.x, boid_pos.y, boid_pos.z);
 
+	int offset = 1;
+	int box_dim = 1 + 2 * offset;
+	int start_index = index - offset*dups - offset*dims*dups - offset*dims*dims*dups;
+
+	for (int z = 0; z < box_dim; ++z) {
+		for (int y = 0; y < box_dim; ++y) {
+			for (int x = 0; x < box_dim; ++x) {
+				int curr = start_index + x*dups + y*dims*dups + z*dims*dims*dups;
+				total += boid_behavior_main(gid, curr, boid_pos, boid_vel);
+			}
+		}
+	}
+	
 	return total;
 }
 
-vec3 predator_hunting( uint gid ) {
-	vec3 predator_pos = predator_positions[ gid ].xyz;
-	vec3 predator_vel = predator_velocities[ gid ].xyz;
+
+// predator hunts boids that are close, and avoids other predators regardless of distance
+vec3 predator_behavior_main(uint gid, int index, vec3 predator_pos, vec3 predator_vel) {
 	vec3 total = vec3(0.0);
+	for (int i = 0; i < dups && cells[index+i] != -1; ++i) {
+		int other_idx = cells[index+i];
+		if (other_idx == -2) continue;
 
-	for (int i = 0; i < boid_count; ++i) {
-
-		vec3 other_boid_pos = positions[ i ].xyz;
-		vec3 other_boid_vel = velocities[ i ].xyz;
-		
-		vec3 x = other_boid_pos - predator_pos;
-		float d = length(x);
-		float theta = acos(clamp(dot(normalize(predator_vel), normalize(x)), -1.0+e, 1.0-e));
-
-		float kt = 1.0;
-		if (d >= predator_attention_radius - e || theta >= attention.w - e) {
-			continue;
-		}
-
-		total += (k.x / d) * normalize(x) * kt * predator_speed;
-	}
-
-	for (int i = 0; i < gl_NumWorkGroups.x - boid_count; ++i) {
-		if (gid == i) continue;
-
-		vec3 other_predator_pos = predator_positions[ i ].xyz;
-		vec3 other_predator_vel = predator_velocities[ i ].xyz;
-		
-		vec3 x = other_predator_pos - predator_pos;
+		vec3 x = positions[ other_idx ].xyz - predator_pos;
 		float d = length(x);
 
 		if (d >= predator_attention_radius - e) {
 			continue;
 		}
 
-		total += -k.x  * normalize(x) * predator_avoidance_internal;
+		total += (k.x / d) * normalize(x) * predator_speed;
 	}
+
+	return total;
+}
+vec3 predator_behavior( uint gid ) {
+	vec3 predator_pos = positions[ gid ].xyz;
+	vec3 predator_vel = velocities[ gid ].xyz;
+	vec3 total = vec3(0.0);
+
+	int predator_index = hash(predator_pos.x, predator_pos.y, predator_pos.z);
+
+	int offset = 1;
+	int box_dim = 1 + 2 * offset;
+	int start_index = predator_index - offset*dups - offset*dims*dups - offset*dims*dims*dups;
+
+	for (int z = 0; z < box_dim; ++z) {
+		for (int y = 0; y < box_dim; ++y) {
+			for (int x = 0; x < box_dim; ++x) {
+				int curr = start_index + x*dups + y*dims*dups + z*dims*dims*dups;
+				total += predator_behavior_main(gid, curr, predator_pos, predator_vel);
+			}
+		}
+	}
+
 	return total;
 }
 
-vec3 predator_influence( uint gid ) {
-	vec3 boid_pos = positions[ gid ].xyz;
-	vec3 boid_vel = velocities[ gid ].xyz;
+
+// avoid predators : OKAY
+vec3 predator_influence_on_object( uint gid ) {
+	vec3 pos = positions[ gid ].xyz;
+	vec3 vel = velocities[ gid ].xyz;
 	vec3 total = vec3(0.0);
 
-	for (int i = 0; i < gl_NumWorkGroups.x - boid_count; ++i) {
+	for (int i = boid_count; i < gl_NumWorkGroups.x; ++i) {
+		if (gid == i) continue;
 
-		vec3 predator_pos = predator_positions[ i ].xyz;
-		vec3 predator_vel = predator_velocities[ i ].xyz;
+		vec3 predator_pos = positions[ i ].xyz;
+		vec3 predator_vel = velocities[ i ].xyz;
 		
-		vec3 x = predator_pos - boid_pos;
+		vec3 x = predator_pos - pos;
 		float d = length(x);
 
 		if (d >= attention.y - e) {
 			continue;
 		}
 
-		total += -(k.x) * normalize(x) * predator_avoidance;
+		float c = gid >= boid_count ? predator_avoidance_internal : predator_avoidance;
+		total += -(k.x/d) * normalize(x) * c;
 	}
 	return total;
 }
+
 
 void main(){
 	// defines our acceleration priority
 	float budget = acceleration_limit;
 
+
 	// get index of object 
-	uint _gid = gl_GlobalInvocationID.x;
+	uint gid = gl_GlobalInvocationID.x;
 	bool predator = gl_GlobalInvocationID.x >= boid_count;
-	uint gid = _gid - (boid_count * int(predator));
+
 
 	// position and velocity of object
-	vec3 o = predator ? predator_positions[ gid ].xyz : positions[ gid ].xyz;
-	vec3 v = predator ? predator_velocities[ gid ].xyz : velocities[ gid ].xyz;
-
-	// directions to cast our rays for obstacle avoidance
-	vec3 forward = normalize(v);
-	vec3 up = vec3(0.0, 1.0, 0.0);
-	vec3 side = normalize(cross(forward, up));
-	vec3 up_right = normalize(up + side + 2.0 * forward);
-	vec3 up_left = normalize(up - side + 2.0 * forward);
-	vec3 down_left = normalize(-up - side + 2.0 * forward);
-	vec3 down_right = normalize(-up + side + 2.0 * forward);
+	vec3 o = positions[ gid ].xyz;
+	vec3 v = velocities[ gid ].xyz;
 
 	// PRIORITY 1: AVOID OBSTACLES
-	vec3 unbounded_obstacle_avoidance = obstacle_avoidance(gid, o, forward) + 
-										obstacle_avoidance(gid, o, up_right) + obstacle_avoidance(gid, o, up_left) + 
-										obstacle_avoidance(gid, o, down_left) + obstacle_avoidance(gid, o, down_right);
+	vec3 unbounded_obstacle_avoidance = vec3(0.0); //path_tracing(o, v);
 	vec3 acceleration = min(budget, length(unbounded_obstacle_avoidance)) * normalize(unbounded_obstacle_avoidance);
 	budget = acceleration_limit - length(acceleration);
 
+
 	// PRIORITY 2: AVOID PREDATOR, OR CHASE PREY
-	vec3 predator_influence = predator ? predator_hunting( gid) : predator_influence( gid );
+	vec3 predator_influence = predator_influence_on_object( gid );
 	acceleration += length(predator_influence) > e ? min(budget, length(predator_influence)) * normalize(predator_influence): vec3(0.0);
 	budget = acceleration_limit - length(acceleration);
 
+
 	// PRIORITY 3: IF BOID, BEHAVE LIKE A BOID
-	vec3 unbounded_boid_influence = predator ? vec3(0.0) : boid_influences( gid );
+	vec3 unbounded_boid_influence = predator ? predator_behavior(gid) : boid_behavior( gid );
 	acceleration += length(unbounded_boid_influence) > e ? min(budget, length(unbounded_boid_influence)) * normalize(unbounded_boid_influence):  vec3(0.0);
 
-	if (predator) {
-		vec3 next_position = predator_positions[ gid ].xyz + predator_velocities[ gid ].xyz * dt;
-		vec3 t = predator_velocities[ gid ].xyz + acceleration * dt;
-		vec3 next_velocity = clamp(length(t), minimum_speed ,speed_limit) * normalize(t);
-		
-		predator_positions[ gid ].xyz = next_position;
-		predator_velocities[ gid ].xyz = next_velocity;
-	} else {
-		vec3 next_position = positions[ gid ].xyz + velocities[ gid ].xyz * dt;
-		vec3 next_velocity = velocities[ gid ].xyz + acceleration * dt;
-		
-		positions[ gid ].xyz = next_position;
-		velocities[ gid ].xyz = next_velocity;
+
+	vec3 next_position = o + v * dt;
+	vec3 t = v + acceleration * dt;
+	vec3 next_velocity = predator ? clamp(length(t), minimum_speed ,speed_limit) * normalize(t) : t;
+
+	int started = hash(o.x, o.y, o.z);
+	int ended = hash(next_position.x, next_position.y, next_position.z);
+
+	if (started != ended) {
+		int i = started;
+		while (cells[i] != int(gid) && i-started <= dups) ++i;
+		cells[i] = -2;
+		i = ended;
+		while (cells[i] > 0 && i-ended <= dups) ++i;
+		cells[i] = int(gid);
 	}
+	
+	positions[ gid ].xyz = next_position;
+	velocities[ gid ].xyz = next_velocity;
+
 }

@@ -17,13 +17,14 @@
 struct position;
 struct velocity;
 struct color;
+struct cell;
 
 class Boids {
     public:
         Boids(); 
         ~Boids();
 
-        void init(int max, int predators);
+        void init(int max, int _predators, int _dups, int _dims, float space);
         void load_boid_mesh();
         void buffer_world_geometry(const std::vector<std::shared_ptr<Object> >& objects);
         void update();
@@ -35,8 +36,14 @@ class Boids {
         glm::vec4 get_display_data();
 
     private: 
-        GLuint posSSbo, velSSbo, colSSbo, objSSbo, transSSbo, dataSSbo, atomicsBuffer, aabbSSbo, pred_posSSbo, pred_velSSbo, pred_colSSbo;
-        int max_amount, current_particle, counters, triangle_count, spawns_per_cycle, predators;
+        GLuint  posSSbo, velSSbo, colSSbo, objSSbo, transSSbo, 
+                dataSSbo, atomicsBuffer, aabbSSbo, pred_posSSbo, 
+                pred_velSSbo, pred_colSSbo, gridSSbo;
+
+        int max_amount, current_particle, counters, triangle_count, 
+            spawns_per_cycle, predators, dims, dups;
+
+        float spacing;
 
         std::default_random_engine engine;
         std::normal_distribution<float> unit_normal;
@@ -47,6 +54,8 @@ class Boids {
         struct color *predator_colors;
         struct position *predator_positions;
         struct velocity *predator_velocities;
+        struct cell *grid;
+
         GLuint *atomic_counters;
 
         std::shared_ptr<Shape> boid_mesh, predator_mesh;

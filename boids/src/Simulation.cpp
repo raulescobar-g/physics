@@ -13,11 +13,11 @@ Simulation::Simulation() {
 	movement_speed = 0.5f;
 	sensitivity = 0.005f;
 	eps = 0.01f;
-	dt = 1.0f/144.0f;
+	dt = 1.0f/24.0f;
 
 	boids_k = glm::vec3(3.0f, 5.0f, 0.3f);
 	float pi = glm::pi<float>();
-	attention = glm::vec4(2.0f, 10.0f, pi/4.0, 2.0f*pi/4.0f );
+	attention = glm::vec4(7.0f, 10.0f, pi/4.0, 2.0f*pi/4.0f );
 	gravity = glm::vec3(0.0f, 0.0f, 0.0f);
 	wind = glm::vec3(0.0f, 0.0f, 0.0f);
 	lightPos = glm::vec3(0.0f, 300.0f, 0.0f);
@@ -33,6 +33,13 @@ Simulation::Simulation() {
 
 	steering_speed = 30.0f;
 	box_sidelength = 100.0f;
+
+	
+	predator_amount = 0;
+	boid_amount = 1024 * 8 - predator_amount;
+
+	dups = 128;
+	dims = (int) std::floor(box_sidelength / attention.y);
 }
 
 Simulation::~Simulation() {
@@ -75,19 +82,20 @@ void Simulation::init_programs(){
 	std::vector<std::string> mesh_attributes = {"aPos", "aNor"};
 	std::vector<std::string> mesh_uniforms = {"MV", "iMV", "P", "ka", "kd", "ks", "s", "lightPos"};
 	meshes_program = std::make_shared<Program>();
-	meshes_program->init("C:\\Users\\raul3\\Programming\\physics\\boids\\resources\\phong_vert.glsl", "C:\\Users\\raul3\\Programming\\physics\\boids\\resources\\phong_frag.glsl", mesh_attributes, mesh_uniforms);
-
+	meshes_program->init("C:\\Users\\raul3\\Programming\\physics\\boids\\resources\\phong_vert.glsl", 
+						"C:\\Users\\raul3\\Programming\\physics\\boids\\resources\\phong_frag.glsl", mesh_attributes, mesh_uniforms);
 
 	std::vector<std::string> boids_attributes = {"aPos", "aNor", "position", "color", "velocity"};
 	std::vector<std::string> boids_uniforms = {"P","MV", "iMV", "ka", "kd", "ks", "s", "lightPos",};
 	boids_program = std::make_shared<Program>();
-	boids_program->init("C:\\Users\\raul3\\Programming\\physics\\boids\\resources\\boid_vert.glsl", "C:\\Users\\raul3\\Programming\\physics\\boids\\resources\\boid_frag.glsl", boids_attributes, boids_uniforms);
+	boids_program->init("C:\\Users\\raul3\\Programming\\physics\\boids\\resources\\boid_vert.glsl", 
+						"C:\\Users\\raul3\\Programming\\physics\\boids\\resources\\boid_frag.glsl", boids_attributes, boids_uniforms);
 
 	std::vector<std::string> compute_uniforms = {"dt", "gravity", "wind", "objects", "time", "counters", "k", 
 												"attention", "steering_speed", "boid_count", "speed_limit", 
 												"acceleration_limit", "vision_distance", "minimum_speed", 
 												"predator_speed", "predator_avoidance", "predator_attention_radius",
-												"predator_avoidance_internal"};
+												"predator_avoidance_internal", "dims", "dups","spacing"};
 	compute_program = std::make_shared<Program>();
 	compute_program->init("C:\\Users\\raul3\\Programming\\physics\\boids\\resources\\boid_comp.glsl", compute_uniforms);
 }
@@ -164,30 +172,30 @@ void Simulation::set_scene() {
 	std::shared_ptr<Object> ring_obstacle1 = std::make_shared<Object>();
 	ring_obstacle1->shape = ring;
 	ring_obstacle1->material = obstacle_material;
-	ring_obstacle1->position = glm::vec3(0.0f, -20.0f, 0.0f);
-	ring_obstacle1->scale = glm::vec3(50.0f);
+	ring_obstacle1->position = glm::vec3(0.0f, -30.0f, 0.0f);
+	ring_obstacle1->scale = glm::vec3(20.0f);
 	objects.push_back(ring_obstacle1);
 
 	std::shared_ptr<Object> ring_obstacle2 = std::make_shared<Object>();
 	ring_obstacle2->shape = ring;
 	ring_obstacle2->material = obstacle_material;
-	ring_obstacle2->position = glm::vec3(0.0f, 20.0f, 0.0f);
-	ring_obstacle2->scale = glm::vec3(50.0f);
+	ring_obstacle2->position = glm::vec3(0.0f, 30.0f, 0.0f);
+	ring_obstacle2->scale = glm::vec3(20.0f);
 	objects.push_back(ring_obstacle2);
 
 	std::shared_ptr<Object> ring_obstacle3 = std::make_shared<Object>();
 	ring_obstacle3->shape = ring;
 	ring_obstacle3->material = obstacle_material;
-	ring_obstacle3->position = glm::vec3(-20.0f, 0.0f, 0.0f);
-	ring_obstacle3->scale = glm::vec3(50.0f);
+	ring_obstacle3->position = glm::vec3(-30.0f, 0.0f, 0.0f);
+	ring_obstacle3->scale = glm::vec3(20.0f);
 	ring_obstacle3->rotation = glm::vec3(0.0f, 0.0f, -glm::pi<float>() / 2.0f);
 	objects.push_back(ring_obstacle3);
 
 	std::shared_ptr<Object> ring_obstacle4 = std::make_shared<Object>();
 	ring_obstacle4->shape = ring;
 	ring_obstacle4->material = obstacle_material;
-	ring_obstacle4->position = glm::vec3(20.0f, 0.0f, 0.0f);
-	ring_obstacle4->scale = glm::vec3(50.0f);
+	ring_obstacle4->position = glm::vec3(30.0f, 0.0f, 0.0f);
+	ring_obstacle4->scale = glm::vec3(20.0f);
 	ring_obstacle4->rotation = glm::vec3(0.0f, 0.0f, -glm::pi<float>() / 2.0f);
 	objects.push_back(ring_obstacle4);
 
@@ -249,21 +257,17 @@ void Simulation::set_scene() {
 	boids = std::make_shared<Boids>();
 	boids->load_boid_mesh();
 	boids->buffer_world_geometry(objects);
-	boid_amount = 1024 * 2;
-	int predators_amount = 8;
-	boids->init(boid_amount, predators_amount);
+	
+	boids->init(boid_amount, predator_amount, dups, dims, box_sidelength);
 	boids_program->unbind();
 	GLSL::checkError(GET_FILE_LINE);
 }
 
 void Simulation::fixed_timestep_update() {
 	
-	
 	new_time = glfwGetTime();
 	frame_time = new_time - current_time;
-	
 	current_time = new_time;
-
 	total_time += frame_time;
 
 	while (total_time >= dt) {
@@ -291,6 +295,9 @@ void Simulation::update(float _dt) {
 	glUniform1f(compute_program->getUniform("predator_speed") ,predator_speed);
 	glUniform1f(compute_program->getUniform("predator_attention_radius"), predator_attention_radius);
 	glUniform1i(compute_program->getUniform("boid_count"), boid_amount);
+	glUniform1i(compute_program->getUniform("dims"), dims);
+	glUniform1i(compute_program->getUniform("dups"), dups);
+	glUniform1f(compute_program->getUniform("spacing"), box_sidelength);
 	boids->update();
 	compute_program->unbind();
 }
@@ -303,10 +310,8 @@ void Simulation::render_scene() {
 	ImGuiWindowFlags flags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings;
 	ImGui::NewFrame();
 	ImGui::Begin("Toolbar: ",nullptr, flags);
-	glm::vec4 data = boids->get_display_data();
-	int amount = data.x;
 	ImGui::Text("%.3f dt / %.1f fps", dt, ImGui::GetIO().Framerate);
-	ImGui::Text("Boids: %d ", amount);
+	ImGui::Text("Boids: %d ", boid_amount);
 
 	float *lightPos_pointer = &lightPos.x;
 
@@ -431,26 +436,31 @@ void Simulation::move_camera() {
 	
 	glm::vec3 buff(0.0f,0.0f,0.0f);
 
+	float x =  sin(camera->yaw)*cos(camera->pitch);
+	float z =  cos(camera->yaw)*cos(camera->pitch);
+	glm::vec3 dir(x , 0.0f, z);
+	glm::vec3 up(0.0f, 1.0f, 0.0f);
+
 	if (inputs[(unsigned)'w']) 
-		buff += glm::normalize(glm::vec3( sin(camera->yaw)*cos(camera->pitch) , 0.0f, cos(camera->yaw)*cos(camera->pitch))); 
+		buff += glm::normalize(dir); 
 	
 	if (inputs[(unsigned)'s']) 
-		buff -= glm::normalize(glm::vec3( sin(camera->yaw)*cos(camera->pitch) , 0.0f, cos(camera->yaw)*cos(camera->pitch))); 
+		buff -= glm::normalize(dir); 
 	
 	if (inputs[(unsigned)'a']) 
-		buff -= glm::normalize(glm::cross(glm::vec3( sin(camera->yaw)*cos(camera->pitch) , 0.0f, cos(camera->yaw)*cos(camera->pitch)), glm::vec3(0.0f, 1.0f, 0.0f)));
+		buff -= glm::normalize(glm::cross(dir, up));
 	
 	if (inputs[(unsigned)'d']) 
-		buff += glm::normalize(glm::cross(glm::vec3( sin(camera->yaw)*cos(camera->pitch) , 0.0f, cos(camera->yaw)*cos(camera->pitch)), glm::vec3(0.0f, 1.0f, 0.0f)));
+		buff += glm::normalize(glm::cross(dir, up));
 	
 	if (inputs[(unsigned)'q']) 
-		buff += glm::vec3(0.0f,1.0f,0.0f);
+		buff += up;
 	
 	if (inputs[(unsigned)'e']) 
-		buff += glm::vec3(0.0f,-1.0f,0.0f);
+		buff -= up;
 	
 
-	if (glm::length(buff) > 0.00001f) 
+	if (glm::length(buff) > eps) 
 		camera->pos += glm::normalize(buff) * movement_speed * 0.1f; 
 	
 
@@ -458,8 +468,11 @@ void Simulation::move_camera() {
 	options[(unsigned)'v'] ? glPolygonMode(GL_FRONT_AND_BACK, GL_LINE) : glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 
-	if (inputs[(unsigned) 'z']) camera->decrement_fovy();
-	if (inputs[(unsigned) 'Z']) camera->increment_fovy();
+	if (inputs[(unsigned) 'z']) 
+		camera->decrement_fovy();
+
+	if (inputs[(unsigned) 'Z']) 
+		camera->increment_fovy();
 }
 
 void Simulation::error_callback_impl(int error, const char *description) { 
@@ -494,7 +507,6 @@ void Simulation::input_capture(){
 
 			camera->pitch = glm::min(glm::pi<float>()/2.0f, camera->pitch);
 			camera->pitch = glm::max(-glm::pi<float>()/2.0f, camera->pitch);
-			
 		}
 		o_x = mouse.x;
 		o_y = mouse.y;
