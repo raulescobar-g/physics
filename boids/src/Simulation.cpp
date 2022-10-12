@@ -35,10 +35,10 @@ Simulation::Simulation() {
 	box_sidelength = 100.0f;
 
 	
-	predator_amount = 0;
-	boid_amount = 1024 * 8 - predator_amount;
+	predator_amount = 8;
+	boid_amount = 1024 * 4 - predator_amount;
 
-	dups = 128;
+	dups = 256;
 	dims = (int) std::floor(box_sidelength / attention.y);
 }
 
@@ -174,14 +174,14 @@ void Simulation::set_scene() {
 	ring_obstacle1->material = obstacle_material;
 	ring_obstacle1->position = glm::vec3(0.0f, -30.0f, 0.0f);
 	ring_obstacle1->scale = glm::vec3(20.0f);
-	objects.push_back(ring_obstacle1);
+	// objects.push_back(ring_obstacle1);
 
 	std::shared_ptr<Object> ring_obstacle2 = std::make_shared<Object>();
 	ring_obstacle2->shape = ring;
 	ring_obstacle2->material = obstacle_material;
 	ring_obstacle2->position = glm::vec3(0.0f, 30.0f, 0.0f);
 	ring_obstacle2->scale = glm::vec3(20.0f);
-	objects.push_back(ring_obstacle2);
+	// objects.push_back(ring_obstacle2);
 
 	std::shared_ptr<Object> ring_obstacle3 = std::make_shared<Object>();
 	ring_obstacle3->shape = ring;
@@ -189,7 +189,7 @@ void Simulation::set_scene() {
 	ring_obstacle3->position = glm::vec3(-30.0f, 0.0f, 0.0f);
 	ring_obstacle3->scale = glm::vec3(20.0f);
 	ring_obstacle3->rotation = glm::vec3(0.0f, 0.0f, -glm::pi<float>() / 2.0f);
-	objects.push_back(ring_obstacle3);
+	// objects.push_back(ring_obstacle3);
 
 	std::shared_ptr<Object> ring_obstacle4 = std::make_shared<Object>();
 	ring_obstacle4->shape = ring;
@@ -197,7 +197,7 @@ void Simulation::set_scene() {
 	ring_obstacle4->position = glm::vec3(30.0f, 0.0f, 0.0f);
 	ring_obstacle4->scale = glm::vec3(20.0f);
 	ring_obstacle4->rotation = glm::vec3(0.0f, 0.0f, -glm::pi<float>() / 2.0f);
-	objects.push_back(ring_obstacle4);
+	// objects.push_back(ring_obstacle4);
 
 	std::shared_ptr<Object> first_wall_ptr = std::make_shared<Object>();
 	first_wall_ptr->shape = wall;
