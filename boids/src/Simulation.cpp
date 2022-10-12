@@ -13,7 +13,7 @@ Simulation::Simulation() {
 	movement_speed = 0.5f;
 	sensitivity = 0.005f;
 	eps = 0.01f;
-	dt = 1.0f/144.0f;
+	dt = 1.0f/24.0f;
 
 	boids_k = glm::vec3(3.0f, 5.0f, 0.3f);
 	float pi = glm::pi<float>();
@@ -220,7 +220,7 @@ void Simulation::set_scene() {
 	boids = std::make_shared<Boids>();
 	boids->load_boid_mesh();
 	boids->buffer_world_geometry(objects);
-	boid_amount = 1024;
+	boid_amount = 1024 * 4;
 	int predators_amount = 8;
 	boids->init(boid_amount, predators_amount);
 	boids_program->unbind();

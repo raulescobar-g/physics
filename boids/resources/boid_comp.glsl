@@ -120,24 +120,22 @@ vec3 obstacle_avoidance( uint gid , vec3 o, vec3 ray) {
 		vec3 minimum = corners[j][0].xyz;
 		vec3 maximum = corners[j][1].xyz;
 
-		// float box_hit = ray_box_intersect(o, ray, minimum, maximum);
+		float box_hit = ray_box_intersect(o, ray, minimum, maximum);
 
-		// if (box_hit < 0.0) {
-		// 	continue;
-		// }
+		if (box_hit > 0.0 && box_hit < attention.y) {
+			for (int i = last; i < last + poly_count[j]; ++i) {
 
-		for (int i = last; i < last + poly_count[j]; ++i) {
+				vec3 vertex_0 = triangles[ i ][0].xyz;
+				vec3 vertex_1 = triangles[ i ][1].xyz;
+				vec3 vertex_2 = triangles[ i ][2].xyz;
 
-			vec3 vertex_0 = triangles[ i ][0].xyz;
-			vec3 vertex_1 = triangles[ i ][1].xyz;
-			vec3 vertex_2 = triangles[ i ][2].xyz;
+				float t = triangle_hit(o, ray, vertex_0, vertex_1, vertex_2);
 
-			float t = triangle_hit(o, ray, vertex_0, vertex_1, vertex_2);
-
-			if (t > 0.0  && t < vision_distance && t < closest_obstacle){
-				vec3 n = normalize(cross(vertex_1 - vertex_0, vertex_2 - vertex_0));
-				closest_obstacle = t;
-				response = steering_speed * n / t;
+				if (t > 0.0  && t < vision_distance && t < closest_obstacle){
+					vec3 n = normalize(cross(vertex_1 - vertex_0, vertex_2 - vertex_0));
+					closest_obstacle = t;
+					response = steering_speed * n / t;
+				}
 			}
 		}
 		last += poly_count[j];
