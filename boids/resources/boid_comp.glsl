@@ -108,7 +108,7 @@ float ray_box_intersect ( vec3 rpos, vec3 rdir, vec3 vmin, vec3 vmax ){
    t[6] = (vmax.z - rpos.z)/rdir.z;
    t[7] = max(max(min(t[1], t[2]), min(t[3], t[4])), min(t[5], t[6]));
    t[8] = min(min(max(t[1], t[2]), max(t[3], t[4])), max(t[5], t[6]));
-   t[9] = (t[8] < 0.0 || t[7] > t[8]) ? -1.0 : t[7];
+   t[9] = (t[8] < 0.0 || t[7] > t[8]) ? -1.0 : t[7] < 0.0 ? t[8] : t[7];
    return t[9];
 }
 
@@ -120,9 +120,9 @@ vec3 obstacle_avoidance( uint gid , vec3 o, vec3 ray) {
 		vec3 minimum = corners[j][0].xyz;
 		vec3 maximum = corners[j][1].xyz;
 
-		float box_hit = ray_box_intersect(o, ray, minimum, maximum);
+		// float box_hit = ray_box_intersect(o, ray, minimum, maximum);
 
-		if (box_hit > 0.0 && box_hit < attention.y) {
+		// if (box_hit > 0.0 && box_hit < attention.y) {
 			for (int i = last; i < last + poly_count[j]; ++i) {
 
 				vec3 vertex_0 = triangles[ i ][0].xyz;
@@ -134,10 +134,11 @@ vec3 obstacle_avoidance( uint gid , vec3 o, vec3 ray) {
 				if (t > 0.0  && t < vision_distance && t < closest_obstacle){
 					vec3 n = normalize(cross(vertex_1 - vertex_0, vertex_2 - vertex_0));
 					closest_obstacle = t;
-					response = steering_speed * n / t;
+					float r = (t/vision_distance);
+					response = steering_speed * n / (r * r);
 				}
 			}
-		}
+		//}
 		last += poly_count[j];
 	}
 	return response;
@@ -287,7 +288,8 @@ void main(){
 		predator_velocities[ gid ].xyz = next_velocity;
 	} else {
 		vec3 next_position = positions[ gid ].xyz + velocities[ gid ].xyz * dt;
-		vec3 next_velocity = velocities[ gid ].xyz + acceleration * dt;
+		vec3 t = velocities[ gid ].xyz + acceleration * dt;
+		vec3 next_velocity = clamp(length(t), minimum_speed ,speed_limit) * normalize(t);
 		
 		positions[ gid ].xyz = next_position;
 		velocities[ gid ].xyz = next_velocity;

@@ -220,9 +220,9 @@ void Boids::init(int max, int _predators) {
 void Boids::spawn_boids() {
     for( int i = 0; i < max_amount - predators; ++i )
     {   
-        positions[ i ].x = glm::clamp(unit_normal(engine) * 15.0f, -50.0f, 50.0f);
-        positions[ i ].y = glm::clamp(unit_normal(engine) * 15.0f, -50.0f, 50.0f);
-        positions[ i ].z = glm::clamp(unit_normal(engine) * 15.0f, -50.0f, 50.0f);
+        positions[ i ].x = glm::clamp(unit_normal(engine) * 10.0f, -20.0f, 20.0f);
+        positions[ i ].y = glm::clamp(unit_normal(engine) * 10.0f, -20.0f, 20.0f);
+        positions[ i ].z = glm::clamp(unit_normal(engine) * 10.0f, -20.0f, 20.0f);
 
         velocities[ i ].x = unit_normal(engine) * 10.0f;
         velocities[ i ].y = unit_normal(engine) * 10.0f;
@@ -239,9 +239,9 @@ void Boids::spawn_boids() {
 
     for( int i = 0; i < predators; ++i )
     {   
-        predator_positions[ i ].x = glm::clamp(unit_normal(engine) * 15.0f, -50.0f, 50.0f);
-        predator_positions[ i ].y = glm::clamp(unit_normal(engine) * 15.0f, -50.0f, 50.0f);
-        predator_positions[ i ].z = glm::clamp(unit_normal(engine) * 15.0f, -50.0f, 50.0f);
+        predator_positions[ i ].x = glm::clamp(unit_normal(engine) * 10.0f, -20.0f, 20.0f);
+        predator_positions[ i ].y = glm::clamp(unit_normal(engine) * 10.0f, -20.0f, 20.0f);
+        predator_positions[ i ].z = glm::clamp(unit_normal(engine) * 10.0f, -20.0f, 20.0f);
 
         predator_velocities[ i ].x = unit_normal(engine) * 1.0f;
         predator_velocities[ i ].y = unit_normal(engine) * 1.0f;

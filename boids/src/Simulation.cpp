@@ -13,26 +13,26 @@ Simulation::Simulation() {
 	movement_speed = 0.5f;
 	sensitivity = 0.005f;
 	eps = 0.01f;
-	dt = 1.0f/24.0f;
+	dt = 1.0f/60.0f;
 
 	boids_k = glm::vec3(3.0f, 5.0f, 0.3f);
 	float pi = glm::pi<float>();
-	attention = glm::vec4(2.0f, 10.0f, pi/4.0, 2.0f*pi/4.0f );
+	attention = glm::vec4(5.0f, 10.0f, pi/4.0, 2.0f*pi/4.0f );
 	gravity = glm::vec3(0.0f, 0.0f, 0.0f);
 	wind = glm::vec3(0.0f, 0.0f, 0.0f);
 	lightPos = glm::vec3(0.0f, 300.0f, 0.0f);
 
 	speed_limit = 10.0f;
 	acceleration_limit = 30.0f;
-	vision_distance = 20.0f;
+	vision_distance = 10.0f;
 	minimum_speed = 5.0f;
 	predator_speed = 30.0f;
 	predator_avoidance = 30.0f;
-	predator_avoidance_internal = 90.0f;
+	predator_avoidance_internal = 200.0f;
 	predator_attention_radius = 30.0f;
 
-	steering_speed = 30.0f;
-	box_sidelength = 100.0f;
+	steering_speed = 40.0f;
+	box_sidelength = 50.0f;
 }
 
 Simulation::~Simulation() {
@@ -109,6 +109,11 @@ void Simulation::set_scene() {
 	ball->fitToUnitBox();
 	ball->init();
 
+	std::shared_ptr<Shape> ring = std::make_shared<Shape>();
+	ring->loadMesh("C:\\Users\\raul3\\Programming\\physics\\boids\\resources\\torus.obj");
+	ring->fitToUnitBox();
+	ring->init();
+
 	std::shared_ptr<Shape> wall = std::make_shared<Shape>();
 	wall->loadMesh("C:\\Users\\raul3\\Programming\\physics\\boids\\resources\\square.obj");
 	wall->fitToUnitBox();
@@ -153,12 +158,13 @@ void Simulation::set_scene() {
 	predator_material->s = 1.0f;
 
 
-	std::shared_ptr<Object> ball_obstacle = std::make_shared<Object>();
-	ball_obstacle->shape = ball;
-	ball_obstacle->material = obstacle_material;
-	ball_obstacle->position = glm::vec3(0.0f);
-	ball_obstacle->scale = glm::vec3(20.0f);
-	objects.push_back(ball_obstacle);
+	std::shared_ptr<Object> ring_obstacle = std::make_shared<Object>();
+	ring_obstacle->shape = ring;
+	ring_obstacle->material = obstacle_material;
+	ring_obstacle->position = glm::vec3(0.0f);
+	ring_obstacle->scale = glm::vec3(40.0f);
+	ring_obstacle->rotation = glm::vec3(glm::pi<float>() / 2.0f, 0.0f, 0.0f);
+	objects.push_back(ring_obstacle);
 
 
 
@@ -220,8 +226,8 @@ void Simulation::set_scene() {
 	boids = std::make_shared<Boids>();
 	boids->load_boid_mesh();
 	boids->buffer_world_geometry(objects);
-	boid_amount = 1024 * 4;
-	int predators_amount = 8;
+	boid_amount = 1024 * 2;
+	int predators_amount = 0;
 	boids->init(boid_amount, predators_amount);
 	boids_program->unbind();
 	GLSL::checkError(GET_FILE_LINE);
@@ -283,7 +289,7 @@ void Simulation::render_scene() {
 
 	ImGui::DragFloat3("light position", lightPos_pointer);
 	ImGui::DragFloat("predator avoidance", &predator_avoidance, 0.5f, 0.0001f, 50.0f);
-	ImGui::DragFloat("predator avoidance (internal)", &predator_avoidance_internal, 0.5f, 0.0001f, 50.0f);
+	ImGui::DragFloat("predator avoidance (internal)", &predator_avoidance_internal, 1.0f, 0.01f, 200.0f);
 	ImGui::DragFloat("predator instince", &predator_speed, 0.5f, 0.0001f, 50.0f);
 	ImGui::DragFloat("predator attention radius", &predator_attention_radius, 0.5f, 0.0001f, 50.0f);
 	ImGui::DragFloat("velocity limit", &speed_limit, 0.5f, 0.0001f, 50.0f);
