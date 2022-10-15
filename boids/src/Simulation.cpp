@@ -227,7 +227,7 @@ void Simulation::set_scene() {
 	boids->load_boid_mesh();
 	boids->buffer_world_geometry(objects);
 	boid_amount = 1024 * 2;
-	int predators_amount = 0;
+	int predators_amount = 4;
 	boids->init(boid_amount, predators_amount);
 	boids_program->unbind();
 	GLSL::checkError(GET_FILE_LINE);
