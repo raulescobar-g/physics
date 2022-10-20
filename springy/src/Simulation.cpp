@@ -17,7 +17,7 @@ Simulation::Simulation() {
 	movement_speed = 0.5f;
 	sensitivity = 0.005f;
 	eps = 0.01f;
-	dt = 1.0f/145.0f;
+	dt = 0.01f;
 	lightPos = glm::vec3(0.0f, 30.0f, 0.0f);
 	gravity = glm::vec3(0.0f, 0.0f, 0.0f);
 	wind = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -72,9 +72,17 @@ void Simulation::init_programs(){
 	strut_compute = std::make_shared<Program>();
 	strut_compute->init("C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\softbody_struts.glsl", strut_uniforms);
 
-	std::vector<std::string> integration_uniforms = {"dt", "gravity"};
+	std::vector<std::string> integration_uniforms = {"dt"};
 	integration_compute = std::make_shared<Program>();
 	integration_compute->init("C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\softbody_integrate.glsl", integration_uniforms);
+
+	std::vector<std::string> particle_uniforms = { "gravity" };
+	particle_compute = std::make_shared<Program>();
+	particle_compute->init("C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\softbody_particles.glsl", particle_uniforms);
+
+	std::vector<std::string> cleanup_uniforms = {"dt"};
+	cleanup_compute = std::make_shared<Program>();
+	cleanup_compute->init("C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\softbody_cleanup.glsl", cleanup_uniforms);
 }
 
 void Simulation::init_camera(){
@@ -108,24 +116,12 @@ void Simulation::set_scene() {
 	};
 
 	InitialConditions cube_start = {
-		glm::vec3(0.0f, 5.0f, 5.0f),
 		glm::vec3(0.0f, 0.0f, 0.0f),
-		glm::vec3(5.0f),
+		glm::vec3(0.0f, 0.0f, 0.0f),
+		glm::vec3(1.0f),
 		glm::vec3(0.0f),
 		glm::vec3(0.0f),
 	};
-
-	// std::shared_ptr<RigidBody> hard_ball = std::make_shared<RigidBody>();
-	// hard_ball->loadMesh("C:\\Users\\raul3\\Programming\\physics\\particles\\resources\\sphere.obj");
-	// hard_ball->fitToUnitBox();
-	// hard_ball->init();
-	// entities.push_back(hard_ball);
-
-	// std::shared_ptr<SoftBody> soft_ball = std::make_shared<SoftBody>();
-	// soft_ball->loadMesh("C:\\Users\\raul3\\Programming\\physics\\particles\\resources\\sphere.obj");
-	// soft_ball->fitToUnitBox();
-	// soft_ball->init();
-	// entities.push_back(soft_ball);
 
 	std::shared_ptr<StaticBody> floor = std::make_shared<StaticBody>("C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\square.obj");
 	floor->initial_conditions(floor_start, floor_material);
@@ -133,21 +129,13 @@ void Simulation::set_scene() {
 
 	std::shared_ptr<SoftBody> cube = std::make_shared<SoftBody>("C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\sphere.obj");
 	cube->initial_conditions(cube_start, cube_material);
-	cube->set_programs(face_compute, strut_compute, integration_compute);
+	cube->set_programs(face_compute, strut_compute, integration_compute, particle_compute, cleanup_compute);
 	entities.push_back(cube);
 
 
 	// set all time params
 	current_time = glfwGetTime();
 	total_time = 0.0f;
-
-	// particles_program->bind();
-	// particles= std::make_shared<Particles>();
-	// particles->load_particle_mesh();
-	// particles->buffer_world_geometry(objects);
-	// int amount = 1024 * 128;
-	// particles->init(1024 * 1024, 512 ,amount, compute_program); // max at 1 million particles
-	// particles_program->unbind();
 
 	GLSL::checkError(GET_FILE_LINE);
 }

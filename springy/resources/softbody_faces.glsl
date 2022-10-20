@@ -5,7 +5,7 @@
 uniform vec3 wind;
 
 struct particle_data {
-	vec4 velocity,force;
+	vec4 velocity,force; // mass is packed into the force w component
 };
 struct face_data {
 	int s1,s2,s3;
@@ -58,7 +58,7 @@ void main(){
 	particle_2 = particles[p2_idx];
 	particle_3 = particles[p3_idx];
 
-	vec3 force_buffer_1 = vec3(0.0); // move to its own shader
+	vec3 force_buffer_1 = vec3(0.0); 
 	vec3 force_buffer_2 = vec3(0.0);
 	vec3 force_buffer_3 = vec3(0.0);
 
@@ -67,15 +67,15 @@ void main(){
 	vec3 position_3 = vec3(positions[p3_idx * 3], positions[p3_idx * 3 + 1], positions[p3_idx * 3 + 2]);
 
 	//calculate force on face
-	vec3 v = (particle_1.velocity.xyz + particle_2.velocity.xyz + particle_3.velocity.xyz) / 3.0; // fix this part HERE
+	vec3 v = (particle_1.velocity.xyz + particle_2.velocity.xyz + particle_3.velocity.xyz) / 3.0; 
 	vec3 norm = cross(position_2 - position_1, position_3 - position_1);
 
 	vec3 n = normalize(norm);
 	vec3 vr = v - wind;
 	float A = length(norm) / 2.0;
 	vec3 q = cross(n, vr);
-	float Ae = A * dot(n,vr);
-	vec3 lift_dir = cross(vr, normalize(q));
+	float Ae = A * dot(n,normalize(vr));
+	vec3 lift_dir = dot(n,vr) < 0.001 ? vec3(0.0) : cross(vr, normalize(q));
 
 	vec3 Fda = cd * Ae * vr;
 	vec3 Fl = cl * Ae * lift_dir;

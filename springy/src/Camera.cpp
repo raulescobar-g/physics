@@ -12,7 +12,7 @@ Camera::Camera() :
 	fovy((float)(45.0*M_PI/180.0)),
 	znear(0.1f),
 	zfar(100000.0f),
-	pos(0.0f,0.0f,-4.9f),
+	pos(0.0f,3.0f,-10.0f),
 	yaw(0.0f),
 	pitch(0.0f)
 	{}

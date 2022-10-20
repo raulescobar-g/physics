@@ -29,42 +29,67 @@ class SoftBody: public Entity {
 
         void update(float dt, const glm::vec3& a) override;
 
-        void set_programs(std::shared_ptr<Program>, std::shared_ptr<Program>, std::shared_ptr<Program>);        
+        void set_programs(std::shared_ptr<Program> f, std::shared_ptr<Program>  s, std::shared_ptr<Program> i, std::shared_ptr<Program> p, std::shared_ptr<Program> fi);        
 
         
 
     protected:
-        unsigned int partSSbo;
-        unsigned int faceSSbo;
-        unsigned int strutSSbo;
-
         void loadMesh(const std::string &meshName);
         void init();
         void extract_struts();
+        void integrate(float dt, unsigned int start_positionId, unsigned int start_particleId, unsigned int particleId, unsigned int out_positionId, unsigned int out_particleId);
+        void integrate_and_cleanup(float dt);
+        void calculate_forces(unsigned int posId, unsigned int particleId);
 
-        struct particle *particles;
-        struct face *faces;
-        struct strut *struts;
+        // buffer id's
+        unsigned int posBufID_k1;
+        unsigned int posBufID_k2;
+        unsigned int posBufID_k3;
+        unsigned int posBufID_k4;
 
-        float *positions;
+        unsigned int partSSbo;
+        unsigned int partSSbo_k1;
+        unsigned int partSSbo_k2;
+        unsigned int partSSbo_k3;
+        unsigned int partSSbo_k4;
 
-        glm::vec3 velocity = glm::vec3(0.0f), acceleration = glm::vec3(0.0f);
-        float mass = 5.0f;
+        // we can keep these solo
+        unsigned int faceSSbo;
+        unsigned int strutSSbo;
 
+        float *positions; // for debuggery
+        struct particle *particles; // for debuggery
+
+        // initial conditions should be abstracted out of here this is wack as all hell
+        glm::vec3 velocity = glm::vec3(0.0f);
+        glm::vec3 acceleration = glm::vec3(0.0f);
+        float mass = 10.0f;
+        float L = 0.1f;
+        float k = 2.0f;
+        float d = 0.01f;
+        float tk = 1.0f;
+        float td = 1.0f;
+        glm::vec3 wind = glm::vec3(1.0f, 0.0f, 0.0f);
+        glm::vec3 gravity = glm::vec3(0.0f, 0.0f, 0.0f);
+
+        // params for dispatch
         int face_count, strut_count, particle_count;
 
+        //my temporary buffers
         std::vector<face> temp_faces;
         std::vector<strut> temp_struts;
         std::vector<particle> temp_particles;
         std::vector<float> temp_positions, temp_normals;
 
-        float L = 0.1f;
-        float k = 1.0f;
-        float d = 0.1f;
-        float tk = 10.0f;
-        float td = 1.0f;
-
-        std::shared_ptr<Program> integration_compute, face_compute, strut_compute;
+        // compute programs
+        std::shared_ptr<Program> integration_compute, face_compute, strut_compute, particle_compute, final_integration;
 };
 
 #endif
+
+//  float mass = 10.0f;
+//         float L = 0.1f;
+//         float k = -20.0f;
+//         float d = -10.0f;
+//         float tk = 100.0f;
+//         float td = 10.0f;

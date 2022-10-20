@@ -7,6 +7,9 @@
 #include <iostream>
 #include <unordered_map>
 
+//#define DEBUG
+#define PERTURB
+
 SoftBody::SoftBody(const std::string& meshName){
     loadMesh(meshName);
     fitToUnitBox();
@@ -21,56 +24,97 @@ SoftBody::SoftBody(std::vector<float>& p, std::vector<float>& n, std::vector<flo
     init();
 }
 
-void SoftBody::set_programs(std::shared_ptr<Program> f, std::shared_ptr<Program>  s, std::shared_ptr<Program> i){
+void SoftBody::set_programs(std::shared_ptr<Program> f, std::shared_ptr<Program>  s, std::shared_ptr<Program> i, std::shared_ptr<Program> p, std::shared_ptr<Program> fi){
     face_compute = f;
     integration_compute = i;
     strut_compute = s;
+    particle_compute = p;
+    final_integration = fi;
 }
 
-void SoftBody::update(float dt, const glm::vec3& a) {
-    
-    face_compute->bind();
+void SoftBody::integrate(float dt, unsigned int start_positionId, unsigned int start_particleId, unsigned int particleId, unsigned int out_positionId, unsigned int out_particleId) {
+    integration_compute->bind();
+    glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 0, start_positionId );
+    glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 1, start_particleId );
+    glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 2, particleId );
+    glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 3, out_positionId );
+    glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 4, out_particleId );
+    glUniform1f(integration_compute->getUniform("dt"), dt);
+    glDispatchCompute( particle_count, 1, 1 );
+    glMemoryBarrier(GL_ALL_BARRIER_BITS);  
+    integration_compute->unbind();
+}
+
+void SoftBody::integrate_and_cleanup(float dt) {
+    final_integration->bind();
     glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 0, posBufID );
     glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 1, partSSbo );
+    glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 2, partSSbo_k1 );
+    glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 3, partSSbo_k2 );
+    glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 4, partSSbo_k3 );
+    glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 5, partSSbo_k4 );
+    glUniform1f(integration_compute->getUniform("dt"), dt);
+    glDispatchCompute( particle_count, 1, 1 );
+    glMemoryBarrier(GL_ALL_BARRIER_BITS);  
+    final_integration->unbind();
+}
+
+void SoftBody::calculate_forces(unsigned int positionId, unsigned int particleId) {
+    // sum up the forces on particles
+    particle_compute->bind();
+    glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 1, particleId );
+    glUniform3f(particle_compute->getUniform("gravity"), gravity.x, gravity.y, gravity.z);
+    glDispatchCompute( particle_count, 1, 1 );
+    glMemoryBarrier(GL_ALL_BARRIER_BITS);   
+    particle_compute->unbind();
+
+    // sum up forces on particles due to face drag and lift
+    face_compute->bind();
+    glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 0, positionId );
+    glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 1, particleId );
     glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 2, faceSSbo );
     glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 3, strutSSbo );
-	glUniform3f(face_compute->getUniform("wind"), 0.1f, 0.0f, 0.0f);
+	glUniform3f(face_compute->getUniform("wind"), wind.x, wind.y, wind.z); // pass argument for this
     //glDispatchCompute( face_count, 1, 1 );
     glMemoryBarrier(GL_ALL_BARRIER_BITS);   
     face_compute->unbind();
 
+    // sum up forces on particles due to struts
     strut_compute->bind();
-    glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 0, posBufID );
-    glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 1, partSSbo );
+    glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 0, positionId );
+    glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 1, particleId );
     glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 2, faceSSbo );
     glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 3, strutSSbo );
     glDispatchCompute( strut_count, 1, 1 );
     glMemoryBarrier(GL_ALL_BARRIER_BITS);   
     strut_compute->unbind();
+}
 
-    // for ( int i = 0;  i < 9; ++i){
-    //      std::cout<<particles[i].force.x<<", "<<particles[i].force.y<<", "<<particles[i].force.z<<", "<<particles[i].force.w<<std::endl;
-    // }
-    // std::cout<<std::endl;
+void SoftBody::update(float dt, const glm::vec3& a) {
 
+    integrate(0.0f, posBufID, partSSbo, partSSbo_k1, posBufID_k1, partSSbo_k1);
+    calculate_forces(posBufID_k1, partSSbo_k1);
 
-    integration_compute->bind();
-    glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 0, posBufID );
-    glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 1, partSSbo );
-    glUniform1f(integration_compute->getUniform("dt"), dt);
-    glUniform3f(integration_compute->getUniform("gravity"), 0.0f, -0.0f, 0.0f);
-    glDispatchCompute( particle_count, 1, 1 );
-    glMemoryBarrier(GL_ALL_BARRIER_BITS);  
-    integration_compute->unbind();
+    integrate(dt/2.0f, posBufID, partSSbo, partSSbo_k1, posBufID_k2, partSSbo_k2);
+    calculate_forces(posBufID_k2, partSSbo_k2);
 
-    // for (int i = 0; i < 9*3; i+=3) {
-    //     std::cout<<positions[i]<<", "<<positions[i+1]<<", "<<positions[i+2]<<std::endl;
-    // }
-    // //std::cout<<std::endl;
-    for (int i = 0; i < 9; ++i) {
-        std::cout<<particles[i].velocity.x<<", "<<particles[i].velocity.y<<", "<<particles[i].velocity.z<<std::endl;
+    integrate(dt/2.0f, posBufID, partSSbo, partSSbo_k2, posBufID_k3, partSSbo_k3); // mutates pos and part 3
+    calculate_forces(posBufID_k3, partSSbo_k3); // ends pos v and F at 3
+    
+    integrate(dt, posBufID, partSSbo, partSSbo_k3, posBufID_k4, partSSbo_k4);
+    calculate_forces(posBufID_k4, partSSbo_k4);
+
+    integrate_and_cleanup(dt/6.0f);
+
+#ifdef DEBUG
+    for (int i = 0 ; i < temp_positions.size(); i+=3) {
+        std::cout<<"p: <"<<positions[i]<<", "<<positions[i+1]<<", "<<positions[i+2]<<"> \n";
+        if (std::isnan(positions[i])) {
+            exit(-1);
+        }
     }
     std::cout<<std::endl;
+#endif
 }
 
 void SoftBody::loadMesh(const std::string &meshName) {
@@ -135,6 +179,36 @@ void SoftBody::init(){
     glBufferStorage( GL_SHADER_STORAGE_BUFFER, temp_particles.size()*sizeof(particle), &temp_particles[0], bufMask | GL_DYNAMIC_STORAGE_BIT);
     particles = (particle *) glMapBufferRange( GL_SHADER_STORAGE_BUFFER, 0, temp_particles.size()*sizeof(particle), bufMask );
 
+    // RUNGY KUTTATA 
+    glGenBuffers( 1, &posBufID_k1);
+    glBindBuffer( GL_SHADER_STORAGE_BUFFER, posBufID_k1 );
+    glBufferStorage( GL_SHADER_STORAGE_BUFFER, temp_positions.size()*sizeof(float), &temp_positions[0], bufMask | GL_DYNAMIC_STORAGE_BIT);
+    glGenBuffers( 1, &posBufID_k2);
+    glBindBuffer( GL_SHADER_STORAGE_BUFFER, posBufID_k2 );
+    glBufferStorage( GL_SHADER_STORAGE_BUFFER, temp_positions.size()*sizeof(float), &temp_positions[0], bufMask | GL_DYNAMIC_STORAGE_BIT);
+    glGenBuffers( 1, &posBufID_k3);
+    glBindBuffer( GL_SHADER_STORAGE_BUFFER, posBufID_k3 );
+    glBufferStorage( GL_SHADER_STORAGE_BUFFER, temp_positions.size()*sizeof(float), &temp_positions[0], bufMask | GL_DYNAMIC_STORAGE_BIT);
+    glGenBuffers( 1, &posBufID_k4);
+    glBindBuffer( GL_SHADER_STORAGE_BUFFER, posBufID_k4 );
+    glBufferStorage( GL_SHADER_STORAGE_BUFFER, temp_positions.size()*sizeof(float), &temp_positions[0], bufMask | GL_DYNAMIC_STORAGE_BIT);
+
+
+    glGenBuffers( 1, &partSSbo_k1);
+    glBindBuffer( GL_SHADER_STORAGE_BUFFER, partSSbo_k1 );
+    glBufferStorage( GL_SHADER_STORAGE_BUFFER, temp_particles.size()*sizeof(particle), &temp_particles[0], bufMask | GL_DYNAMIC_STORAGE_BIT);
+
+    glGenBuffers( 1, &partSSbo_k2);
+    glBindBuffer( GL_SHADER_STORAGE_BUFFER, partSSbo_k2 );
+    glBufferStorage( GL_SHADER_STORAGE_BUFFER, temp_particles.size()*sizeof(particle), &temp_particles[0], bufMask | GL_DYNAMIC_STORAGE_BIT);
+    glGenBuffers( 1, &partSSbo_k3);
+    glBindBuffer( GL_SHADER_STORAGE_BUFFER, partSSbo_k3 );
+    glBufferStorage( GL_SHADER_STORAGE_BUFFER, temp_particles.size()*sizeof(particle), &temp_particles[0], bufMask | GL_DYNAMIC_STORAGE_BIT);
+    glGenBuffers( 1, &partSSbo_k4);
+    glBindBuffer( GL_SHADER_STORAGE_BUFFER, partSSbo_k4 );
+    glBufferStorage( GL_SHADER_STORAGE_BUFFER, temp_particles.size()*sizeof(particle), &temp_particles[0], bufMask | GL_DYNAMIC_STORAGE_BIT);
+
+    // we only need one of these bad boisss
     glGenBuffers( 1, &faceSSbo);
     glBindBuffer( GL_SHADER_STORAGE_BUFFER, faceSSbo);
     glBufferStorage( GL_SHADER_STORAGE_BUFFER, temp_faces.size()*sizeof(face), &temp_faces[0], bufMask | GL_DYNAMIC_STORAGE_BIT);
@@ -148,23 +222,28 @@ void SoftBody::init(){
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, texBufID);
 		glBufferStorage(GL_SHADER_STORAGE_BUFFER, texBuf.size()*sizeof(float), &texBuf[0], bufMask | GL_DYNAMIC_STORAGE_BIT);
 	}
-    if (!indBuf.empty()) {
-		glGenBuffers(1, &indBufID);
-		glBindBuffer(GL_SHADER_STORAGE_BUFFER, indBufID);
-		glBufferStorage(GL_SHADER_STORAGE_BUFFER, indBuf.size()*sizeof(unsigned int), &indBuf[0], bufMask | GL_DYNAMIC_STORAGE_BIT);
-	}
+
+    glGenBuffers(1, &indBufID);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, indBufID);
+    glBufferStorage(GL_SHADER_STORAGE_BUFFER, indBuf.size()*sizeof(unsigned int), &indBuf[0], bufMask | GL_DYNAMIC_STORAGE_BIT);
+	
 
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-    temp_positions.clear();
+    // temp_positions.clear();
+    // temp_positions.shrink_to_fit();
     temp_normals.clear();
+    temp_normals.shrink_to_fit();
     temp_particles.clear();
+    temp_particles.shrink_to_fit();
     temp_faces.clear();
+    temp_faces.shrink_to_fit();
     temp_struts.clear();
+    temp_struts.shrink_to_fit();
     GLSL::checkError(GET_FILE_LINE); 
 }
 
 bool near(glm::vec3 v1, glm::vec3 v2){
-    return glm::abs(v1.x - v2.x) < 0.001 && glm::abs(v1.y - v2.y) < 0.001 && glm::abs(v1.z - v2.z) < 0.001;
+    return glm::abs(glm::length(v1 - v2)) < 0.001f;
 }
 
 bool unique_particle(glm::vec3 vertex, std::vector<glm::vec3>& vec, int& result) {
@@ -276,8 +355,8 @@ void SoftBody::extract_struts(){
         bool strut12_unique = unique_strut(r1,r2,strut_map, s12_r);
         if (strut12_unique) {
             s12.lo = glm::length(v1-v2);
-            s12.k = k;
-            s12.d = d;
+            s12.k = k * (L / s12.lo);
+            s12.d = d * (L / s12.lo);
             s12.tk = tk;
             s12.td = td;
             s12.v1 = r1;
@@ -293,8 +372,8 @@ void SoftBody::extract_struts(){
         bool strut23_unique = unique_strut(r2, r3, strut_map, s23_r);
         if (strut23_unique){
             s23.lo = glm::length(v2-v3);
-            s23.k = k;
-            s23.d = d;
+            s23.k = k * (L / s23.lo);
+            s23.d = d * (L / s23.lo);
             s23.tk = tk;
             s23.td = td;
             s23.v1 = r2;
@@ -310,8 +389,8 @@ void SoftBody::extract_struts(){
         bool strut31_unique = unique_strut(r3, r1, strut_map, s31_r);
         if (strut31_unique) {
             s31.lo = glm::length(v3-v1);
-            s31.k = k;
-            s31.d = d;
+            s31.k = k * (L / s31.lo);
+            s31.d = d * (L / s31.lo);
             s31.tk = tk;
             s31.td = td;
             s31.v1 = r3;
@@ -381,6 +460,10 @@ void SoftBody::extract_struts(){
     for (auto&p : temp_particles){
         p.force.w = mass / (float) temp_particles.size();
     }
+
+#ifdef PERTURB
+    temp_particles[0].velocity = glm::vec4(0.0f, -0.5f, 0.0f, 0.0f);
+#endif
 
     vertex_map.clear();
     strut_map.clear();

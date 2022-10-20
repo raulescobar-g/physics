@@ -71,7 +71,7 @@ class Simulation {
         // std::shared_ptr<Struts> struts;
         //std::shared_ptr<Material> boid_material, predator_material;                                
         std::shared_ptr<Camera> camera;                     
-        std::shared_ptr<Program> meshes_program, integration_compute, strut_compute, face_compute; 
+        std::shared_ptr<Program> meshes_program, integration_compute, strut_compute, face_compute, particle_compute, cleanup_compute; 
         std::vector< std::shared_ptr<Entity> > entities;     
         
 };
