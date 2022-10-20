@@ -19,9 +19,9 @@ void Program::init(string vert_shader, string frag_shader, const vector<string>&
 		std::cout<<"Something went wrong with the shaders. \n";
 		exit(-1);
 	}
+	verbose = false;
 	addAttributes(attributes);
 	addUniforms(uniforms);
-	verbose = false;
 }
 
 void Program::init(std::string comp_shader, const std::vector<std::string>& uniforms){
@@ -35,7 +35,6 @@ void Program::init(std::string comp_shader, const std::vector<std::string>& unif
 		exit(-1);
 	}
 	addUniforms(uniforms);
-	verbose = false;
 }
 
 Program::~Program(){}
@@ -97,7 +96,7 @@ bool Program::compile_shaders(){
 		glCompileShader(CS);
 		glGetShaderiv(CS, GL_COMPILE_STATUS, &rc);
 		if(!rc) {
-			if(verbose) {
+			if(isVerbose()) {
 				GLSL::printShaderInfoLog(CS);
 				std::cout << "Error compiling compute shader " << cShaderName << std::endl;
 			}

@@ -1,5 +1,9 @@
 #include "Simulation.h"
 
+#include "SoftBody.h"
+#include "RigidBody.h"
+#include "StaticBody.h"
+
 Simulation::Simulation() {
     o_x = -1.0;
     o_y = -1.0;
@@ -13,8 +17,8 @@ Simulation::Simulation() {
 	movement_speed = 0.5f;
 	sensitivity = 0.005f;
 	eps = 0.01f;
-	dt = 1.0f/60.0f;
-	lightPos = glm::vec3(0.0f, 300.0f, 0.0f);
+	dt = 1.0f/145.0f;
+	lightPos = glm::vec3(0.0f, 30.0f, 0.0f);
 	gravity = glm::vec3(0.0f, 0.0f, 0.0f);
 	wind = glm::vec3(0.0f, 0.0f, 0.0f);
 }
@@ -60,9 +64,17 @@ void Simulation::init_programs(){
 	meshes_program->init("C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\phong_vert.glsl", 
 						"C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\phong_frag.glsl", mesh_attributes, mesh_uniforms);
 
-	std::vector<std::string> compute_uniforms = {"dt", "gravity", "wind", "objects", "time", "counters"};
-	compute_program = std::make_shared<Program>();
-	compute_program->init("C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\spring_comp.glsl", compute_uniforms);
+	std::vector<std::string> face_uniforms = {"wind"};
+	face_compute = std::make_shared<Program>();
+	face_compute->init("C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\softbody_faces.glsl", face_uniforms);
+
+	std::vector<std::string> strut_uniforms = {};
+	strut_compute = std::make_shared<Program>();
+	strut_compute->init("C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\softbody_struts.glsl", strut_uniforms);
+
+	std::vector<std::string> integration_uniforms = {"dt", "gravity"};
+	integration_compute = std::make_shared<Program>();
+	integration_compute->init("C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\softbody_integrate.glsl", integration_uniforms);
 }
 
 void Simulation::init_camera(){
@@ -70,44 +82,60 @@ void Simulation::init_camera(){
 }
 
 void Simulation::set_scene() {
-	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 
-	std::shared_ptr<Shape> ball = std::make_shared<Shape>();
-	ball->loadMesh("C:\\Users\\raul3\\Programming\\physics\\particles\\resources\\sphere.obj");
-	ball->fitToUnitBox();
-	ball->init();
+	std::shared_ptr<Material> floor_material = std::make_shared<Material>();
+	floor_material->ka = glm::vec3(0.2f, 0.5f, 0.7f);
+	floor_material->kd = glm::vec3(0.2f, 0.5f, 0.7f);
+	floor_material->ks = glm::vec3(0.7f, 0.7f, 0.7f);
+	floor_material->s = 100.0f;
 
-	std::shared_ptr<Shape> wall = std::make_shared<Shape>();
-	wall->loadMesh("C:\\Users\\raul3\\Programming\\physics\\particles\\resources\\square.obj");
-	wall->fitToUnitBox();
-	wall->init();
-	meshes_program->unbind();
+	std::shared_ptr<Material> cube_material = std::make_shared<Material>();
+	cube_material->ka = glm::vec3(0.7f, 0.5f, 0.2f);
+	cube_material->kd = glm::vec3(0.7f, 0.5f, 0.2f);
+	cube_material->ks = glm::vec3(0.7f, 0.7f, 0.7f);
+	cube_material->s = 100.0f;
 
-	std::shared_ptr<Shape> bunny = std::make_shared<Shape>();
-	bunny->loadMesh("C:\\Users\\raul3\\Programming\\physics\\particles\\resources\\bunny.obj");
-	bunny->fitToUnitBox();
-	bunny->init();
+	InitialConditions floor_start = {
+		glm::vec3(0.0f, -5.0f, 5.0f),
+		glm::vec3(-glm::pi<float>() / 2.0f, 0.0f, 0.0f),
+		glm::vec3(100.0f),
+		glm::vec3(0.0f),
+		glm::vec3(0.0f),
+	};
 
-	std::shared_ptr<Object> bunny_ptr = std::make_shared<Object>(bunny, glm::vec3(0.0f , 0.0f, 0.0f));
-	bunny_ptr->scale = glm::vec3(10.0f);
-	bunny_ptr->rotation = glm::vec3(0.0f, glm::pi<float>(), 0.0f);
-	//objects.push_back(bunny_ptr);
+	InitialConditions cube_start = {
+		glm::vec3(0.0f, 5.0f, 5.0f),
+		glm::vec3(0.0f, 0.0f, 0.0f),
+		glm::vec3(5.0f),
+		glm::vec3(0.0f),
+		glm::vec3(0.0f),
+	};
 
-	std::shared_ptr<Object> wall_ptr = std::make_shared<Object>(wall, glm::vec3(0.0f , -0.1f, 0.0f));
-	wall_ptr->scale = glm::vec3(300.0f);
-	wall_ptr->rotation = glm::vec3(-glm::pi<float>() / 2.0f, 0.0f, 0.0f);
-	//objects.push_back(wall_ptr);
+	// std::shared_ptr<RigidBody> hard_ball = std::make_shared<RigidBody>();
+	// hard_ball->loadMesh("C:\\Users\\raul3\\Programming\\physics\\particles\\resources\\sphere.obj");
+	// hard_ball->fitToUnitBox();
+	// hard_ball->init();
+	// entities.push_back(hard_ball);
 
-	std::shared_ptr<Object> second_wall_ptr = std::make_shared<Object>(wall, glm::vec3(0.0f , -15.0f, 10.0f));
-	second_wall_ptr->scale = glm::vec3(5.0f);
-	second_wall_ptr->rotation = glm::vec3(-glm::pi<float>() * 17.0f / 32.0f, 0.0f, 0.0f);
-	//objects.push_back(second_wall_ptr);
+	// std::shared_ptr<SoftBody> soft_ball = std::make_shared<SoftBody>();
+	// soft_ball->loadMesh("C:\\Users\\raul3\\Programming\\physics\\particles\\resources\\sphere.obj");
+	// soft_ball->fitToUnitBox();
+	// soft_ball->init();
+	// entities.push_back(soft_ball);
 
-	std::shared_ptr<Object> ball_ptr = std::make_shared<Object>(ball, glm::vec3(0.0f, 0.0f, 0.0f));
-	ball_ptr->scale = glm::vec3(10.0f);
-	ball_ptr->rotation = glm::vec3(-glm::pi<float>() / 2.0f, 0.0f, 0.0f);
-	//objects.push_back(ball_ptr);
+	std::shared_ptr<StaticBody> floor = std::make_shared<StaticBody>("C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\square.obj");
+	floor->initial_conditions(floor_start, floor_material);
+	entities.push_back(floor);
+
+	std::shared_ptr<SoftBody> cube = std::make_shared<SoftBody>("C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\sphere.obj");
+	cube->initial_conditions(cube_start, cube_material);
+	cube->set_programs(face_compute, strut_compute, integration_compute);
+	entities.push_back(cube);
+
 
 	// set all time params
 	current_time = glfwGetTime();
@@ -136,22 +164,31 @@ void Simulation::fixed_timestep_update() {
 	}
 }
 
+std::vector<int> broad_phase(std::vector<std::shared_ptr<Entity>>& entities) {
+	return std::vector<int>();
+}
+
+void narrow_phase(std::shared_ptr<Entity> entityA, std::shared_ptr<Entity> entityB ) {
+	return;
+}
+
 void Simulation::update(float _dt) {
-	// compute next positions
+	
+	glm::vec3 global_acceleration = gravity + wind;
 
-	// compute collisions
+	// compute next positions and velocities
+	for (auto entity : entities) {
+		entity->update(_dt, global_acceleration);
+	}
 
-	// compute collision response
+	// compute collisions : broad phase
+	auto collisions = broad_phase(entities);
 
-	// assign new position and velocity to objects
-	// compute_program->bind();
-	// glUniform1f(compute_program->getUniform("dt"), _dt);
-	// glUniform1i(compute_program->getUniform("objects"), entities.size());
-	// glUniform3f(compute_program->getUniform("gravity"), gravity.x, gravity.y, gravity.z);
-	// glUniform3f(compute_program->getUniform("wind"), wind.x, wind.y, wind.z);
-	// glUniform1f(compute_program->getUniform("time"), glfwGetTime());
-	// struts->update();
-	// compute_program->unbind();
+	// compute collisions : narrow phase and response
+	for (int i = 0; i < collisions.size(); i+=2) {
+		narrow_phase(entities[i], entities[i+1]);
+	}
+
 }
 
 void Simulation::render_scene() {
@@ -162,7 +199,8 @@ void Simulation::render_scene() {
 
 	ImGui::Begin("Info: ");
 	ImGui::Text("%.3f dt", dt);
-	ImGui::Text("%.1f fps", ImGui::GetIO().Framerate);
+	ImGui::Text("%.1f frametime", 1000.0f / ImGui::GetIO().Framerate);
+	ImGui::Text("<%.1f, %.1f, %.1f>", camera->pos.x, camera->pos.y, camera->pos.z);
 	if (ImGui::Button("Cull backfaces"))
 		options[(unsigned) 'c'] = !options[(unsigned) 'c'];
 	if (ImGui::Button("Wireframes"))
@@ -173,52 +211,35 @@ void Simulation::render_scene() {
 
 	ImGui::Render();
 
+	// try putting this elsewhere
 	int display_w, display_h;
 	glfwGetFramebufferSize(window, &display_w, &display_h);
 	glViewport(0, 0, display_w, display_h);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	
-	
 	// Matrix stacks
 	auto P = std::make_shared<MatrixStack>();
 	auto MV = std::make_shared<MatrixStack>();
-	glm::mat4 iMV;
 
-	P->pushMatrix();	
-	camera->applyProjectionMatrix(P);
-	camera->applyViewMatrix(MV);	
+	P->pushMatrix();
 	MV->pushMatrix();
+	camera->applyProjectionMatrix(P);
+	camera->applyViewMatrix(MV);
+	
 
 	meshes_program->bind();
-	for (auto obj : objects){ 
+	MV->pushMatrix();
+		MV->translate(lightPos);
+		glm::vec3 world_light_pos = MV->topMatrix() * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+	MV->popMatrix();
+	glUniform3f(meshes_program->getUniform("lightPos"), world_light_pos.x, world_light_pos.y, world_light_pos.z);
+
+	for (auto entity : entities){ 
 		MV->pushMatrix();
-		MV->translate(obj->position);
-		MV->scale(obj->scale);
-		if (glm::length(obj->rotation) > eps) MV->rotate(glm::length(obj->rotation), obj->rotation);
-		
-		iMV = glm::transpose(glm::inverse(glm::mat4(MV->topMatrix())));
-
-		glUniformMatrix4fv(meshes_program->getUniform("P"), 1, GL_FALSE, glm::value_ptr(P->topMatrix()));
-		glUniformMatrix4fv(meshes_program->getUniform("MV"), 1, GL_FALSE, glm::value_ptr(MV->topMatrix()));
-		glUniformMatrix4fv(meshes_program->getUniform("iMV"), 1, GL_FALSE, glm::value_ptr(iMV));
-
-		obj->shape->draw(meshes_program); 	
-
+		entity->draw(meshes_program, MV, P); 	
 		MV->popMatrix();
 	}  
-
 	meshes_program->unbind();
-
-	// boids_program->bind();
-	// glUniform3f(boids_program->getUniform("lightPos"), world_light_pos.x, world_light_pos.y, world_light_pos.z);
-	// glUniformMatrix4fv(boids_program->getUniform("P"), 1, GL_FALSE, glm::value_ptr(P->topMatrix()));
-	// glUniformMatrix4fv(boids_program->getUniform("MV"), 1, GL_FALSE, glm::value_ptr(MV->topMatrix()));
-	// glUniformMatrix4fv(boids_program->getUniform("iMV"), 1, GL_FALSE, glm::value_ptr(iMV));
-	// glUniform3f(boids_program->getUniform("ka"), boid_material->ka.x, boid_material->ka.y, boid_material->ka.z);
-	// glUniform3f(boids_program->getUniform("kd"), boid_material->kd.x, boid_material->kd.y, boid_material->kd.z);
-	// glUniform3f(boids_program->getUniform("ks"), boid_material->ks.x, boid_material->ks.y, boid_material->ks.z);
-	// glUniform1f(boids_program->getUniform("s"), boid_material->s );
-	// boids->draw_boids(boids_program);
 
 	MV->popMatrix();	
 	P->popMatrix();
@@ -316,8 +337,4 @@ void Simulation::input_capture(){
 		o_y = mouse.y;
 	}
 	
-}
-
-GLFWwindow * Simulation::get_window() {
-	return window;
 }

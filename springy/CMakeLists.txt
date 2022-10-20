@@ -1,7 +1,7 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.10)
 
 # Name of the project
-PROJECT(particles)
+PROJECT(springy)
 
 
 FILE(GLOB_RECURSE SOURCES "src/*.cpp")

@@ -42,8 +42,6 @@ int main(int argc, char **argv)
 	std::cout << "OpenGL version: " << glGetString(GL_VERSION) << std::endl;
 	std::cout << "GLSL version: " << glGetString(GL_SHADING_LANGUAGE_VERSION) << std::endl;
 	
-	GLFWwindow * win = sim.get_window();
-
 	GLuint vaoId = 0;
 	glGenVertexArrays(1, &vaoId);
 	glBindVertexArray(vaoId);
@@ -51,12 +49,14 @@ int main(int argc, char **argv)
 	sim.init_programs();
 	sim.init_camera();
 	sim.set_scene();	
+	int i = 0;
 	while(!sim.window_closed()) {
 		sim.input_capture();
 		sim.move_camera();
 		sim.fixed_timestep_update();
 		sim.render_scene();
 		sim.swap_buffers();
+		++i;
 	}
 	return 0;
 }

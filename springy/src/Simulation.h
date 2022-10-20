@@ -17,12 +17,8 @@
 
 #include "Program.h"
 #include "Camera.h"
-#include "Shape.h"
-#include "Object.h"
 #include "MatrixStack.h"
-#include "Struts.h"
 #include "GLSL.h"
-#include "Material.h"
 #include "Entity.h"
 
 
@@ -47,7 +43,6 @@ class Simulation {
         
         void swap_buffers();
         bool window_closed();
-        GLFWwindow * get_window(); 
 
         static Simulation& get_instance() {
             static Simulation instance; 
@@ -73,10 +68,10 @@ class Simulation {
         bool options[256], inputs[256];                 
 
         GLFWwindow *window; 
-        std::shared_ptr<Struts> struts;
+        // std::shared_ptr<Struts> struts;
         //std::shared_ptr<Material> boid_material, predator_material;                                
         std::shared_ptr<Camera> camera;                     
-        std::shared_ptr<Program> meshes_program, strut_program, compute_program; 
+        std::shared_ptr<Program> meshes_program, integration_compute, strut_compute, face_compute; 
         std::vector< std::shared_ptr<Entity> > entities;     
         
 };
