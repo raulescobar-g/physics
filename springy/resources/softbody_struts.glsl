@@ -100,6 +100,7 @@ void main(){
     if (length(dx) > 0.0001) {
         vec3 v0 = particles[ p0 ].velocity.xyz;
         vec3 v1 = particles[ p1 ].velocity.xyz;
+        
         vec3 Fs = strut.k * (length(dx) - strut.lo) * normalize(dx);
         vec3 Fd = strut.d * dot(v1 - v0, normalize(dx)) * normalize(dx);
 

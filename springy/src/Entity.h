@@ -44,6 +44,16 @@ class Entity {
 		virtual void initial_conditions(const InitialConditions& start, std::shared_ptr<Material> material);
 		virtual void update(float dt, const glm::vec3& a);
 		virtual void draw(std::shared_ptr<Program> prog, std::shared_ptr<MatrixStack> P, std::shared_ptr<MatrixStack> MV) const;		
+
+		std::vector<float>& get_posbuf() { return posBuf; }
+		
+		std::shared_ptr<MatrixStack> get_transform() {
+			auto MV = std::shared_ptr<MatrixStack>();
+			MV->translate(position);
+			MV->scale(scale);
+			if (glm::length(rotation) > 0.001f) MV->rotate(glm::length(rotation), rotation);
+			return MV;
+		}
 		
 	protected:
 		virtual void loadMesh(const std::string &meshName);

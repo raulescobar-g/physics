@@ -3,6 +3,7 @@
 #include "SoftBody.h"
 #include "RigidBody.h"
 #include "StaticBody.h"
+#include "Collisions.h"
 
 Simulation::Simulation() {
     o_x = -1.0;
@@ -133,6 +134,12 @@ void Simulation::set_scene() {
 	entities.push_back(cube);
 
 
+	double tol = 0.1;
+
+	// after all the entities have been added to the vector
+	box_tree = std::shared_ptr<abby::tree<int,float>>();
+
+
 	// set all time params
 	current_time = glfwGetTime();
 	total_time = 0.0f;
@@ -152,8 +159,18 @@ void Simulation::fixed_timestep_update() {
 	}
 }
 
-std::vector<int> broad_phase(std::vector<std::shared_ptr<Entity>>& entities) {
-	return std::vector<int>();
+std::vector<std::vector<int>> broad_phase(std::vector<std::shared_ptr<Entity>>& entities) {
+	std::vector<std::vector<int>> result;
+
+	for (int i = 0; i < entities.size()-1; ++i) {
+		result.push_back(std::vector<int>());
+		for (int j = i+1; j < entities.size(); ++j) {
+			if (j == i) continue;
+			// check here
+			result[i].push_back(j);
+		}
+	}
+	return result;
 }
 
 void narrow_phase(std::shared_ptr<Entity> entityA, std::shared_ptr<Entity> entityB ) {
@@ -173,8 +190,14 @@ void Simulation::update(float _dt) {
 	auto collisions = broad_phase(entities);
 
 	// compute collisions : narrow phase and response
-	for (int i = 0; i < collisions.size(); i+=2) {
-		narrow_phase(entities[i], entities[i+1]);
+	for (int i = 0; i < collisions.size(); ++i) {
+		for (int j = 0; j < collisions[i].size(); ++j) {
+			narrow_phase(entities[i], entities[collisions[i][j]]);
+		}
+	}
+
+	for (auto entity : entities) {
+		//entity->rebuild_box();
 	}
 
 }

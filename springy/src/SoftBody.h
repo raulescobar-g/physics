@@ -26,12 +26,13 @@ class SoftBody: public Entity {
     public:
         SoftBody(const std::string& meshName);
         SoftBody(std::vector<float>&, std::vector<float>&, std::vector<float>&, std::vector<unsigned int>&);
-
         void update(float dt, const glm::vec3& a) override;
-
         void set_programs(std::shared_ptr<Program> f, std::shared_ptr<Program>  s, std::shared_ptr<Program> i, std::shared_ptr<Program> p, std::shared_ptr<Program> fi);        
 
-        
+        int size() { return particle_count; };
+
+        float *positions; // for debuggery
+        struct particle *particles; // for debuggery
 
     protected:
         void loadMesh(const std::string &meshName);
@@ -57,20 +58,20 @@ class SoftBody: public Entity {
         unsigned int faceSSbo;
         unsigned int strutSSbo;
 
-        float *positions; // for debuggery
-        struct particle *particles; // for debuggery
+        
+        
 
         // initial conditions should be abstracted out of here this is wack as all hell
         glm::vec3 velocity = glm::vec3(0.0f);
         glm::vec3 acceleration = glm::vec3(0.0f);
-        float mass = 10.0f;
-        float L = 0.1f;
-        float k = 2.0f;
-        float d = 0.01f;
-        float tk = 1.0f;
-        float td = 1.0f;
+        float mass = 1.0f;
+        float L = 1.0f;
+        float k = 1.0f;
+        float d = 0.00001f;
+        float tk = 0.1f;
+        float td = 0.00001f;
         glm::vec3 wind = glm::vec3(1.0f, 0.0f, 0.0f);
-        glm::vec3 gravity = glm::vec3(0.0f, 0.0f, 0.0f);
+        glm::vec3 gravity = glm::vec3(0.0f, -1.0f, 0.0f);
 
         // params for dispatch
         int face_count, strut_count, particle_count;
@@ -86,10 +87,3 @@ class SoftBody: public Entity {
 };
 
 #endif
-
-//  float mass = 10.0f;
-//         float L = 0.1f;
-//         float k = -20.0f;
-//         float d = -10.0f;
-//         float tk = 100.0f;
-//         float td = 10.0f;

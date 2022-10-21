@@ -21,10 +21,11 @@
 #include "GLSL.h"
 #include "Entity.h"
 
-
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
+
+#include "abby.h"
 
 class Simulation {
     public:
@@ -67,13 +68,12 @@ class Simulation {
         int width, height;                                  
         bool options[256], inputs[256];                 
 
-        GLFWwindow *window; 
-        // std::shared_ptr<Struts> struts;
-        //std::shared_ptr<Material> boid_material, predator_material;                                
+        GLFWwindow *window;                             
         std::shared_ptr<Camera> camera;                     
         std::shared_ptr<Program> meshes_program, integration_compute, strut_compute, face_compute, particle_compute, cleanup_compute; 
-        std::vector< std::shared_ptr<Entity> > entities;     
-        
+        std::vector< std::shared_ptr<Entity> > entities;    
+         
+        std::shared_ptr<abby::tree<int,float>> box_tree;
 };
 
 

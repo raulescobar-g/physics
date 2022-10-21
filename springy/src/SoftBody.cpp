@@ -7,7 +7,7 @@
 #include <iostream>
 #include <unordered_map>
 
-//#define DEBUG
+// #define DEBUG
 #define PERTURB
 
 SoftBody::SoftBody(const std::string& meshName){
@@ -462,7 +462,7 @@ void SoftBody::extract_struts(){
     }
 
 #ifdef PERTURB
-    temp_particles[0].velocity = glm::vec4(0.0f, -0.5f, 0.0f, 0.0f);
+    temp_particles[0].velocity = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);
 #endif
 
     vertex_map.clear();
