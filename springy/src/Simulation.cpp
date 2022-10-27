@@ -3,7 +3,6 @@
 #include "SoftBody.h"
 #include "RigidBody.h"
 #include "StaticBody.h"
-#include "Collisions.h"
 
 Simulation::Simulation() {
     o_x = -1.0;
@@ -18,7 +17,7 @@ Simulation::Simulation() {
 	movement_speed = 0.5f;
 	sensitivity = 0.005f;
 	eps = 0.01f;
-	dt = 0.01f;
+	dt = 1.0f/144.0f;
 	lightPos = glm::vec3(0.0f, 30.0f, 0.0f);
 	gravity = glm::vec3(0.0f, 0.0f, 0.0f);
 	wind = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -65,25 +64,31 @@ void Simulation::init_programs(){
 	meshes_program->init("C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\phong_vert.glsl", 
 						"C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\phong_frag.glsl", mesh_attributes, mesh_uniforms);
 
-	std::vector<std::string> face_uniforms = {"wind"};
-	face_compute = std::make_shared<Program>();
-	face_compute->init("C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\softbody_faces.glsl", face_uniforms);
+	std::vector<std::string> cloth_attributes = {"aPos", "aNor"};
+	std::vector<std::string> cloth_uniforms = {"MV", "iMV", "P", "ka", "kd", "ks", "s", "lightPos"};
+	cloth_program = std::make_shared<Program>();
+	cloth_program->init("C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\phong_vert.glsl", 
+						"C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\phong_frag.glsl", cloth_attributes, cloth_uniforms);
 
-	std::vector<std::string> strut_uniforms = {};
-	strut_compute = std::make_shared<Program>();
-	strut_compute->init("C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\softbody_struts.glsl", strut_uniforms);
+	// std::vector<std::string> face_uniforms = {"wind"};
+	// face_compute = std::make_shared<Program>();
+	// face_compute->init("C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\softbody_faces.glsl", face_uniforms);
 
-	std::vector<std::string> integration_uniforms = {"dt"};
-	integration_compute = std::make_shared<Program>();
-	integration_compute->init("C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\softbody_integrate.glsl", integration_uniforms);
+	// std::vector<std::string> strut_uniforms = {};
+	// strut_compute = std::make_shared<Program>();
+	// strut_compute->init("C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\softbody_struts.glsl", strut_uniforms);
 
-	std::vector<std::string> particle_uniforms = { "gravity" };
-	particle_compute = std::make_shared<Program>();
-	particle_compute->init("C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\softbody_particles.glsl", particle_uniforms);
+	// std::vector<std::string> integration_uniforms = {"dt"};
+	// integration_compute = std::make_shared<Program>();
+	// integration_compute->init("C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\softbody_integrate.glsl", integration_uniforms);
 
-	std::vector<std::string> cleanup_uniforms = {"dt"};
-	cleanup_compute = std::make_shared<Program>();
-	cleanup_compute->init("C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\softbody_cleanup.glsl", cleanup_uniforms);
+	// std::vector<std::string> particle_uniforms = { "gravity" };
+	// particle_compute = std::make_shared<Program>();
+	// particle_compute->init("C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\softbody_particles.glsl", particle_uniforms);
+
+	// std::vector<std::string> cleanup_uniforms = {"dt"};
+	// cleanup_compute = std::make_shared<Program>();
+	// cleanup_compute->init("C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\softbody_cleanup.glsl", cleanup_uniforms);
 }
 
 void Simulation::init_camera(){
@@ -109,7 +114,7 @@ void Simulation::set_scene() {
 	cube_material->s = 100.0f;
 
 	InitialConditions floor_start = {
-		glm::vec3(0.0f, -5.0f, 5.0f),
+		glm::vec3(0.0f, -2.0f, 0.0f),
 		glm::vec3(-glm::pi<float>() / 2.0f, 0.0f, 0.0f),
 		glm::vec3(100.0f),
 		glm::vec3(0.0f),
@@ -128,16 +133,16 @@ void Simulation::set_scene() {
 	floor->initial_conditions(floor_start, floor_material);
 	entities.push_back(floor);
 
-	std::shared_ptr<SoftBody> cube = std::make_shared<SoftBody>("C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\sphere.obj");
+	std::shared_ptr<SoftBody> cube = std::make_shared<SoftBody>("C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\cube.obj");
 	cube->initial_conditions(cube_start, cube_material);
 	cube->set_programs(face_compute, strut_compute, integration_compute, particle_compute, cleanup_compute);
 	entities.push_back(cube);
 
 
-	double tol = 0.1;
+	// double tol = 0.1;
 
 	// after all the entities have been added to the vector
-	box_tree = std::shared_ptr<abby::tree<int,float>>();
+	// box_tree = std::shared_ptr<abby::tree<int,float>>();
 
 
 	// set all time params
@@ -173,9 +178,6 @@ std::vector<std::vector<int>> broad_phase(std::vector<std::shared_ptr<Entity>>& 
 	return result;
 }
 
-void narrow_phase(std::shared_ptr<Entity> entityA, std::shared_ptr<Entity> entityB ) {
-	return;
-}
 
 void Simulation::update(float _dt) {
 	
@@ -192,7 +194,11 @@ void Simulation::update(float _dt) {
 	// compute collisions : narrow phase and response
 	for (int i = 0; i < collisions.size(); ++i) {
 		for (int j = 0; j < collisions[i].size(); ++j) {
-			narrow_phase(entities[i], entities[collisions[i][j]]);
+			auto static_body = std::dynamic_pointer_cast<StaticBody>(entities[i]);
+			auto soft_body = std::dynamic_pointer_cast<SoftBody>(entities[collisions[i][j]]);
+			if (static_body && soft_body) 
+				static_body->collision_response(soft_body, _dt);
+
 		}
 	}
 

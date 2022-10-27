@@ -70,7 +70,7 @@ class Simulation {
 
         GLFWwindow *window;                             
         std::shared_ptr<Camera> camera;                     
-        std::shared_ptr<Program> meshes_program, integration_compute, strut_compute, face_compute, particle_compute, cleanup_compute; 
+        std::shared_ptr<Program> meshes_program, cloth_program, integration_compute, strut_compute, face_compute, particle_compute, cleanup_compute; 
         std::vector< std::shared_ptr<Entity> > entities;    
          
         std::shared_ptr<abby::tree<int,float>> box_tree;

@@ -32,6 +32,8 @@ struct box {
 	glm::vec3 vmin, vmax;
 };
 
+class SoftBody;
+class StaticBody;
 class Program;
 
 class Entity {

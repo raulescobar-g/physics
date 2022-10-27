@@ -4,23 +4,9 @@
 
 #include "Entity.h"
 #include <vector>
+#include "MeshUtil.h"
 
 
-struct particle {
-    glm::vec4 velocity,force;
-};
-
-struct face {
-    int s1,s2,s3;       //strut index 
-    float a12,a23,a31;  //angle
-};
-
-struct strut {
-    float k,d,lo;
-    float tk,td,to;   // k-stiffness, damper, rest length
-    int v1,v2;      // the vertex indices
-    int f1,f2;      // the faces indices can be only 1 if edge
-};
 
 class SoftBody: public Entity {
     public:
@@ -30,9 +16,12 @@ class SoftBody: public Entity {
         void set_programs(std::shared_ptr<Program> f, std::shared_ptr<Program>  s, std::shared_ptr<Program> i, std::shared_ptr<Program> p, std::shared_ptr<Program> fi);        
 
         int size() { return particle_count; };
+        void collision_response(std::shared_ptr<StaticBody>,float);
 
-        float *positions; // for debuggery
-        struct particle *particles; // for debuggery
+        float *positions;
+        float *past_positions;
+        struct particle *particles;
+        float *past_velocities;
 
     protected:
         void loadMesh(const std::string &meshName);
@@ -58,19 +47,19 @@ class SoftBody: public Entity {
         unsigned int faceSSbo;
         unsigned int strutSSbo;
 
-        
-        
+        unsigned int past_posBufID;
+        unsigned int past_velBufID;
 
         // initial conditions should be abstracted out of here this is wack as all hell
         glm::vec3 velocity = glm::vec3(0.0f);
         glm::vec3 acceleration = glm::vec3(0.0f);
-        float mass = 1.0f;
+        float mass = 5.0f;
         float L = 1.0f;
-        float k = 1.0f;
-        float d = 0.00001f;
-        float tk = 0.1f;
-        float td = 0.00001f;
-        glm::vec3 wind = glm::vec3(1.0f, 0.0f, 0.0f);
+        float k = 5.0f;
+        float d = 0.0001f;
+        float tk = 10.0f;
+        float td = 0.0001f;
+        glm::vec3 wind = glm::vec3(0.0f, 0.0f, 0.0f);
         glm::vec3 gravity = glm::vec3(0.0f, -1.0f, 0.0f);
 
         // params for dispatch

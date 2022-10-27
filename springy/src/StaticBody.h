@@ -13,6 +13,8 @@ class StaticBody: public Entity {
     public:
         using Entity::Entity;
         void update(float dt, const glm::vec3& a) override;
+        void collision_response(std::shared_ptr<SoftBody>,float);
+        void collision_response(std::shared_ptr<StaticBody>,float){return;}
 };
 
 #endif

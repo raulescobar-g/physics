@@ -27,6 +27,13 @@ layout( std430, binding=5 ) buffer Particles4 {
 	particle_data derivative_k4[ ];
 };
 
+layout( std430, binding=6 ) buffer PastPositions { 
+	float past_positions[ ]; 
+};
+layout( std430, binding=7 ) buffer PastVelocities { 
+	float past_velocities[ ]; 
+};
+
 layout( local_size_x = 1, local_size_y = 1, local_size_z = 1 ) in;
 
 
@@ -35,6 +42,14 @@ void main(){
     uint i = gid * 3;
 
     vec3 p = derivative_k1[ gid ].velocity.xyz + (2.0 * derivative_k2[ gid ].velocity.xyz) + (2.0 * derivative_k3[ gid ].velocity.xyz) + derivative_k4[ gid ].velocity.xyz;
+    
+    past_positions[i] = positions[i];
+    past_positions[i+1] = positions[i+1];
+    past_positions[i+2] = positions[i+2];
+
+    past_velocities[i] = derivative[ gid ].velocity.x;
+    past_velocities[i+1] = derivative[ gid ].velocity.y;
+    past_velocities[i+2] = derivative[ gid ].velocity.z;
 
     positions[ i ]      += p.x * dt;
     positions[ i + 1 ]  += p.y * dt;

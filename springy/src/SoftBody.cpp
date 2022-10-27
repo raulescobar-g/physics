@@ -7,8 +7,67 @@
 #include <iostream>
 #include <unordered_map>
 
-// #define DEBUG
-#define PERTURB
+#include "StaticBody.h"
+
+
+bool inside(glm::vec3 collision_position , glm::vec3 vertex_0, glm::vec3 vertex_1, glm::vec3 vertex_2) {
+	glm::vec3 u = vertex_1 - vertex_0;
+	glm::vec3 v = vertex_2 - vertex_0;
+	glm::vec3 n = glm::cross(u, v);
+	glm::vec3 w = collision_position - vertex_0;
+
+	float gamma = glm::dot(glm::cross(u, w), n) / glm::dot(n,n);
+	float beta = glm::dot(glm::cross(w, v), n) / glm::dot(n,n);
+	float alpha = 1.0f - gamma - beta;
+
+	return alpha >= -0.00001f && beta >= -0.00001f && gamma >= -0.00001f;
+};
+
+void SoftBody::collision_response(std::shared_ptr<StaticBody> other, float dt) {
+    float cr = 0.9f;
+    float cf = 0.3f;
+    for (int i = 0; i < size()*3; i+=3) {
+        int gid = i/3;
+        glm::vec3 p(positions[i], positions[i+1], positions[i+2]);
+        glm::vec3 prev_p(past_positions[i], past_positions[i+1], past_positions[i+2]);
+        glm::vec3 v = glm::vec3(particles[gid].velocity);
+        glm::vec3 prev_v = glm::vec3(past_velocities[i], past_velocities[i+1], past_velocities[i+2]);
+
+        std::vector<float> posBuf = other->get_posbuf();
+        for (int j = 0; j < posBuf.size(); j+=9) {
+            glm::vec4 _v1(posBuf[i], posBuf[i+1], posBuf[i+2], 1.0f);
+            glm::vec4 _v2(posBuf[i+3], posBuf[i+4], posBuf[i+5], 1.0f);
+            glm::vec4 _v3(posBuf[i+6], posBuf[i+7], posBuf[i+8], 1.0f);
+
+            auto MV = other->get_transform();
+
+            glm::vec3 v0 = glm::vec3(MV->topMatrix() * _v1);
+            glm::vec3 v1 = glm::vec3(MV->topMatrix() * _v2);
+            glm::vec3 v2 = glm::vec3(MV->topMatrix() * _v3);
+
+            glm::vec3 normal = glm::normalize(glm::cross(v1 - v0, v2 - v0));
+
+            float d_A = glm::dot(prev_p - v0, normal);
+            float d_B = glm::dot(p - v0, normal);
+
+            float f = abs(d_A) / abs(d_B - d_A);
+            glm::vec3 collision_position = prev_p + prev_v * dt * f;
+
+            if ( d_B * d_A < 0.0 && inside(collision_position, v0, v1, v2)){
+                glm::vec3 dp =  -(1.0f + cr) * d_B * normal;
+                positions[i] -= dp.x;
+                positions[i+1] -= dp.y;
+                positions[i+2] -= dp.z;
+
+                glm::vec3 velocity_normal = glm::dot(v , normal) * normal;
+                glm::vec3 velocity_tangent = v - velocity_normal;
+
+                particles[gid].velocity = glm::vec4(-cr * velocity_normal + (1 - cf) * velocity_tangent, 0.0f);
+                break;
+			}
+        }
+    }
+}
 
 SoftBody::SoftBody(const std::string& meshName){
     loadMesh(meshName);
@@ -53,6 +112,8 @@ void SoftBody::integrate_and_cleanup(float dt) {
     glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 3, partSSbo_k2 );
     glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 4, partSSbo_k3 );
     glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 5, partSSbo_k4 );
+    glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 6, past_posBufID );
+    glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 7, past_velBufID );
     glUniform1f(integration_compute->getUniform("dt"), dt);
     glDispatchCompute( particle_count, 1, 1 );
     glMemoryBarrier(GL_ALL_BARRIER_BITS);  
@@ -68,16 +129,16 @@ void SoftBody::calculate_forces(unsigned int positionId, unsigned int particleId
     glMemoryBarrier(GL_ALL_BARRIER_BITS);   
     particle_compute->unbind();
 
-    // sum up forces on particles due to face drag and lift
-    face_compute->bind();
-    glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 0, positionId );
-    glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 1, particleId );
-    glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 2, faceSSbo );
-    glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 3, strutSSbo );
-	glUniform3f(face_compute->getUniform("wind"), wind.x, wind.y, wind.z); // pass argument for this
-    //glDispatchCompute( face_count, 1, 1 );
-    glMemoryBarrier(GL_ALL_BARRIER_BITS);   
-    face_compute->unbind();
+    // // sum up forces on particles due to face drag and lift
+    // face_compute->bind();
+    // glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 0, positionId );
+    // glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 1, particleId );
+    // glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 2, faceSSbo );
+    // glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 3, strutSSbo );
+	// glUniform3f(face_compute->getUniform("wind"), wind.x, wind.y, wind.z); // pass argument for this
+    // glDispatchCompute( face_count, 1, 1 );
+    // glMemoryBarrier(GL_ALL_BARRIER_BITS);   
+    // face_compute->unbind();
 
     // sum up forces on particles due to struts
     strut_compute->bind();
@@ -98,23 +159,13 @@ void SoftBody::update(float dt, const glm::vec3& a) {
     integrate(dt/2.0f, posBufID, partSSbo, partSSbo_k1, posBufID_k2, partSSbo_k2);
     calculate_forces(posBufID_k2, partSSbo_k2);
 
-    integrate(dt/2.0f, posBufID, partSSbo, partSSbo_k2, posBufID_k3, partSSbo_k3); // mutates pos and part 3
-    calculate_forces(posBufID_k3, partSSbo_k3); // ends pos v and F at 3
+    integrate(dt/2.0f, posBufID, partSSbo, partSSbo_k2, posBufID_k3, partSSbo_k3); 
+    calculate_forces(posBufID_k3, partSSbo_k3); 
     
     integrate(dt, posBufID, partSSbo, partSSbo_k3, posBufID_k4, partSSbo_k4);
     calculate_forces(posBufID_k4, partSSbo_k4);
 
     integrate_and_cleanup(dt/6.0f);
-
-#ifdef DEBUG
-    for (int i = 0 ; i < temp_positions.size(); i+=3) {
-        std::cout<<"p: <"<<positions[i]<<", "<<positions[i+1]<<", "<<positions[i+2]<<"> \n";
-        if (std::isnan(positions[i])) {
-            exit(-1);
-        }
-    }
-    std::cout<<std::endl;
-#endif
 }
 
 void SoftBody::loadMesh(const std::string &meshName) {
@@ -179,6 +230,17 @@ void SoftBody::init(){
     glBufferStorage( GL_SHADER_STORAGE_BUFFER, temp_particles.size()*sizeof(particle), &temp_particles[0], bufMask | GL_DYNAMIC_STORAGE_BIT);
     particles = (particle *) glMapBufferRange( GL_SHADER_STORAGE_BUFFER, 0, temp_particles.size()*sizeof(particle), bufMask );
 
+    // we need past position and velocity in order to calculate collision response
+    glGenBuffers( 1, &past_posBufID);
+    glBindBuffer( GL_SHADER_STORAGE_BUFFER, past_posBufID );
+    glBufferStorage( GL_SHADER_STORAGE_BUFFER, temp_positions.size()*sizeof(float), &temp_positions[0], bufMask | GL_DYNAMIC_STORAGE_BIT);
+    past_positions = (float *) glMapBufferRange( GL_SHADER_STORAGE_BUFFER, 0, temp_positions.size()*sizeof(float), bufMask );
+
+    glGenBuffers( 1, &past_velBufID);
+    glBindBuffer( GL_SHADER_STORAGE_BUFFER, past_velBufID );
+    glBufferStorage( GL_SHADER_STORAGE_BUFFER, temp_positions.size()*sizeof(float), &temp_positions[0], bufMask | GL_DYNAMIC_STORAGE_BIT);
+    past_velocities = (float *) glMapBufferRange( GL_SHADER_STORAGE_BUFFER, 0, temp_positions.size()*sizeof(float), bufMask );
+    
     // RUNGY KUTTATA 
     glGenBuffers( 1, &posBufID_k1);
     glBindBuffer( GL_SHADER_STORAGE_BUFFER, posBufID_k1 );
@@ -240,43 +302,6 @@ void SoftBody::init(){
     temp_struts.clear();
     temp_struts.shrink_to_fit();
     GLSL::checkError(GET_FILE_LINE); 
-}
-
-bool near(glm::vec3 v1, glm::vec3 v2){
-    return glm::abs(glm::length(v1 - v2)) < 0.001f;
-}
-
-bool unique_particle(glm::vec3 vertex, std::vector<glm::vec3>& vec, int& result) {
-    result = vec.size();
-    for (int i = 0; i < vec.size(); ++i) {
-        if (near(vertex, vec[i])){
-            result = i;
-            return false;
-        }
-    }
-    vec.push_back(vertex);
-    return true;
-}
-
-bool unique_strut(int r1, int r2, std::vector<strut>& strut_table, int& result){
-    result = strut_table.size();
-    for (int i = 0; i < strut_table.size(); ++i) {
-        int _r1 = strut_table[i].v1;
-        int _r2 = strut_table[i].v2;
-        if ( (r1 == _r1 && r2 == _r2) || (r1 == _r2 && r2 == _r1)){
-            result = i;
-            return false;
-        }
-    }
-    strut t;
-    t.v1 = r1;
-    t.v2 = r2;
-    strut_table.push_back(t);
-    return true;
-}
-
-float angle_v(glm::vec3 a, glm::vec3 b){
-    return glm::acos( glm::clamp(glm::dot( glm::normalize(a), glm::normalize(b)),-0.99999f, 0.99999f) );
 }
 
 void SoftBody::extract_struts(){
@@ -460,10 +485,6 @@ void SoftBody::extract_struts(){
     for (auto&p : temp_particles){
         p.force.w = mass / (float) temp_particles.size();
     }
-
-#ifdef PERTURB
-    temp_particles[0].velocity = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);
-#endif
 
     vertex_map.clear();
     strut_map.clear();
