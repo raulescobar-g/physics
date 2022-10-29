@@ -51,15 +51,24 @@ inline bool unique_strut(int r1, int r2, std::vector<strut>& strut_table, int& r
             return false;
         }
     }
-    strut t;
-    t.v1 = r1;
-    t.v2 = r2;
-    strut_table.push_back(t);
     return true;
 }
 
 inline float angle_v(glm::vec3 a, glm::vec3 b){
     return glm::acos( glm::clamp(glm::dot( glm::normalize(a), glm::normalize(b)),-0.99999f, 0.99999f) );
 }
+
+inline bool inside(glm::vec3 collision_position , glm::vec3 vertex_0, glm::vec3 vertex_1, glm::vec3 vertex_2) {
+	glm::vec3 u = vertex_1 - vertex_0;
+	glm::vec3 v = vertex_2 - vertex_0;
+	glm::vec3 n = glm::cross(u, v);
+	glm::vec3 w = collision_position - vertex_0;
+
+	float gamma = glm::dot(glm::cross(u, w), n) / glm::dot(n,n);
+	float beta = glm::dot(glm::cross(w, v), n) / glm::dot(n,n);
+	float alpha = 1.0f - gamma - beta;
+
+	return alpha >= -0.00001f && beta >= -0.00001f && gamma >= -0.00001f;
+};
 
 #endif

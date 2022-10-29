@@ -131,9 +131,11 @@ void Entity::init(){
 	glBindBuffer(GL_ARRAY_BUFFER, posBufID);
 	glBufferData(GL_ARRAY_BUFFER, posBuf.size()*sizeof(float), &posBuf[0], GL_STATIC_DRAW);
 	
-	glGenBuffers(1, &norBufID);
-	glBindBuffer(GL_ARRAY_BUFFER, norBufID);
-	glBufferData(GL_ARRAY_BUFFER, norBuf.size()*sizeof(float), &norBuf[0], GL_STATIC_DRAW);
+	if (!norBuf.empty()) {
+		glGenBuffers(1, &norBufID);
+		glBindBuffer(GL_ARRAY_BUFFER, norBufID);
+		glBufferData(GL_ARRAY_BUFFER, norBuf.size()*sizeof(float), &norBuf[0], GL_STATIC_DRAW);
+	}
 	
 	// Send the texture array to the GPU
 	if(!texBuf.empty()) {

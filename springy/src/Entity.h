@@ -49,11 +49,11 @@ class Entity {
 
 		std::vector<float>& get_posbuf() { return posBuf; }
 		
-		std::shared_ptr<MatrixStack> get_transform() {
-			auto MV = std::shared_ptr<MatrixStack>();
-			MV->translate(position);
-			MV->scale(scale);
-			if (glm::length(rotation) > 0.001f) MV->rotate(glm::length(rotation), rotation);
+		glm::mat4 get_transform() {
+			glm::mat4 MV(1.0f);
+			MV = glm::translate(MV, position);
+			MV = glm::scale(MV, scale);
+			if (glm::length(rotation) > 0.001f) MV = rotate(MV, glm::length(rotation), rotation);
 			return MV;
 		}
 		

@@ -8,17 +8,22 @@ Cloth::Cloth(int n, const char* file){
 
     glm::vec3 offset = glm::vec3(-1.0f, 0.0f, -1.0f);
 
-    for (int x = 0; x < n; ++x) {
-        for (int z = 0; z < n; ++z) {
-            glm::vec3 pos = glm::vec3(x * step, 0.0f, z * step) + offset;
+    anchor1 = vertCount-1;
+    anchor2 = n;
+
+    mass /=  0.01f * (float) (vertCount * vertCount);
+
+    for (int x = 0; x <= n; ++x) {
+        for (int z = 0; z <= n; ++z) {
+            glm::vec3 pos = glm::vec3(x * step, z * step, 0.0f) + offset;
             glm::vec3 vel = glm::vec3(0.0f, 0.0f, 0.0f);
-            S.push_back(pos);
+            S.push_back(pos * scale + anchor_translation);
             uvs.push_back(glm::vec2(x*uvStep, (n-z) * uvStep));
         }
     }
 
-    for (int x = 0; x < n; ++x) {
-        for (int z = 0; z < n; ++z) {
+    for (int x = 0; x <= n; ++x) {
+        for (int z = 0; z <= n; ++z) {
             glm::vec3 vel(0.0f);
             S.push_back(vel);
         }
@@ -39,7 +44,7 @@ Cloth::Cloth(int n, const char* file){
 		indices.push_back(v + n + 1);
     }
 
-    for (int i = 0; i < indices.size(); i+=9) {
+    for (int i = 0; i < indices.size(); i+=3) {
         face f;
         int face_idx = faces.size();
 
@@ -110,6 +115,7 @@ Cloth::Cloth(int n, const char* file){
         f.a12 = a12;
         f.a23 = a23;
         f.a31 = a31;
+        faces.push_back(f);
     }
 
     texture = std::make_shared<Texture>();
@@ -142,13 +148,21 @@ void Cloth::init() {
 }
 
 void Cloth::draw(std::shared_ptr<Program> prog, std::shared_ptr<MatrixStack> MV, std::shared_ptr<MatrixStack> P) {
+    // for (int i = 0; i < S.size()/2; ++i) {
+         //std::cout<< "position: < " <<S[0].x << ",  "<<S[0].y << ",  " << S[0].z<< " > "<<std::endl;
+    // }
+    // for (int i = S.size()/2; i < S.size(); ++i) {
+         //std::cout<< "velocity: < " <<S[S.size()/2].x << ",  "<<S[S.size()/2].y << ",  " << S[S.size()/2].z<< " > "<<std::endl;
+    // }
 
+    texture->bind(prog->getUniform("texture"));
 	glUniformMatrix4fv(prog->getUniform("P"), 1, GL_FALSE, glm::value_ptr(P->topMatrix()));
 	glUniformMatrix4fv(prog->getUniform("MV"), 1, GL_FALSE, glm::value_ptr(MV->topMatrix()));
 
     int pos_id = prog->getAttribute("aPos");
     glEnableVertexAttribArray(pos_id);
 	glBindBuffer(GL_ARRAY_BUFFER, posBufID);
+    glBufferData(GL_ARRAY_BUFFER, S.size()*3*sizeof(float), &S[0], GL_DYNAMIC_DRAW);
 	glVertexAttribPointer(pos_id, 3, GL_FLOAT, GL_FALSE, 0, (void *)0);
 
     int tex_id = prog->getAttribute("aTex");
@@ -163,11 +177,12 @@ void Cloth::draw(std::shared_ptr<Program> prog, std::shared_ptr<MatrixStack> MV,
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glDisableVertexAttribArray(prog->getAttribute("aTex"));
 	glDisableVertexAttribArray(prog->getAttribute("aPos"));
+    texture->unbind();
 }
 
 std::vector<glm::vec3> Cloth::calculate_forces(std::vector<glm::vec3> state) {
     std::vector<glm::vec3> res;
-    res.resize(state.size());
+    res.reserve(state.size());
 
     int div = state.size() / 2;
     for (int i = 0; i < div; ++i) {
@@ -175,45 +190,47 @@ std::vector<glm::vec3> Cloth::calculate_forces(std::vector<glm::vec3> state) {
     }
 
     for (int i = 0; i < div; ++i) {
-        res.push_back(gravity);
+        res.push_back(gravity); 
     }
     glm::vec3 a1(0.0f), a2(0.0f), a3(0.0f);
-    for (int i = 0; i < faces.size(); ++i) {
-        strut s1 = struts[faces[i].s1];
-        strut s2 = struts[faces[i].s2];
-        strut s3 = struts[faces[i].s3];
+    if (glm::length(wind) > 0.01f) {
+        for (int i = 0; i < faces.size(); ++i) {
+            strut s1 = struts[faces[i].s1];
+            strut s2 = struts[faces[i].s2];
+            strut s3 = struts[faces[i].s3];
 
-        int p1 = s1.v1;
-        int p2 = s1.v2;
-        int p3 = s2.v1 == p1 || s2.v1 == p2 ? s2.v2 : s2.v1;
+            int p1 = s1.v1;
+            int p2 = s1.v2;
+            int p3 = s2.v1 == p1 || s2.v1 == p2 ? s2.v2 : s2.v1;
 
-        glm::vec3 x1 = state[p1];
-        glm::vec3 x2 = state[p2];
-        glm::vec3 x3 = state[p3];
+            glm::vec3 x1 = state[p1];
+            glm::vec3 x2 = state[p2];
+            glm::vec3 x3 = state[p3];
 
-        glm::vec3 v1 = state[div + p1];
-        glm::vec3 v2 = state[div + p2];
-        glm::vec3 v3 = state[div + p3];
+            glm::vec3 v1 = state[div + p1];
+            glm::vec3 v2 = state[div + p2];
+            glm::vec3 v3 = state[div + p3];
 
-        //calculate force on face
-        glm::vec3 v = (v1 + v2 + v3) / 3.0f; 
-        glm::vec3 norm = glm::cross(x2 -x1, x3 - x1);
+            //calculate force on face
+            glm::vec3 v = (v1 + v2 + v3) / 3.0f; 
+            glm::vec3 norm = glm::cross(x2 -x1, x3 - x1);
 
-        glm::vec3 n = glm::normalize(norm);
-        glm::vec3 vr = v - wind;
-        float A = glm::length(norm) / 2.0f;
-        glm::vec3 q = glm::cross(n, vr);
-        float Ae = A * glm::dot(n,glm::normalize(vr));
-        glm::vec3 lift_dir = glm::dot(n,vr) < 0.001f ? glm::vec3(0.0f) : glm::cross(vr, glm::normalize(q));
+            glm::vec3 n = glm::normalize(norm);
+            glm::vec3 vr = v - wind;
+            float A = glm::length(norm) / 2.0f;
+            glm::vec3 q = glm::cross(n, vr);
+            float Ae = A * glm::dot(n,glm::normalize(vr));
+            glm::vec3 lift_dir = glm::dot(n,vr) < 0.001f ? glm::vec3(0.0f) : glm::cross(vr, glm::normalize(q));
 
-        glm::vec3 Fda = cd * Ae * vr;
-        glm::vec3 Fl = cl * Ae * lift_dir;
-        glm::vec3 f = Fda + Fl;
+            glm::vec3 Fda = cd * Ae * vr;
+            glm::vec3 Fl = cl * Ae * lift_dir;
+            glm::vec3 f = Fda + Fl;
 
-        // distribute force on face to vertices proportional to angle size
-        res[div+p1] += f * (faces[i].a12/3.14159f);
-        res[div+p2] += f * (faces[i].a23/3.14159f);
-        res[div+p3] += f * (faces[i].a31/3.14159f);
+            // distribute force on face to vertices proportional to angle size
+            res[div+p1] += f * (faces[i].a12/3.14159f);
+            res[div+p2] += f * (faces[i].a23/3.14159f);
+            res[div+p3] += f * (faces[i].a31/3.14159f);
+        }
     }
 
     for (int i = 0; i < struts.size(); ++i) {
@@ -234,6 +251,9 @@ std::vector<glm::vec3> Cloth::calculate_forces(std::vector<glm::vec3> state) {
             res[div+struts[i].v2] -= f;
         }
     }
+
+    if (anchor1 > -1) res[div + anchor1] = glm::vec3(0.0f);
+    if (anchor2 > -1) res[div + anchor2] = glm::vec3(0.0f);
 
     return res;
 }
@@ -258,6 +278,8 @@ std::vector<glm::vec3> runge_kutta(std::vector<glm::vec3> s, float h, std::vecto
 }
 
 void Cloth::update(float dt) {
+    prev_S = S;
+
     auto k1 = calculate_forces(S);
 
     auto temp = integrate(S, dt*0.5f, k1);
@@ -269,6 +291,54 @@ void Cloth::update(float dt) {
     temp = integrate(S, dt, k3);
     auto k4 = calculate_forces(temp);
 
-    prev_S = S;
     S = runge_kutta(S, dt, k1, k2, k3, k4);
+}
+
+void Cloth::initial_conditions(glm::vec3 pos, float s) {
+    scale = s;
+    anchor_translation = pos;
+}
+
+
+void Cloth::calculate_collision_response(std::shared_ptr<StaticBody> obj, float dt) {
+    for (int i = 0; i < S.size()/2; ++i) {
+        glm::vec3 x = S[i];
+        glm::vec3 v = S[i + S.size()/2];
+        glm::vec3 prev_x = prev_S[i];
+        glm::vec3 prev_v = prev_S[i + S.size()/2];
+
+        std::vector<float> _p = obj->get_posbuf();
+        glm::mat4 MV = obj->get_transform();
+
+        for (int j=0; j < _p.size(); j+=9) {
+            glm::vec3 p1 = glm::vec3(MV * glm::vec4(_p[j+0], _p[j+1], _p[j+2], 1.0f)); 
+            glm::vec3 p2 = glm::vec3(MV * glm::vec4(_p[j+3], _p[j+4], _p[j+5], 1.0f));
+            glm::vec3 p3 = glm::vec3(MV * glm::vec4(_p[j+6], _p[j+7], _p[j+8], 1.0f));
+
+           // if (i == 0 && j==0) std::cout<<p1.x<<std::endl;
+
+            glm::vec3 normal = glm::normalize(glm::cross(p2 - p1, p3 - p1));
+
+            float d_A = glm::dot(prev_x - p1, normal);
+            float d_B = glm::dot(x - p1, normal);
+
+            float f = glm::abs(d_A) / glm::abs(d_B - d_A);
+            glm::vec3 collision_position = prev_x + prev_v * dt * f;
+
+            if ( d_B * d_A < 0.0f && inside(collision_position, p1, p2, p3)){
+                std::cout<<"here"<<std::endl;
+                x = x - (1 + cr) * d_B * normal;
+
+                glm::vec3 velocity_normal = glm::dot(v , normal) * normal;
+                glm::vec3 velocity_tangent = v - velocity_normal;
+
+                v = -cr * velocity_normal + (1.0f - cf) * velocity_tangent;
+                break;
+            }
+        }
+
+
+        S[i] = x;
+        S[i+S.size()/2] = v;
+    }
 }

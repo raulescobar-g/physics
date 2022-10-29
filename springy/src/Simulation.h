@@ -19,13 +19,13 @@
 #include "Camera.h"
 #include "MatrixStack.h"
 #include "GLSL.h"
-#include "Entity.h"
+#include "StaticBody.h"
+#include "Cloth.h"
 
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
-#include "abby.h"
 
 class Simulation {
     public:
@@ -70,10 +70,11 @@ class Simulation {
 
         GLFWwindow *window;                             
         std::shared_ptr<Camera> camera;                     
-        std::shared_ptr<Program> meshes_program, cloth_program, integration_compute, strut_compute, face_compute, particle_compute, cleanup_compute; 
-        std::vector< std::shared_ptr<Entity> > entities;    
+        std::shared_ptr<Program> meshes_program, cloth_program; 
+        std::vector< std::shared_ptr<StaticBody> > statics;    
+        std::vector< std::shared_ptr<Cloth> > cloths;  
+        std::vector< std::shared_ptr<SoftBody> > softies;  
          
-        std::shared_ptr<abby::tree<int,float>> box_tree;
 };
 
 

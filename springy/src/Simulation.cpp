@@ -1,7 +1,7 @@
 #include "Simulation.h"
 
 #include "SoftBody.h"
-#include "RigidBody.h"
+#include "Cloth.h"
 #include "StaticBody.h"
 
 Simulation::Simulation() {
@@ -64,31 +64,11 @@ void Simulation::init_programs(){
 	meshes_program->init("C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\phong_vert.glsl", 
 						"C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\phong_frag.glsl", mesh_attributes, mesh_uniforms);
 
-	std::vector<std::string> cloth_attributes = {"aPos", "aNor"};
-	std::vector<std::string> cloth_uniforms = {"MV", "iMV", "P", "ka", "kd", "ks", "s", "lightPos"};
+	std::vector<std::string> cloth_attributes = {"aPos", "aTex"};
+	std::vector<std::string> cloth_uniforms = {"MV", "P", "texture"};
 	cloth_program = std::make_shared<Program>();
-	cloth_program->init("C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\phong_vert.glsl", 
-						"C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\phong_frag.glsl", cloth_attributes, cloth_uniforms);
-
-	// std::vector<std::string> face_uniforms = {"wind"};
-	// face_compute = std::make_shared<Program>();
-	// face_compute->init("C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\softbody_faces.glsl", face_uniforms);
-
-	// std::vector<std::string> strut_uniforms = {};
-	// strut_compute = std::make_shared<Program>();
-	// strut_compute->init("C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\softbody_struts.glsl", strut_uniforms);
-
-	// std::vector<std::string> integration_uniforms = {"dt"};
-	// integration_compute = std::make_shared<Program>();
-	// integration_compute->init("C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\softbody_integrate.glsl", integration_uniforms);
-
-	// std::vector<std::string> particle_uniforms = { "gravity" };
-	// particle_compute = std::make_shared<Program>();
-	// particle_compute->init("C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\softbody_particles.glsl", particle_uniforms);
-
-	// std::vector<std::string> cleanup_uniforms = {"dt"};
-	// cleanup_compute = std::make_shared<Program>();
-	// cleanup_compute->init("C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\softbody_cleanup.glsl", cleanup_uniforms);
+	cloth_program->init("C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\cloth_vert.glsl", 
+						"C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\cloth_frag.glsl", cloth_attributes, cloth_uniforms);
 }
 
 void Simulation::init_camera(){
@@ -122,27 +102,24 @@ void Simulation::set_scene() {
 	};
 
 	InitialConditions cube_start = {
+		glm::vec3(-3.0f, 4.0f, -3.0f),
 		glm::vec3(0.0f, 0.0f, 0.0f),
-		glm::vec3(0.0f, 0.0f, 0.0f),
-		glm::vec3(1.0f),
+		glm::vec3(2.0f),
 		glm::vec3(0.0f),
 		glm::vec3(0.0f),
 	};
 
 	std::shared_ptr<StaticBody> floor = std::make_shared<StaticBody>("C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\square.obj");
 	floor->initial_conditions(floor_start, floor_material);
-	entities.push_back(floor);
+	//statics.push_back(floor);
 
-	std::shared_ptr<SoftBody> cube = std::make_shared<SoftBody>("C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\cube.obj");
+	std::shared_ptr<StaticBody> cube = std::make_shared<StaticBody>("C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\sphere.obj");
 	cube->initial_conditions(cube_start, cube_material);
-	cube->set_programs(face_compute, strut_compute, integration_compute, particle_compute, cleanup_compute);
-	entities.push_back(cube);
+	statics.push_back(cube);
 
-
-	// double tol = 0.1;
-
-	// after all the entities have been added to the vector
-	// box_tree = std::shared_ptr<abby::tree<int,float>>();
+	std::shared_ptr<Cloth> flag = std::make_shared<Cloth>(5, "C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\cloth.jpg");
+	flag->initial_conditions(glm::vec3(0.0f, 5.0f, 0.0f), 3.0f);
+	cloths.push_back(flag);
 
 
 	// set all time params
@@ -183,29 +160,15 @@ void Simulation::update(float _dt) {
 	
 	glm::vec3 global_acceleration = gravity + wind;
 
-	// compute next positions and velocities
-	for (auto entity : entities) {
-		entity->update(_dt, global_acceleration);
+	for (auto cloth : cloths) {
+		cloth->update(_dt);
+	}
+	for (auto s: statics) {
+		s->update(_dt);
 	}
 
-	// compute collisions : broad phase
-	auto collisions = broad_phase(entities);
-
-	// compute collisions : narrow phase and response
-	for (int i = 0; i < collisions.size(); ++i) {
-		for (int j = 0; j < collisions[i].size(); ++j) {
-			auto static_body = std::dynamic_pointer_cast<StaticBody>(entities[i]);
-			auto soft_body = std::dynamic_pointer_cast<SoftBody>(entities[collisions[i][j]]);
-			if (static_body && soft_body) 
-				static_body->collision_response(soft_body, _dt);
-
-		}
-	}
-
-	for (auto entity : entities) {
-		//entity->rebuild_box();
-	}
-
+	
+	cloths[0]->calculate_collision_response(statics[0], _dt);
 }
 
 void Simulation::render_scene() {
@@ -240,23 +203,41 @@ void Simulation::render_scene() {
 
 	P->pushMatrix();
 	MV->pushMatrix();
-	camera->applyProjectionMatrix(P);
-	camera->applyViewMatrix(MV);
-	
-
-	meshes_program->bind();
-	MV->pushMatrix();
-		MV->translate(lightPos);
-		glm::vec3 world_light_pos = MV->topMatrix() * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-	MV->popMatrix();
-	glUniform3f(meshes_program->getUniform("lightPos"), world_light_pos.x, world_light_pos.y, world_light_pos.z);
-
-	for (auto entity : entities){ 
+		camera->applyProjectionMatrix(P);
+		camera->applyViewMatrix(MV);
+		
+		P->pushMatrix();
 		MV->pushMatrix();
-		entity->draw(meshes_program, MV, P); 	
-		MV->popMatrix();
-	}  
-	meshes_program->unbind();
+		
+
+			meshes_program->bind();
+			MV->pushMatrix();
+				MV->translate(lightPos);
+				glm::vec3 world_light_pos = MV->topMatrix() * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+			MV->popMatrix();
+			glUniform3f(meshes_program->getUniform("lightPos"), world_light_pos.x, world_light_pos.y, world_light_pos.z);
+
+			for (auto& entity : statics){ 
+				MV->pushMatrix();
+				entity->draw(meshes_program, MV, P); 	
+				MV->popMatrix();
+			}  
+			meshes_program->unbind();
+
+		MV->popMatrix();	
+		P->popMatrix();
+
+		P->pushMatrix();
+		MV->pushMatrix();
+
+		cloth_program->bind();
+		for (auto cloth : cloths) {
+			cloth->draw(cloth_program, MV, P);
+		}
+		cloth_program->unbind();
+
+		MV->popMatrix();	
+		P->popMatrix();
 
 	MV->popMatrix();	
 	P->popMatrix();

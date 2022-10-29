@@ -10,19 +10,6 @@
 #include "StaticBody.h"
 
 
-bool inside(glm::vec3 collision_position , glm::vec3 vertex_0, glm::vec3 vertex_1, glm::vec3 vertex_2) {
-	glm::vec3 u = vertex_1 - vertex_0;
-	glm::vec3 v = vertex_2 - vertex_0;
-	glm::vec3 n = glm::cross(u, v);
-	glm::vec3 w = collision_position - vertex_0;
-
-	float gamma = glm::dot(glm::cross(u, w), n) / glm::dot(n,n);
-	float beta = glm::dot(glm::cross(w, v), n) / glm::dot(n,n);
-	float alpha = 1.0f - gamma - beta;
-
-	return alpha >= -0.00001f && beta >= -0.00001f && gamma >= -0.00001f;
-};
-
 void SoftBody::collision_response(std::shared_ptr<StaticBody> other, float dt) {
     float cr = 0.9f;
     float cf = 0.3f;
@@ -41,9 +28,9 @@ void SoftBody::collision_response(std::shared_ptr<StaticBody> other, float dt) {
 
             auto MV = other->get_transform();
 
-            glm::vec3 v0 = glm::vec3(MV->topMatrix() * _v1);
-            glm::vec3 v1 = glm::vec3(MV->topMatrix() * _v2);
-            glm::vec3 v2 = glm::vec3(MV->topMatrix() * _v3);
+            glm::vec3 v0 = glm::vec3(MV * _v1);
+            glm::vec3 v1 = glm::vec3(MV * _v2);
+            glm::vec3 v2 = glm::vec3(MV * _v3);
 
             glm::vec3 normal = glm::normalize(glm::cross(v1 - v0, v2 - v0));
 
