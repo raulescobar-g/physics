@@ -9,6 +9,22 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/hash.hpp>
 
+struct Material {
+	glm::vec3 ka = glm::vec3(0.5f);
+	glm::vec3 kd = glm::vec3(0.5f);
+	glm::vec3 ks = glm::vec3(0.5f);
+	float s = 10.0f;
+};
+
+struct InitialConditions {
+	glm::vec3 position = glm::vec3(0.0f);
+	glm::vec3 rotation = glm::vec3(0.0f);
+	glm::vec3 scale = glm::vec3(1.0f);
+	glm::vec3 velocity = glm::vec3(0.0f);
+	glm::vec3 acceleration = glm::vec3(0.0f);
+};
+
+
 struct particle {
     glm::vec4 velocity,force;
 };
@@ -68,7 +84,16 @@ inline bool inside(glm::vec3 collision_position , glm::vec3 vertex_0, glm::vec3 
 	float beta = glm::dot(glm::cross(w, v), n) / glm::dot(n,n);
 	float alpha = 1.0f - gamma - beta;
 
-	return alpha >= -0.00001f && beta >= -0.00001f && gamma >= -0.00001f;
+	return (alpha >= -0.00001f && beta >= -0.00001f && gamma >= -0.00001f) || (alpha <= 0.00001f && beta <= 0.00001f && gamma <= 0.00001f);
 };
+
+inline std::vector<glm::vec3> runge_kutta(std::vector<glm::vec3> s, float h, std::vector<glm::vec3> k1,  std::vector<glm::vec3> k2,  std::vector<glm::vec3> k3,  std::vector<glm::vec3> k4) {
+    std::vector<glm::vec3> res;
+    res.resize(s.size());
+    for (int i = 0; i < s.size(); ++i) {
+        res[i] = s[i] + (h/6.0f) * (k1[i] + 2.0f * k2[i] + 2.0f * k3[i] + k4[i]);
+    }
+    return res;
+}
 
 #endif

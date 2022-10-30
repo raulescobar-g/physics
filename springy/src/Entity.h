@@ -13,20 +13,7 @@
 #include <glm/gtx/hash.hpp>
 
 #include "MatrixStack.h"
-
-struct Material {
-	glm::vec3 ka = glm::vec3(0.5f);
-	glm::vec3 kd = glm::vec3(0.5f);
-	glm::vec3 ks = glm::vec3(0.5f);
-	float s = 10.0f;
-};
-struct InitialConditions {
-	glm::vec3 position = glm::vec3(0.0f);
-	glm::vec3 rotation = glm::vec3(0.0f);
-	glm::vec3 scale = glm::vec3(1.0f);
-	glm::vec3 velocity = glm::vec3(0.0f);
-	glm::vec3 acceleration = glm::vec3(0.0f);
-};
+#include "MeshUtil.h"
 
 struct box {
 	glm::vec3 vmin, vmax;

@@ -148,12 +148,6 @@ void Cloth::init() {
 }
 
 void Cloth::draw(std::shared_ptr<Program> prog, std::shared_ptr<MatrixStack> MV, std::shared_ptr<MatrixStack> P) {
-    // for (int i = 0; i < S.size()/2; ++i) {
-         //std::cout<< "position: < " <<S[0].x << ",  "<<S[0].y << ",  " << S[0].z<< " > "<<std::endl;
-    // }
-    // for (int i = S.size()/2; i < S.size(); ++i) {
-         //std::cout<< "velocity: < " <<S[S.size()/2].x << ",  "<<S[S.size()/2].y << ",  " << S[S.size()/2].z<< " > "<<std::endl;
-    // }
 
     texture->bind(prog->getUniform("texture"));
 	glUniformMatrix4fv(prog->getUniform("P"), 1, GL_FALSE, glm::value_ptr(P->topMatrix()));
@@ -264,15 +258,6 @@ std::vector<glm::vec3> Cloth::integrate(std::vector<glm::vec3> s, float h, std::
 
     for (int i = 0; i < s.size(); ++i) {
         res[i] = s[i] + h * ds[i];
-    }
-    return res;
-}
-
-std::vector<glm::vec3> runge_kutta(std::vector<glm::vec3> s, float h, std::vector<glm::vec3> k1,  std::vector<glm::vec3> k2,  std::vector<glm::vec3> k3,  std::vector<glm::vec3> k4) {
-    std::vector<glm::vec3> res;
-    res.resize(s.size());
-    for (int i = 0; i < s.size(); ++i) {
-        res[i] = s[i] + (h/6.0f) * (k1[i] + 2.0f * k2[i] + 2.0f * k3[i] + k4[i]);
     }
     return res;
 }

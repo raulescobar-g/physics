@@ -21,6 +21,10 @@ Simulation::Simulation() {
 	lightPos = glm::vec3(0.0f, 30.0f, 0.0f);
 	gravity = glm::vec3(0.0f, 0.0f, 0.0f);
 	wind = glm::vec3(0.0f, 0.0f, 0.0f);
+
+
+	options[(unsigned)'v'] = true;
+	options[(unsigned)'c'] = true;
 }
 
 Simulation::~Simulation() {
@@ -59,7 +63,7 @@ void Simulation::create_window(const char * window_name, const char * glsl_versi
 
 void Simulation::init_programs(){
 	std::vector<std::string> mesh_attributes = {"aPos", "aNor"};
-	std::vector<std::string> mesh_uniforms = {"MV", "iMV", "P", "ka", "kd", "ks", "s", "lightPos"};
+	std::vector<std::string> mesh_uniforms = {"MV", "iMV", "P", "ka", "kd", "ks", "s", "a", "lightPos"};
 	meshes_program = std::make_shared<Program>();
 	meshes_program->init("C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\phong_vert.glsl", 
 						"C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\phong_frag.glsl", mesh_attributes, mesh_uniforms);
@@ -102,7 +106,7 @@ void Simulation::set_scene() {
 	};
 
 	InitialConditions cube_start = {
-		glm::vec3(-3.0f, 4.0f, -3.0f),
+		glm::vec3(-3.0f, 2.0f, -3.0f),
 		glm::vec3(0.0f, 0.0f, 0.0f),
 		glm::vec3(2.0f),
 		glm::vec3(0.0f),
@@ -111,15 +115,15 @@ void Simulation::set_scene() {
 
 	std::shared_ptr<StaticBody> floor = std::make_shared<StaticBody>("C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\square.obj");
 	floor->initial_conditions(floor_start, floor_material);
-	//statics.push_back(floor);
+	statics.push_back(floor);
 
-	std::shared_ptr<StaticBody> cube = std::make_shared<StaticBody>("C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\sphere.obj");
+	std::shared_ptr<SoftBody> cube = std::make_shared<SoftBody>("C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\sphere.obj");
 	cube->initial_conditions(cube_start, cube_material);
-	statics.push_back(cube);
+	softies.push_back(cube);
 
-	std::shared_ptr<Cloth> flag = std::make_shared<Cloth>(5, "C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\cloth.jpg");
-	flag->initial_conditions(glm::vec3(0.0f, 5.0f, 0.0f), 3.0f);
-	cloths.push_back(flag);
+	// std::shared_ptr<Cloth> flag = std::make_shared<Cloth>(5, "C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\cloth.jpg");
+	// flag->initial_conditions(glm::vec3(0.0f, 5.0f, 0.0f), 3.0f);
+	// cloths.push_back(flag);
 
 
 	// set all time params
@@ -163,12 +167,15 @@ void Simulation::update(float _dt) {
 	for (auto cloth : cloths) {
 		cloth->update(_dt);
 	}
-	for (auto s: statics) {
-		s->update(_dt);
+	for (auto staticc: statics) {
+		staticc->update(_dt);
+	}
+	for( auto soft: softies) {
+		soft->update(_dt);
 	}
 
 	
-	cloths[0]->calculate_collision_response(statics[0], _dt);
+	softies[0]->calculate_collision_response(statics[0], _dt);
 }
 
 void Simulation::render_scene() {
@@ -217,27 +224,32 @@ void Simulation::render_scene() {
 			MV->popMatrix();
 			glUniform3f(meshes_program->getUniform("lightPos"), world_light_pos.x, world_light_pos.y, world_light_pos.z);
 
-			for (auto& entity : statics){ 
+			for (auto entity : statics){ 
 				MV->pushMatrix();
 				entity->draw(meshes_program, MV, P); 	
 				MV->popMatrix();
-			}  
+			} 
+			for (auto entity : softies){ 
+				MV->pushMatrix();
+				entity->draw(meshes_program, MV, P); 	
+				MV->popMatrix();
+			} 
 			meshes_program->unbind();
 
 		MV->popMatrix();	
 		P->popMatrix();
 
-		P->pushMatrix();
-		MV->pushMatrix();
+		// P->pushMatrix();
+		// MV->pushMatrix();
 
-		cloth_program->bind();
-		for (auto cloth : cloths) {
-			cloth->draw(cloth_program, MV, P);
-		}
-		cloth_program->unbind();
+		// cloth_program->bind();
+		// for (auto cloth : cloths) {
+		// 	cloth->draw(cloth_program, MV, P);
+		// }
+		// cloth_program->unbind();
 
-		MV->popMatrix();	
-		P->popMatrix();
+		// MV->popMatrix();	
+		// P->popMatrix();
 
 	MV->popMatrix();	
 	P->popMatrix();

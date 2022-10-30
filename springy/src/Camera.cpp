@@ -14,7 +14,7 @@ Camera::Camera() :
 	zfar(100000.0f),
 	pos(0.0f,3.0f,-10.0f),
 	yaw(0.0f),
-	pitch(0.0f)
+	pitch(-0.4f)
 	{}
 
 Camera::~Camera(){}

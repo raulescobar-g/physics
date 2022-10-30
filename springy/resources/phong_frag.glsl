@@ -5,6 +5,7 @@ uniform vec3 ka;
 uniform vec3 kd;
 uniform vec3 ks;
 uniform float s;
+uniform float a;
 
 in vec3 position;
 in vec3 normal;
@@ -23,5 +24,5 @@ void main()
 	float g = ka.g + cd1.g + cs1.g ;
 	float b = ka.b + cd1.b + cs1.b ;
 
-	fragColor = vec4(r, g, b, 1.0);
+	fragColor = vec4(r, g, b, a);
 }

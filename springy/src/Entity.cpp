@@ -169,7 +169,7 @@ void Entity::draw(std::shared_ptr<Program> prog, std::shared_ptr<MatrixStack> MV
 	glUniform3f(prog->getUniform("kd"), material->kd.x, material->kd.y, material->kd.z);
 	glUniform3f(prog->getUniform("ks"), material->ks.x, material->ks.y, material->ks.z);
 	glUniform1f(prog->getUniform("s"), material->s );
-
+	glUniform1f(prog->getUniform("a"), 1.0f );
 
 	// Bind position buffer
 	GLint h_pos = prog->getAttribute("aPos");
