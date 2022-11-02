@@ -43,17 +43,22 @@ class Entity {
 			if (glm::length(rotation) > 0.001f) MV = rotate(MV, glm::length(rotation), rotation);
 			return MV;
 		}
+
+		std::vector<strut> get_struts() { return struts; }
 		
 	protected:
 		virtual void loadMesh(const std::string &meshName);
 		void setShape(std::vector<float> pos, std::vector<float> nor, std::vector<float> tex, std::vector<unsigned int> ind);
 		void fitToUnitBox();
 		virtual void init();
+		void extract_struts();
 
 		std::vector<float> posBuf;
 		std::vector<float> norBuf;
 		std::vector<float> texBuf;
 		std::vector<unsigned int> indBuf;
+
+		std::vector<strut> struts;
 
 		unsigned posBufID;
 		unsigned norBufID;

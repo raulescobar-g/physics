@@ -49,6 +49,68 @@ void SoftBody::calculate_collision_response(std::shared_ptr<StaticBody> obj, flo
 			}
         }
     }
+
+    auto obj_struts = obj->get_struts();
+    auto obj_pos = obj->get_posbuf();
+    auto MV = obj->get_transform();
+    unsigned int p0i, p1i;
+
+    for (int i = 0; i < obj_struts.size(); ++i) {
+        p0i = obj_struts[i].v1 * 3;
+        p1i = obj_struts[i].v2 * 3;
+
+        glm::vec3 p0 = MV * glm::vec4(obj_pos[p0i], obj_pos[p0i+1], obj_pos[p0i+2], 1.0f);
+        glm::vec3 p1 = MV * glm::vec4(obj_pos[p1i], obj_pos[p1i+1], obj_pos[p1i+2], 1.0f);
+
+        for (int j = 0; j < struts.size(); ++j) {
+            glm::vec3 q0 = S[struts[j].v1];
+            glm::vec3 q1 = S[struts[j].v2];
+            glm::vec3 p_q0 = prev_S[struts[j].v1];
+            glm::vec3 p_q1 = prev_S[struts[j].v2];
+
+            glm::vec4 _m = closest_point(q0, q1, p0, p1);
+            glm::vec4 _p_m = closest_point(p_q0, p_q1, p0, p1);
+
+            float t = _m.w;
+            float p_t = _p_m.w;
+
+            if (t < 0.0f && p_t < 0.0f) continue;
+
+            glm::vec3 m = glm::vec3(_m);
+            glm::vec3 p_m = glm::vec3(_p_m);
+
+            glm::vec3 a = p1 - p0;
+            glm::vec3 b = q1 - q0;
+
+            glm::vec3 n = glm::normalize(glm::cross(a,b));
+            
+            if (glm::dot(m, p_m) < 0.0f) {
+                glm::vec3 v0 = S[S.size()/2 + struts[j].v1];
+                glm::vec3 v1 = S[S.size()/2 + struts[j].v2];
+
+                float u = 1.0f - t;
+                float v = t;
+                float s = glm::dot(m,n) > 0.0f ? -1.0f: 1.0f;
+
+                S[struts[j].v1] += s * (1.0f + cr) * glm::length(m) * n;
+                S[struts[j].v2] += s * (1.0f + cr) * glm::length(m) * n;
+
+                glm::vec3 mid_v = v0 * u + v1 * v;
+
+                glm::vec3 velocity_normal = glm::dot(mid_v , n) * n;
+                glm::vec3 velocity_tangent = mid_v - velocity_normal;
+
+               
+                glm::vec3 dv = (-mid_v -cr * velocity_normal + (1.0f - cf) * velocity_tangent) / (u*u + v*v);
+
+                v0 = u * dv;
+                v1 = v * dv;
+
+                S[S.size()/2 + struts[j].v1] += v0;
+                S[S.size()/2 + struts[j].v2] += v1;
+            }
+        }
+    }
 }
 
 void SoftBody::fitToUnitBox(){
@@ -79,14 +141,12 @@ void SoftBody::fitToUnitBox(){
 
 }
 
-
 SoftBody::SoftBody(const std::string& meshName){
     loadMesh(meshName);
     fitToUnitBox();
     extract_struts();
     init();
 }
-
 
 std::vector<glm::vec3> SoftBody::integrate(std::vector<glm::vec3> s, float h, std::vector<glm::vec3> ds) {
     std::vector<glm::vec3> res;
@@ -97,7 +157,6 @@ std::vector<glm::vec3> SoftBody::integrate(std::vector<glm::vec3> s, float h, st
     }
     return res;
 }
-
 
 std::vector<glm::vec3> SoftBody::calculate_forces(std::vector<glm::vec3> state) {
     std::vector<glm::vec3> res;
@@ -113,101 +172,103 @@ std::vector<glm::vec3> SoftBody::calculate_forces(std::vector<glm::vec3> state) 
     }
     
     
-    // for (int i = 0; i < faces.size(); ++i) {
-    //     strut s1 = struts[faces[i].s1];
-    //     strut s2 = struts[faces[i].s2];
-    //     strut s3 = struts[faces[i].s3];
+    for (int i = 0; i < faces.size(); ++i) {
+        strut s1 = struts[faces[i].s1];
+        strut s2 = struts[faces[i].s2];
+        strut s3 = struts[faces[i].s3];
 
-    //     int p1 = s1.v1;
-    //     int p2 = s1.v2;
-    //     int p3 = s2.v1 == p1 || s2.v1 == p2 ? s2.v2 : s2.v1;
+        int p1 = s1.v1;
+        int p2 = s1.v2;
+        int p3 = s2.v1 == p1 || s2.v1 == p2 ? s2.v2 : s2.v1;
 
-    //     glm::vec3 v1 = state[div + p1];
-    //     glm::vec3 v2 = state[div + p2];
-    //     glm::vec3 v3 = state[div + p3];
-    //     glm::vec3 v = (v1 + v2 + v3) / 3.0f; 
+        glm::vec3 v1 = state[div + p1];
+        glm::vec3 v2 = state[div + p2];
+        glm::vec3 v3 = state[div + p3];
+        glm::vec3 v = (v1 + v2 + v3) / 3.0f; 
 
-    //     if (glm::length(wind) > 0.01f && glm::length(v) > 0.01f) {
+        if (glm::length(wind) > 0.01f && glm::length(v) > 0.01f) {
            
-    //         glm::vec3 x1 = state[p1];
-    //         glm::vec3 x2 = state[p2];
-    //         glm::vec3 x3 = state[p3];
+            glm::vec3 x1 = state[p1];
+            glm::vec3 x2 = state[p2];
+            glm::vec3 x3 = state[p3];
 
-    //         //calculate force on face            
-    //         glm::vec3 norm = glm::cross(x2 -x1, x3 - x1);
+            //calculate force on face            
+            glm::vec3 norm = glm::cross(x2 -x1, x3 - x1);
 
-    //         glm::vec3 n = glm::normalize(norm);
-    //         glm::vec3 vr = v - wind;
-    //         float A = glm::length(norm) / 2.0f;
-    //         glm::vec3 q = glm::cross(n, vr);
-    //         float Ae = A * glm::dot(n,glm::normalize(vr));
-    //         glm::vec3 lift_dir = glm::dot(n,vr) < 0.001f ? glm::vec3(0.0f) : glm::cross(vr, glm::normalize(q));
+            glm::vec3 n = glm::normalize(norm);
+            glm::vec3 vr = v - wind;
+            float A = glm::length(norm) / 2.0f;
+            glm::vec3 q = glm::cross(n, vr);
+            float Ae = A * glm::dot(n,glm::normalize(vr));
+            glm::vec3 lift_dir = glm::dot(n,vr) < 0.001f ? glm::vec3(0.0f) : glm::cross(vr, glm::normalize(q));
 
-    //         glm::vec3 Fda = cd * Ae * vr;
-    //         glm::vec3 Fl = cl * Ae * lift_dir;
-    //         glm::vec3 f = Fda + Fl;
+            glm::vec3 Fda = cd * Ae * vr;
+            glm::vec3 Fl = cl * Ae * lift_dir;
+            glm::vec3 f = Fda + Fl;
 
-    //         // distribute force on face to vertices proportional to angle size
-    //         res[div+p1] += ((f * (faces[i].a12/3.14159f));
-    //         res[div+p2] += ((f * (faces[i].a23/3.14159f));
-    //         res[div+p3] += ((f * (faces[i].a31/3.14159f));
-    //     }
-    // }
+            // distribute force on face to vertices proportional to angle size
+            res[div+p1] += (f * (faces[i].a12/3.14159f));
+            res[div+p2] += (f * (faces[i].a23/3.14159f));
+            res[div+p3] += (f * (faces[i].a31/3.14159f));
+        }
+    }
     
 
     for (int i = 0; i < struts.size(); ++i) {
         int p0 = struts[i].v1;
         int p1 = struts[i].v2;
-
-
-        face face_left = faces[ struts[i].f1 ];
-        face face_right = faces[ struts[i].f2 ];
-
-        strut _s = face_left.s1 == i ? struts[face_left.s2] : struts[face_left.s1];
-        int p2 = _s.v1 == p0 || _s.v1 == p1 ? _s.v2 : _s.v1;
-
-        _s = face_right.s1 == i ? struts[face_right.s2] : struts[face_right.s1];
-        int p3 = _s.v1 == p0 || _s.v1 == p1 ? _s.v2 : _s.v1;
-
         glm::vec3 x0 = state[p0];
         glm::vec3 x1 = state[p1];
-        glm::vec3 x2 = state[p2];
-        glm::vec3 x3 = state[p3];
 
-         if (struts[i].f1 != -1 && struts[i].f2 != -1) {
-            glm::vec3 _nl = glm::cross(x1-x0, x2-x0);
-            glm::vec3 _nr = glm::cross(x3-x0, x1- x0);
+        if (struts[i].f1 != -1 && struts[i].f2 != -1) {
+            face face_left = faces[ struts[i].f1 ];
+            face face_right = faces[ struts[i].f2 ];
 
-            glm::vec3 nl = glm::normalize(_nl);
-            glm::vec3 nr = glm::normalize(_nr);
+            strut _s = face_left.s1 == i ? struts[face_left.s2] : struts[face_left.s1];
+            int p2 = _s.v1 == p0 || _s.v1 == p1 ? _s.v2 : _s.v1;
 
-            glm::vec3 h = glm::normalize(x1-x0);
-            float d02 = glm::dot(x2-x0, h);
-            float d03 = glm::dot(x3-x0, h);
-            glm::vec3 rl = (x2-x0) - d02*h;
-            glm::vec3 rr = (x3-x0) - d03*h;
+            _s = face_right.s1 == i ? struts[face_right.s2] : struts[face_right.s1];
+            int p3 = _s.v1 == p0 || _s.v1 == p1 ? _s.v2 : _s.v1;
 
-            float sl = glm::dot(state[div+p2], nl);
-            float sr = glm::dot(state[div+p3], nr);
-
-            float theta = glm::atan(glm::dot(glm::cross(nl, nr), h), glm::dot(nl, nr));
-
-            float dtheta_left =  sl/ glm::length(rl);
-            float dtheta_right =  sr/ glm::length(rr);
-
-            float torsion = struts[i].tk * (theta - struts[i].to);
-            float damping = -struts[i].td * (dtheta_left + dtheta_right);
-            glm::vec3 torque = (torsion + damping) * h;
-
-            glm::vec3 f2 = (glm::dot(torque, h) / glm::length(rl)) * nl;
-            glm::vec3 f3 = (glm::dot(torque, h) / glm::length(rr)) * nr;
-            glm::vec3 f1 = -((d02*f2 + d03*f3) / glm::length(x1-x0));
-        
-            res[div+p2] += f2;
-            res[div+p3] += f3;
-            res[div+p1] += f1;
-            res[div+p0] -= (f1 + f2 + f3);
             
+            glm::vec3 x2 = state[p2];
+            glm::vec3 x3 = state[p3];
+
+            if (struts[i].f1 != -1 && struts[i].f2 != -1) {
+                glm::vec3 _nl = glm::cross(x1-x0, x2-x0);
+                glm::vec3 _nr = glm::cross(x3-x0, x1- x0);
+
+                glm::vec3 nl = glm::normalize(_nl);
+                glm::vec3 nr = glm::normalize(_nr);
+
+                glm::vec3 h = glm::normalize(x1-x0);
+                float d02 = glm::dot(x2-x0, h);
+                float d03 = glm::dot(x3-x0, h);
+                glm::vec3 rl = (x2-x0) - d02*h;
+                glm::vec3 rr = (x3-x0) - d03*h;
+
+                float sl = glm::dot(state[div+p2], nl);
+                float sr = glm::dot(state[div+p3], nr);
+
+                float theta = glm::atan(glm::dot(glm::cross(nl, nr), h), glm::dot(nl, nr));
+
+                float dtheta_left =  sl/ glm::length(rl);
+                float dtheta_right =  sr/ glm::length(rr);
+
+                float torsion = struts[i].tk * (theta - struts[i].to);
+                float damping = -struts[i].td * (dtheta_left + dtheta_right);
+                glm::vec3 torque = (torsion + damping) * h;
+
+                glm::vec3 f2 = (glm::dot(torque, h) / glm::length(rl)) * nl;
+                glm::vec3 f3 = (glm::dot(torque, h) / glm::length(rr)) * nr;
+                glm::vec3 f1 = -((d02*f2 + d03*f3) / glm::length(x1-x0));
+            
+                res[div+p2] += f2;
+                res[div+p3] += f3;
+                res[div+p1] += f1;
+                res[div+p0] -= (f1 + f2 + f3);
+                
+            }
         }
 
 
@@ -247,6 +308,8 @@ void SoftBody::update(float dt, const glm::vec3& a) {
     auto k4 = calculate_forces(temp);
 
     S = runge_kutta(S, dt, k1, k2, k3, k4);
+
+    //normBuf = recalculate_normals(S);
 }
 
 void SoftBody::loadMesh(const std::string &meshName) {
@@ -321,7 +384,7 @@ void SoftBody::draw(std::shared_ptr<Program> prog, std::shared_ptr<MatrixStack> 
 	glUniform3f(prog->getUniform("kd"), material->kd.x, material->kd.y, material->kd.z);
 	glUniform3f(prog->getUniform("ks"), material->ks.x, material->ks.y, material->ks.z);
 	glUniform1f(prog->getUniform("s"), material->s );
-    glUniform1f(prog->getUniform("a"), 0.8f );
+    glUniform1f(prog->getUniform("a"), 0.9f );
 
     int div = S.size()/2;
 
@@ -473,7 +536,6 @@ void SoftBody::extract_struts(){
     }
 
 }
-
 
 void SoftBody::initial_conditions(InitialConditions& start, std::shared_ptr<Material> _material) {
     material = _material;

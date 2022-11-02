@@ -44,6 +44,7 @@ class Simulation {
         
         void swap_buffers();
         bool window_closed();
+        void reset();
 
         static Simulation& get_instance() {
             static Simulation instance; 

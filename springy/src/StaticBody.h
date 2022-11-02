@@ -15,6 +15,7 @@ class StaticBody: public Entity {
         void update(float dt, const glm::vec3& a=glm::vec3(0.0f)) override;
 
         std::vector<float> get_posbuf() { return posBuf; }
+
 };
 
 #endif

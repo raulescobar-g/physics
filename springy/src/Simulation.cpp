@@ -17,7 +17,7 @@ Simulation::Simulation() {
 	movement_speed = 0.5f;
 	sensitivity = 0.005f;
 	eps = 0.01f;
-	dt = 1.0f/144.0f;
+	dt = 1.0f/37.0f;
 	lightPos = glm::vec3(0.0f, 30.0f, 0.0f);
 	gravity = glm::vec3(0.0f, 0.0f, 0.0f);
 	wind = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -38,7 +38,7 @@ Simulation::~Simulation() {
 
 void Simulation::create_window(const char * window_name, const char * glsl_version) {
     // Create a windowed mode window and its OpenGL context.
-	window = glfwCreateWindow(640 * 3, 480 * 3, window_name, NULL, NULL);
+	window = glfwCreateWindow(640 * 4, 480 * 4, window_name, NULL, NULL);
 	if(!window) {
 		glfwTerminate();
 		std::cout<<"Failed to setup window! \n";
@@ -98,9 +98,9 @@ void Simulation::set_scene() {
 	cube_material->s = 100.0f;
 
 	InitialConditions floor_start = {
-		glm::vec3(0.0f, -2.0f, 0.0f),
-		glm::vec3(-glm::pi<float>() / 2.0f, 0.0f, 0.0f),
-		glm::vec3(100.0f),
+		glm::vec3(0.0f, 5.0f, -3.0f),
+		glm::vec3(glm::pi<float>()/2.0f + 0.5f, 0.0f, 0.0f),
+		glm::vec3(1.0f),
 		glm::vec3(0.0f),
 		glm::vec3(0.0f),
 	};
@@ -113,17 +113,17 @@ void Simulation::set_scene() {
 		glm::vec3(0.0f),
 	};
 
-	std::shared_ptr<StaticBody> floor = std::make_shared<StaticBody>("C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\square.obj");
+	std::shared_ptr<StaticBody> floor = std::make_shared<StaticBody>("C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\sphere.obj");
 	floor->initial_conditions(floor_start, floor_material);
 	statics.push_back(floor);
 
-	std::shared_ptr<SoftBody> cube = std::make_shared<SoftBody>("C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\sphere.obj");
-	cube->initial_conditions(cube_start, cube_material);
-	softies.push_back(cube);
+	// std::shared_ptr<SoftBody> cube = std::make_shared<SoftBody>("C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\sphere.obj");
+	// cube->initial_conditions(cube_start, cube_material);
+	// softies.push_back(cube);
 
-	// std::shared_ptr<Cloth> flag = std::make_shared<Cloth>(5, "C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\cloth.jpg");
-	// flag->initial_conditions(glm::vec3(0.0f, 5.0f, 0.0f), 3.0f);
-	// cloths.push_back(flag);
+	std::shared_ptr<Cloth> flag = std::make_shared<Cloth>(5, "C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\cloth.jpg");
+	flag->initial_conditions(glm::vec3(0.0f, 5.0f, 0.0f), 3.0f);
+	cloths.push_back(flag);
 
 
 	// set all time params
@@ -145,22 +145,9 @@ void Simulation::fixed_timestep_update() {
 	}
 }
 
-std::vector<std::vector<int>> broad_phase(std::vector<std::shared_ptr<Entity>>& entities) {
-	std::vector<std::vector<int>> result;
-
-	for (int i = 0; i < entities.size()-1; ++i) {
-		result.push_back(std::vector<int>());
-		for (int j = i+1; j < entities.size(); ++j) {
-			if (j == i) continue;
-			// check here
-			result[i].push_back(j);
-		}
-	}
-	return result;
-}
-
 
 void Simulation::update(float _dt) {
+	
 	
 	glm::vec3 global_acceleration = gravity + wind;
 
@@ -170,12 +157,22 @@ void Simulation::update(float _dt) {
 	for (auto staticc: statics) {
 		staticc->update(_dt);
 	}
-	for( auto soft: softies) {
-		soft->update(_dt);
-	}
+	// for( auto soft: softies) {
+	// 	soft->update(_dt);
+	// }
 
-	
-	softies[0]->calculate_collision_response(statics[0], _dt);
+
+	cloths[0]->calculate_collision_response(statics[0], _dt);
+}
+
+void Simulation::reset() {
+	if (options[(unsigned) 'r']) {
+		softies.clear();
+		cloths.clear();
+		statics.clear();
+		set_scene();
+		options[(unsigned) 'r'] = false;
+	}
 }
 
 void Simulation::render_scene() {
@@ -194,6 +191,8 @@ void Simulation::render_scene() {
 		options[(unsigned) 'v'] = !options[(unsigned) 'v'];
 	if (ImGui::Button("Camera Lock"))
 		options[(unsigned) 'x'] = !options[(unsigned) 'x'];
+	if (ImGui::Button("Reset"))
+		options[(unsigned) 'r'] = !options[(unsigned) 'r'];
 	ImGui::End();
 
 	ImGui::Render();
@@ -239,17 +238,17 @@ void Simulation::render_scene() {
 		MV->popMatrix();	
 		P->popMatrix();
 
-		// P->pushMatrix();
-		// MV->pushMatrix();
+		P->pushMatrix();
+		MV->pushMatrix();
 
-		// cloth_program->bind();
-		// for (auto cloth : cloths) {
-		// 	cloth->draw(cloth_program, MV, P);
-		// }
-		// cloth_program->unbind();
+		cloth_program->bind();
+		for (auto cloth : cloths) {
+			cloth->draw(cloth_program, MV, P);
+		}
+		cloth_program->unbind();
 
-		// MV->popMatrix();	
-		// P->popMatrix();
+		MV->popMatrix();	
+		P->popMatrix();
 
 	MV->popMatrix();	
 	P->popMatrix();
@@ -346,5 +345,5 @@ void Simulation::input_capture(){
 		o_x = mouse.x;
 		o_y = mouse.y;
 	}
-	
+	reset();
 }

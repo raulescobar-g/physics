@@ -152,6 +152,56 @@ void Entity::init(){
 		
 	}
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+	extract_struts();
+}
+
+void Entity::extract_struts() {
+	glm::vec3 v1, v2, v3;
+	std::vector<glm::vec3> S;
+	std::vector<unsigned int> indices;
+	strut s12,s23,s31;
+
+	for (int i = 0; i < posBuf.size(); i+=9) {
+		v1 = glm::vec3(posBuf[i+0], posBuf[i+1], posBuf[i+2]);
+        v2 = glm::vec3(posBuf[i+3], posBuf[i+4], posBuf[i+5]);
+        v3 = glm::vec3(posBuf[i+6], posBuf[i+7], posBuf[i+8]);
+
+		int r1,r2,r3;
+
+        bool v1_unique = unique_particle(v1, S, r1);
+        indices.push_back(r1);
+
+        bool v2_unique = unique_particle(v2, S, r2);
+        indices.push_back(r2);
+
+        bool v3_unique = unique_particle(v3, S, r3);
+        indices.push_back(r3);
+
+		int s12_r;
+        bool strut12_unique = unique_strut(r1,r2, struts, s12_r);
+        if (strut12_unique) {
+            s12.v1 = r1;
+            s12.v2 = r2;
+            struts.push_back(s12);
+        } 
+
+        int s23_r;
+        bool strut23_unique = unique_strut(r2, r3, struts, s23_r);
+        if (strut23_unique){
+            s23.v1 = r2;
+            s23.v2 = r3;
+            struts.push_back(s23);
+        } 
+
+        int s31_r;
+        bool strut31_unique = unique_strut(r3, r1, struts, s31_r);
+        if (strut31_unique) {
+            s31.v1 = r3;
+            s31.v2 = r1;
+            struts.push_back(s31);
+        } 
+	}
 }
 
 void Entity::draw(std::shared_ptr<Program> prog, std::shared_ptr<MatrixStack> MV, std::shared_ptr<MatrixStack> P) const {

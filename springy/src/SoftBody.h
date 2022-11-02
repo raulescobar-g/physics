@@ -25,14 +25,13 @@ class SoftBody {
         std::vector<glm::vec3> integrate(std::vector<glm::vec3> s, float h, std::vector<glm::vec3> ds);
         std::vector<glm::vec3> calculate_forces(std::vector<glm::vec3> state);
 
-        std::vector<glm::vec3> forces;
         std::vector<glm::vec3> S;
         std::vector<glm::vec3> prev_S;
 
         std::vector<strut> struts;
         std::vector<face> faces;
 
-        std::vector<glm::vec3> normals;
+        std::vector<glm::vec3> normBuf;
         std::vector<unsigned int> indices;
 
         // buffer id's
@@ -47,15 +46,15 @@ class SoftBody {
 
         float mass = 10.0f;
         float L = 1.0f;
-        float k = 1000.0f;
-        float d = 30.0f;
-        float tk = 600.0f;
+        float k = 1200.0f;
+        float d = 50.0f;
+        float tk = 900.0f;
         float td = 1.0f;
 
-        float cd = 0.1f;
-        float cl = 0.1f;
-        float cr = 1.0f;
-        float cf = 0.0f;
+        float cd = 0.3f;
+        float cl = 0.3f;
+        float cr = 0.9f;
+        float cf = 0.1f;
 
         glm::vec3 wind = glm::vec3(0.0f, 0.0f, 0.0f);
         glm::vec3 gravity = glm::vec3(0.0f, -10.0f, 0.0f);

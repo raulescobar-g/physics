@@ -42,7 +42,7 @@ struct strut {
 };
 
 inline bool near(glm::vec3 v1, glm::vec3 v2){
-    return glm::abs(glm::length(v1 - v2)) < 0.001f;
+    return glm::abs(glm::length(v1 - v2)) < 0.1f;
 }
 
 inline bool unique_particle(glm::vec3 vertex, std::vector<glm::vec3>& vec, int& result) {
@@ -93,7 +93,31 @@ inline std::vector<glm::vec3> runge_kutta(std::vector<glm::vec3> s, float h, std
     for (int i = 0; i < s.size(); ++i) {
         res[i] = s[i] + (h/6.0f) * (k1[i] + 2.0f * k2[i] + 2.0f * k3[i] + k4[i]);
     }
-    return res;
+    return res; 
+}
+
+
+inline glm::vec4 closest_point(glm::vec3 q0, glm::vec3 q1, glm::vec3 p0, glm::vec3 p1) {
+    glm::vec3 r = q0 - p0;
+
+    glm::vec3 a = p1 - p0;
+    glm::vec3 b = q1 - q0;
+
+    glm::vec3 n = glm::normalize(glm::cross(a,b));
+
+    glm::vec3 b_cross_n =  glm::cross(glm::normalize(b), glm::normalize(n));
+    glm::vec3 a_cross_n  = glm::cross(glm::normalize(a), glm::normalize(n));
+
+    float s = glm::dot(r,b_cross_n) / glm::dot(a,b_cross_n );
+
+    float t = glm::dot(-r, a_cross_n) / glm::dot(b, a_cross_n );
+
+    if (s < -0.0001f || t < -0.0001f || s > 1.0001f || t > 1.0001f) return glm::vec4(0.0f,0.0f,0.0f,-1.0f);
+
+    glm::vec3 qa = q0 + t * b;
+    glm::vec3 pa = p0 + s * a;
+
+    return glm::vec4(qa - pa, t);
 }
 
 #endif

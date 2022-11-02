@@ -49,14 +49,12 @@ int main(int argc, char **argv)
 	sim.init_programs();
 	sim.init_camera();
 	sim.set_scene();	
-	int i = 0;
 	while(!sim.window_closed()) {
 		sim.input_capture();
 		sim.move_camera();
 		sim.fixed_timestep_update();
 		sim.render_scene();
 		sim.swap_buffers();
-		++i;
 	}
 	return 0;
 }

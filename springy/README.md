@@ -9,5 +9,6 @@
 
 
 
-FIX DRAG AND LIFT ON FACE
- 
+recalc normals
+cloth collisions
+tetgen 
