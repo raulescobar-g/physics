@@ -46,15 +46,15 @@ class SoftBody {
 
         float mass = 10.0f;
         float L = 1.0f;
-        float k = 1200.0f;
-        float d = 50.0f;
-        float tk = 900.0f;
+        float k = 7200.0f;
+        float d = 300.0f;
+        float tk = 1200.0f;
         float td = 1.0f;
 
         float cd = 0.3f;
         float cl = 0.3f;
-        float cr = 0.9f;
-        float cf = 0.1f;
+        float cr = 1.0f;
+        float cf = 0.05f;
 
         glm::vec3 wind = glm::vec3(0.0f, 0.0f, 0.0f);
         glm::vec3 gravity = glm::vec3(0.0f, -10.0f, 0.0f);

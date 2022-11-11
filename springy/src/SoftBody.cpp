@@ -309,6 +309,7 @@ void SoftBody::update(float dt, const glm::vec3& a) {
 
     S = runge_kutta(S, dt, k1, k2, k3, k4);
 
+
     //normBuf = recalculate_normals(S);
 }
 

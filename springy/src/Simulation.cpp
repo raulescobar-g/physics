@@ -17,7 +17,7 @@ Simulation::Simulation() {
 	movement_speed = 0.5f;
 	sensitivity = 0.005f;
 	eps = 0.01f;
-	dt = 1.0f/37.0f;
+	dt = 1.0f/432.0f;
 	lightPos = glm::vec3(0.0f, 30.0f, 0.0f);
 	gravity = glm::vec3(0.0f, 0.0f, 0.0f);
 	wind = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -98,9 +98,9 @@ void Simulation::set_scene() {
 	cube_material->s = 100.0f;
 
 	InitialConditions floor_start = {
-		glm::vec3(0.0f, 5.0f, -3.0f),
-		glm::vec3(glm::pi<float>()/2.0f + 0.5f, 0.0f, 0.0f),
-		glm::vec3(1.0f),
+		glm::vec3(0.0f, -50.0f, 0.0f),
+		glm::vec3(glm::pi<float>()/2.0f, 0.0f, 0.0f),
+		glm::vec3(100.0f),
 		glm::vec3(0.0f),
 		glm::vec3(0.0f),
 	};
@@ -113,17 +113,17 @@ void Simulation::set_scene() {
 		glm::vec3(0.0f),
 	};
 
-	std::shared_ptr<StaticBody> floor = std::make_shared<StaticBody>("C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\sphere.obj");
+	std::shared_ptr<StaticBody> floor = std::make_shared<StaticBody>("C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\square.obj");
 	floor->initial_conditions(floor_start, floor_material);
 	statics.push_back(floor);
 
-	// std::shared_ptr<SoftBody> cube = std::make_shared<SoftBody>("C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\sphere.obj");
-	// cube->initial_conditions(cube_start, cube_material);
-	// softies.push_back(cube);
+	std::shared_ptr<SoftBody> cube = std::make_shared<SoftBody>("C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\sphere.obj");
+	cube->initial_conditions(cube_start, cube_material);
+	softies.push_back(cube);
 
-	std::shared_ptr<Cloth> flag = std::make_shared<Cloth>(5, "C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\cloth.jpg");
-	flag->initial_conditions(glm::vec3(0.0f, 5.0f, 0.0f), 3.0f);
-	cloths.push_back(flag);
+	// std::shared_ptr<Cloth> flag = std::make_shared<Cloth>(5, "C:\\Users\\raul3\\Programming\\physics\\springy\\resources\\cloth.jpg");
+	// flag->initial_conditions(glm::vec3(0.0f, 5.0f, 0.0f), 3.0f);
+	// cloths.push_back(flag);
 
 
 	// set all time params
@@ -157,12 +157,12 @@ void Simulation::update(float _dt) {
 	for (auto staticc: statics) {
 		staticc->update(_dt);
 	}
-	// for( auto soft: softies) {
-	// 	soft->update(_dt);
-	// }
+	for( auto soft: softies) {
+		soft->update(_dt);
+	}
 
 
-	cloths[0]->calculate_collision_response(statics[0], _dt);
+	softies[0]->calculate_collision_response(statics[0], _dt);
 }
 
 void Simulation::reset() {
