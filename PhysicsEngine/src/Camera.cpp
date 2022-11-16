@@ -1,38 +1,25 @@
-#define _USE_MATH_DEFINES
-#include <cmath> 
 #include <iostream>
 #include <glm/gtc/matrix_transform.hpp>
 #include "Camera.h"
-#include "MatrixStack.h"
 
-#define FOVY_SPEED 0.1f
+
 
 Camera::Camera() :
-	aspect(1.0f),
-	fovy((float)(45.0*M_PI/180.0)),
-	znear(0.1f),
-	zfar(100000.0f),
-	pos(0.0f,0.0f,-10.0f),
-	yaw(0.0f),
-	pitch(0.0f)
-	{}
-
-Camera::~Camera(){}
-
-void Camera::applyProjectionMatrix(std::shared_ptr<MatrixStack> P) const{
-	P->multMatrix(glm::perspective(fovy, aspect, znear, zfar));
+	perspective(1.0f, 45.0f*glm::pi<float>()/180.0f, 0.1f, 100000.0f),
+	position(0.0f,0.0f,-10.0f), rotation(0.0f), up(0.0f, 1.0f, 0.0f), sensitivity(0.005f), movement_speed(0.05f) {
+	for (int i = 0; i < 256; ++i) {
+		inputs[i] = false;
+	}
 }
 
-void Camera::applyViewMatrix(std::shared_ptr<MatrixStack> MV) const{
-	MV->multMatrix(glm::lookAt(pos, pos + glm::normalize(glm::vec3(sin(yaw)*cos(pitch), sin(pitch), cos(yaw)*cos(pitch))), glm::vec3(0.0,1.0,0.0) ));
+glm::mat4 projectionMat(const Camera& camera) {
+	return glm::perspective(camera.perspective.y, camera.perspective.x, camera.perspective.z, camera.perspective.w);
 }
 
-void Camera::increment_fovy() {
-	fovy += 0.1 * FOVY_SPEED;
-	if (fovy > 114.0f * glm::pi<float>()/180.0f) fovy = 114.0f * glm::pi<float>()/180.0f;
+glm::mat4 viewMat(const Camera& camera) {
+	return glm::lookAt(camera.position, camera.position + dir(camera.rotation), camera.up );
 }
-	
-void Camera::decrement_fovy() {
-	fovy -= 0.1 * FOVY_SPEED;
-	if (fovy < 4.0f * glm::pi<float>()/180.0f) fovy = 4.0f * glm::pi<float>()/180.0f;
+
+glm::vec3 dir(const glm::vec2& rotation) {
+	return glm::normalize(glm::vec3(sin(rotation.x)*cos(rotation.y), sin(rotation.y), cos(rotation.x)*cos(rotation.y)));
 }

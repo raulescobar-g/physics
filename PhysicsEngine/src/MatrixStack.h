@@ -41,6 +41,10 @@ public:
 	static void print(const glm::mat4 &mat, const char *name = 0);
 	// Prints out the top matrix
 	void print(const char *name = 0) const;
+
+	void operator*=(const glm::mat4& M);
+	glm::vec4 operator*(const glm::vec3& x);
+	glm::vec4 operator*(const glm::vec4& x);
 	
 private:
 	std::shared_ptr< std::stack<glm::mat4> > mstack;

@@ -2,43 +2,23 @@
 #ifndef CAMERA_H
 #define CAMERA_H
 
-#include <memory>
-
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
 
-class MatrixStack;
+struct Active {};
 
-class Camera
-{
-public:
-	enum {
-		ROTATE = 0,
-		TRANSLATE,
-		SCALE
-	};
-	
+struct Camera {
 	Camera();
-	virtual ~Camera();
-	void setAspect(float a) { aspect = a; };
-	void applyProjectionMatrix(std::shared_ptr<MatrixStack> P) const;
-	void applyViewMatrix(std::shared_ptr<MatrixStack> MV) const;
+	glm::vec4 perspective; // aspect, fovy, near, far
+	glm::vec3 position;
+	glm::vec2 rotation; // yaw, pitch
+	glm::vec3 up;
 
-	void increment_fovy();
-	void decrement_fovy();
-
-	glm::vec3 pos;
-	float yaw;
-	float pitch;
-	
-private:
-	float aspect;
-	float fovy;
-	float znear;
-	float zfar;
-
-	glm::vec2 rotations;
-	glm::vec3 translations;
+	unsigned char inputs[256];
+	float sensitivity, movement_speed;
 };
-
+	
+glm::mat4 projectionMat(const Camera& camera);
+glm::mat4 viewMat(const Camera& camera);
+glm::vec3 dir(const glm::vec2& rotation);
 #endif

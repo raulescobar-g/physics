@@ -7,38 +7,29 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include <vector> 
-#include <memory>
 #include <string>
 
-class Program;
+#include "Program.h"
 
-#define BASE_DIR "C:\\Users\\raul3\\Programming\\physics\\PhysicsEngine\\resources\\"
+struct Mesh {
+    Mesh();
+    Mesh(std::string);
+    std::vector<glm::vec3> operator *(glm::vec3 scale);
 
-class Mesh {
-    public:
-        Mesh();
-        Mesh(std::string);
-        void loadMesh(const std::string &meshName);
-        void fitToUnitBox();
-        void init();
-        void draw(const Program& prog) const;
-
-        std::vector<glm::vec3> operator *(float scale);
-
-        std::vector<glm::vec3> get_vertices();
-        
-    private:
-        std::string base_dir = BASE_DIR;
-
-        std::vector<glm::vec3> posBuf;
-        std::vector<glm::vec3> norBuf;
-        std::vector<glm::vec2> texBuf;
-        std::vector<unsigned int> indBuf;
-
-        unsigned posBufID;
-        unsigned norBufID;
-        unsigned texBufID;
-        unsigned indBufID;
+    std::vector<glm::vec3> posBuf;
+    std::vector<glm::vec3> norBuf;
+    std::vector<glm::vec2> texBuf;
+    std::vector<unsigned int> indBuf;
+    unsigned posBufID;
+    unsigned norBufID;
+    unsigned texBufID;
+    unsigned indBufID;
 };
+
+void init(Mesh& mesh);
+void draw(const Program& prog, const Mesh& mesh);
+void loadMesh(const std::string &meshName, Mesh& mesh);
+void fitToUnitBox(Mesh& mesh);
+
 
 #endif

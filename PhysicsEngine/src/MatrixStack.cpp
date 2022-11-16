@@ -112,3 +112,15 @@ void MatrixStack::print(const char *name) const
 {
 	print(mstack->top(), name);
 }
+
+void MatrixStack::operator*=(const glm::mat4& M){
+	multMatrix(M);
+}
+
+glm::vec4 MatrixStack::operator*(const glm::vec3& x){
+	return this->topMatrix() * glm::vec4(x, 1.0f);
+}
+
+glm::vec4 MatrixStack::operator*(const glm::vec4& x){
+	return this->topMatrix() * x;
+}

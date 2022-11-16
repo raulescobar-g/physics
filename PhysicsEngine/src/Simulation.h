@@ -10,21 +10,17 @@
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
-
-#include "GLSL.h"
-
 #include <entt/entt.hpp>
 
-class Program;
-class Mesh;
-class State;
-class Material;
+#include "GLSL.h"
+#include "Program.h"
+
 class Entity;
-class Camera;
-class Texture;
 class MatrixStack;
 
 class Simulation {
+    friend class Entity;
+
     public:
         Simulation();
         Simulation(Simulation const&);
@@ -42,8 +38,7 @@ class Simulation {
         void swap_buffers();
         bool window_closed();
         void input_capture();
-        void look_around();
-        
+        void look_around();         
 
         static Simulation& get_instance() {
             static Simulation instance; 
@@ -54,41 +49,36 @@ class Simulation {
             get_instance().error_callback_impl(error, description);
         }
 
+        Entity create_entity(std::string tag);
+
         
     private:
         void update();        
-        std::vector<State> integrate(std::vector<State> state, float h);
+        void integrate(float h);
         bool are_colliding(Entity& ent1, Entity& ent2, glm::vec4 response);
-        void draw_entities(std::vector<Entity>& drawables, std::shared_ptr<MatrixStack> MV, std::shared_ptr<MatrixStack> P);
+        void draw_entities(MatrixStack& MV, MatrixStack& P);
         void error_callback_impl(int error, const char *description);
         
-        float   dt = 1.0f/144.0f, 
+        float   dt = 1.0f/128.0f, 
                 current_time, 
                 total_time, 
                 new_time, 
                 frame_time, 
-                movement_speed = 0.5f,
-                sensitivity = 0.005f,
                 eps = 0.01f;
 
         glm::vec3   lightPos = glm::vec3(0.0f, 30.0f, 0.0f),
-                    gravity = glm::vec3(0.0f, -0.1f, 0.0f),
+                    gravity = glm::vec3(0.0f, -9.0f, 0.0f),
                     wind = glm::vec3(1.0f, 0.0f, 1.0f);
 
         double  o_x= -1.0, 
                 o_y= -1.0;                                    
-        bool options[256], inputs[256];                 
+        bool options[256];                 
 
         GLFWwindow *window;   
 
-        std::vector<Camera> cameras;   
-        std::vector<Program> programs;
-        std::vector<Entity> dynamic_entities;
-        std::vector<Entity> static_entities;
-        std::vector<Material> materials;
-        std::vector<State> states;
-        std::vector<Mesh> meshes;   
-        //std::vector<Texture> textures;      
+        Program pbr_program;
+
+        entt::registry registry;      
 };
 
 

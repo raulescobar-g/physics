@@ -9,7 +9,7 @@
 
 #include "Mesh.h"
 
-inline glm::mat3 extract_inertia_tensor(Mesh& mesh, float scale, float mass){
+inline glm::mat3 extract_inertia_tensor(Mesh& mesh, glm::vec3 scale, float mass){
     glm::mat3 I(0.0f);
     std::vector<glm::vec3> p = mesh * scale;
 
@@ -54,21 +54,23 @@ inline glm::mat3 extract_inertia_tensor(Mesh& mesh, float scale, float mass){
 } 
 
 
-// struct CollisionDetermination {
-//     glm::vec3 n;
-//     float d;
-//     int mesh1, mesh2;
-// };
+inline glm::vec3 extract_centroid(Mesh& mesh, glm::vec3 scale) {
+    std::vector<glm::vec3> p = mesh * scale;
 
-// inline Collision are_colliding(std::vector<glm::vec3>& triangles, ) {
+    glm::vec3 com = glm::vec3(0.0f);
+    float total_volume = 0.0f;
 
-// }
+    for (int i = 0; i < p.size(); i+=3) {
+        float volume = (glm::dot(p[i], glm::cross(p[i+1], p[i+2]))) / 6.0f;
+        glm::vec3 x = (p[i] + p[i+1] + p[i+2]) / 4.0f;
 
+        com += volume * x;
+        total_volume += volume;
+    }
 
-inline bool point_triangle(glm::vec3 p, glm::vec3 v1, glm::vec3 v2, glm::vec3 v3, glm::vec3& n, float& d) {
-
+    return com / total_volume;
 }
 
+
+
 #endif
-
-

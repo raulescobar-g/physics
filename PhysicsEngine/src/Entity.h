@@ -4,53 +4,60 @@
 
 #include <entt/entt.hpp>
 #include <memory>
+#include "Tag.h"
 
-class Scene;
-
-class _Entity {
-	public:
-		Entity(){};
-		Entity(unsigned int mesh, unsigned int material, unsigned int state, unsigned int program=0) :
-							mesh(mesh), material(material), state(state), program(program), hasTexture(false) {};
-		unsigned int material 	= 0;
-		unsigned int mesh 		= 0;
-		unsigned int state 		= 0;
-		unsigned int program 	= 0;
-		unsigned int texture 	= 0;
-		bool hasTexture = false;
-};
-
+class Simulation;
 
 class Entity {
 	private:
 		entt::entity entity_handle = entt::null;
-		std::make_shared<Scene> scene;
+		Simulation* sim = nullptr;
 
 	public:
-		Entity(entt::entity s_entity_handle, Scene* s_scene);
+		Entity() = default;
+		Entity(entt::entity s_entity_handle, Simulation* s_scene): entity_handle(s_entity_handle), sim(s_scene){}
+		Entity(const Entity& other) = default;
 
 		inline entt::entity get_handle() { 
 			return entity_handle; 
-			}
+		}
 
 		template<typename T, typename... Args>
 		T& add_component(Args&&... args){
-			return scene->registry.emplace<T>(entity_handle, std::forward<Args>(args)...);
+			return sim->registry.emplace<T>(entity_handle, std::forward<Args>(args)...);
+		}
+
+		template<typename T>
+		void add_tag_component(){
+			sim->registry.emplace_or_replace<T>(entity_handle);
 		}
 
 		template<typename T>
 		T& get_component(){
-			return scene->registry.get<T>(entity_handle);
+			return sim->registry.get<T>(entity_handle);
 		}
 
 		template<typename T>
 		void remove_component(){
-			return scene->registry.remove<T>(entity_handle);
+			return sim->registry.remove<T>(entity_handle);
 		}
 
 		template<typename T>
 		bool has_component(){
-			return scene->registry.all_of<T>(entity_handle);
+			return sim->registry.all_of<T>(entity_handle);
+		}
+
+		operator bool() const { return entity_handle != entt::null; }
+		operator entt::entity() const { return entity_handle; }
+
+		const std::string& get_name() { return get_component<Tag>(); }
+
+		bool operator==(const Entity& other) const{
+			return entity_handle == other.entity_handle && sim == other.sim;
+		}
+
+		bool operator!=(const Entity& other) const{
+			return !(*this == other);
 		}
 };
 
