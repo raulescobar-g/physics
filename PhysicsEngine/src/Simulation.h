@@ -55,7 +55,6 @@ class Simulation {
     private:
         void update();        
         void integrate(float h);
-        bool are_colliding(Entity& ent1, Entity& ent2, glm::vec4 response);
         void draw_entities(MatrixStack& MV, MatrixStack& P);
         void error_callback_impl(int error, const char *description);
         
@@ -67,7 +66,7 @@ class Simulation {
                 eps = 0.01f;
 
         glm::vec3   lightPos = glm::vec3(0.0f, 30.0f, 0.0f),
-                    gravity = glm::vec3(0.0f, -9.0f, 0.0f),
+                    gravity = glm::vec3(0.0f, -1.0f, 0.0f),
                     wind = glm::vec3(1.0f, 0.0f, 1.0f);
 
         double  o_x= -1.0, 

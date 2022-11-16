@@ -6,6 +6,7 @@
 #include <glm/gtx/quaternion.hpp>
 
 StateVector::StateVector(glm::vec3 x): x(x), q(1.0f,glm::vec3(0.0f)), p(0.0f), L(0.0f), scale(1.0f) {}
+StateVector::StateVector(glm::vec3 x, glm::vec3 s): x(x), q(1.0f,glm::vec3(0.0f)), p(0.0f), L(0.0f), scale(s) {}
 StateVector::StateVector(glm::vec3 x,glm::vec3 p,glm::vec3 L) : x(x), q(1.0f,glm::vec3(0.0f)), p(p), L(L), scale(1.0f) {}
 StateVector::StateVector(const StateVector& s) : x(s.x), q(s.q), p(s.p), L(s.L), scale(s.scale) {}
 StateVector::operator glm::mat4(){ return glm::translate(glm::mat4(1.0f), x) * glm::scale(glm::mat4(1.0f), scale) * glm::toMat4(q);}
@@ -57,11 +58,19 @@ Transform::Transform(glm::vec3 translation,
                     float mass) : 
                     state(translation), 
                     dstate(velocity),
+                    prev(translation),
                     inertia(mass){};
 
 Transform::Transform(glm::vec3 translation) : 
                     state(translation), 
                     dstate(),
+                    prev(translation),
+                    inertia() {};
+
+Transform::Transform(glm::vec3 translation, glm::vec3 scale) : 
+                    state(translation, scale), 
+                    dstate(),
+                    prev(translation),
                     inertia() {};
 
 //Transform::Transform(const Transform&) 
@@ -71,6 +80,7 @@ Transform::operator glm::mat4() { return state;}
 void Transform::operator=(const StateVector& s){ state = s;}
 
 StateVector integrate_state(Transform& transform, float h, glm::vec3 a) {
+    transform.prev = transform.state;
     float mass = transform.inertia;
     a -= (0.1f / mass) * (transform.state.p / mass);
     dStateVector dstate(transform.state, transform.inertia, a);

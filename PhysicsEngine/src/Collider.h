@@ -11,7 +11,8 @@
 
 using vectors = std::vector< glm::vec3 >;
 using vec3 = glm::vec3;
-
+using pairs = std::vector<std::pair<unsigned int, unsigned int>>;
+using triplets = std::vector<std::tuple<unsigned int, unsigned int, unsigned int>>;
 struct Contact {
     Contact() : exists(false) {}
     vec3 p, normal;
@@ -21,41 +22,27 @@ struct Contact {
     operator bool() { return exists; }
 };
 
-struct Triangle {
-    Triangle(unsigned int i1, unsigned int i2, unsigned int i3, unsigned int n1): v1(i1), v2(i2), v3(i3), n1(n1) {}
-    unsigned int v1,v2,v3, n1;
-};
-struct Edge {
-    Edge(unsigned int i1, unsigned int i2): v1(i1), v2(i2) {}
-    unsigned int v1,v2;
-};
+using contact_pair = std::tuple<std::vector<Contact>,std::vector<Contact>>;
+
 
 struct Collider {
-    Collider(vectors verts);
+    Collider(const vectors& verts);
     vectors verts;
-    vectors normals;
+    triplets triangle_idx;
+    pairs edges;
 };
 
-vec3 get_farpoint(const vectors& verts, const vec3 dir);
 
-bool same_dir(const vec3& dir, const vec3& ao);
+contact_pair are_colliding(Collider& meshA, Collider& meshB, const glm::mat4& TA, const glm::mat4& pTA, const glm::mat4& TB, const glm::mat4& pTB);
 
-vec3 get_support(const vectors& verts1, const vectors& verts2, vec3 dir);
+void check_vertices_against_faces(Collider& meshA, Collider& meshB, vectors& pvA, vectors& vA, vectors& pvB, vectors& vB, std::vector<Contact>& contactsA, std::vector<Contact>& contactsB);
 
-bool two_points(Simplex& points, vec3& dir);
+void check_edges(Collider& meshA, Collider& meshB, vectors& pvA, vectors& vA, vectors& pvB, vectors& vB, std::vector<Contact>& contactsA, std::vector<Contact>& contactsB);
 
-bool three_points(Simplex& points,vec3& dir);
+void vertex_triangle_collision(vec3 prev, vec3 p, vec3 v1, vec3 v2, vec3 v3, std::vector<Contact>& contacts_point, std::vector<Contact>& contacts_face);
 
-bool four_points(Simplex& points, vec3& direction);
+bool inside(vec3 collision_position , vec3 vertex_0, vec3 vertex_1, vec3 vertex_2);
 
-bool enclose_origin(Simplex& points, vec3& dir);
-
-Contact GJK(Collider& colliderA, Collider& colliderB, const glm::mat4& T1, const glm::mat4& T2);
-
-std::pair<std::vector<glm::vec4>, size_t> get_face_normals(const vectors& polytope, const std::vector<size_t>&  faces);
-
-void add_unique_edge(std::vector<std::pair<size_t, size_t>>& edges, const std::vector<size_t>& faces, size_t a, size_t b);
-
-Contact EPA(const Simplex& simplex, const vectors& verts1, const vectors& verts);
+bool triangle_hit(vec3 prev, vec3 p, vec3 v1, vec3 v2, vec3 v3, vec3& contact);
 
 #endif 

@@ -13,6 +13,7 @@ struct Mesh;
 struct StateVector {
     StateVector()= default;
     StateVector(glm::vec3);
+    StateVector(glm::vec3, glm::vec3);
     StateVector(glm::vec3,glm::vec3,glm::vec3);
     StateVector(const StateVector&);
     glm::vec3 x;
@@ -52,13 +53,13 @@ struct dStateVector {
 struct Transform {
     Transform() = default;
     Transform(glm::vec3); // x
+    Transform(glm::vec3, glm::vec3);
     Transform(glm::vec3, glm::vec3, float); // x,p,scale,mass
 
     StateVector state;
     dStateVector dstate;
     Inertia inertia;
-
-    
+    StateVector prev;
 
     glm::vec3 centroid;
 

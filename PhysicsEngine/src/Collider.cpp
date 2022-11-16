@@ -1,7 +1,7 @@
 #include "Collider.h"
 #include <iostream> 
 
-#define TOL 1e-3f
+#define TOL 1e-2f
 
 bool operator==(glm::vec3 v1, glm::vec3 v2) {
 	return glm::length(v1 - v2) < TOL;
@@ -15,11 +15,13 @@ int vec_idx(glm::vec3 p, std::vector<glm::vec3>& vecs) {
 	return vecs.size()-1;
 }
 
-bool operator==(const Edge& e1, const Edge& e2) {
-    return (e1.v1 == e2.v1 && e1.v2 == e2.v2) || (e1.v1 == e2.v2 && e1.v2 == e2.v1);
+bool operator==(const std::pair<unsigned int, unsigned int>& pair1, const std::pair<unsigned int, unsigned int>& pair2) {
+    auto [e1,e2] = pair1;
+    auto [d1, d2] = pair2;
+    return (e1 == d1 && e2 == d2) || (e1 == d2 && e2 == d1);
 }
 
-void insert_nonredundant_edge(Edge& edge, std::vector<Edge>& edges) {
+void insert_nonredundant_edge(std::pair<unsigned int, unsigned int> edge, pairs& edges) {
     for (int i = 0; i < edges.size(); ++i) {
 		if (edge == edges[i]) return;
 	}
@@ -27,313 +29,178 @@ void insert_nonredundant_edge(Edge& edge, std::vector<Edge>& edges) {
 }
 
 
-Collider::Collider(vectors posBuf) {
-    verts = posBuf;
-    for (int i = 0; i < posBuf.size(); i+=3) {
-        normals.push_back(glm::normalize(glm::cross(posBuf[i+1] - posBuf[i], posBuf[i+2] - posBuf[i+1])));
-    }
-}
-
-
-vec3 get_farpoint(const vectors& verts, const vec3 dir) {
-    vec3 maxPoint;
-    float maxDistance = -FLT_MAX;
-    float distance;
-    for (vec3 v : verts) {
-        distance = glm::dot(v, dir);
-        if (distance > maxDistance) {
-            maxDistance = distance;
-            maxPoint = v;
-        }
-    }
-    return maxPoint;
-}
-
-bool same_dir(const vec3& dir, const vec3& ao){
-	return glm::dot(dir, ao) > 0.0f;
-}
-
-vec3 get_support(const vectors& verts1, const vectors& verts2, vec3 dir){
-	return  get_farpoint(verts1, dir) - get_farpoint(verts2, -dir);
-}
-
-bool two_points(Simplex& points, vec3& dir){
-    vec3 a,ab,ao;
-
-	a = points[0];
-	ab = points[1] - a;
-	ao = -a;
- 
-	if (same_dir(ab, ao)) {
-		dir = glm::cross(glm::cross(ab, ao), ab);
-	} else {
-		points = { a };
-		dir = ao;
-	}
-
-	return false;
-}
-
-bool three_points(Simplex& points,vec3& dir){
-	vec3 a = points[0];
-	vec3 b = points[1];
-	vec3 c = points[2];
-
-	vec3 ab = b - a;
-	vec3 ac = c - a;
-	vec3 ao =   - a;
- 
-	vec3 abc = glm::cross(ab, ac);
- 
-	if (same_dir(glm::cross(abc, ac), ao)) {
-		if (same_dir(ac, ao)) {
-			points = { a, c };
-			dir = glm::cross(glm::cross(ac, ao), ac); 
-		}
-
-		else {
-			return two_points(points = { a, b }, dir);
-		}
-	}
- 
-	else {
-		if (same_dir(glm::cross(ab, abc), ao)) {
-			return two_points(points = { a, b }, dir);
-		}
-
-		else {
-			if (same_dir(abc, ao)) {
-				dir = abc;
-			}
-
-			else {
-				points = { a, c, b };
-				dir = -abc;
-			}
-		}
-	}
-
-	return false;
-}
-
-bool four_points(Simplex& points, vec3& direction){
-	vec3 a = points[0];
-	vec3 b = points[1];
-	vec3 c = points[2];
-	vec3 d = points[3];
-
-	vec3 ab = b - a;
-	vec3 ac = c - a;
-	vec3 ad = d - a;
-	vec3 ao =   - a;
- 
-	vec3 abc = glm::cross(ab, ac);
-	vec3 acd = glm::cross(ac, ad);
-	vec3 adb = glm::cross(ad, ab);
- 
-	if (same_dir(abc, ao)) {
-		return three_points(points = { a, b, c }, direction);
-	}
-		
-	if (same_dir(acd, ao)) {
-		return three_points(points = { a, c, d }, direction);
-	}
- 
-	if (same_dir(adb, ao)) {
-		return three_points(points = { a, d, b }, direction);
-	}
- 
-	return true;
-}
-
-bool enclose_origin(Simplex& points, vec3& dir){
-	switch (points.size()) {
-		case 2: return two_points(points, dir);
-		case 3: return three_points(points, dir);
-		case 4: return four_points(points, dir);
-	}
- 
-	// never should be here
-	return false;
-}
-
-
-Contact GJK(Collider& colliderA, Collider& colliderB, const glm::mat4& T1, const glm::mat4& T2) {
-    Contact contact;
-    Simplex points;
-    vectors verts1, verts2;
-    vec3 support, dir;
-
-    verts1.reserve(colliderA.verts.size()); 
-    verts2.reserve(colliderB.verts.size());
-
-    for (auto v : colliderA.verts) 
-        verts1.push_back(T1 * glm::vec4(v, 1.0f));
-    for (auto v : colliderB.verts) 
-        verts2.push_back(T2 * glm::vec4(v, 1.0f));
+Collider::Collider(const vectors& posBuf) {
     
-
-    support = get_support(verts1, verts2, glm::vec3(1.0f, 0.0f, 0.0f));
-    points.push_front(support);
-    dir = -support;
-
-    while (true) {
-        support = get_support(verts1, verts2, dir);
+    for (int i = 0; i < posBuf.size(); i+=3) {
         
-		if (glm::dot(support, dir) <= 0.0f) 
-			return contact; // no collision
-		
-		points.push_front(support);
-        
-        if (enclose_origin(points, dir)) 
-			return EPA(points, verts1, verts2);
+        unsigned int idx1 = vec_idx(posBuf[i], verts);
+        unsigned int idx2 = vec_idx(posBuf[i+1], verts);
+        unsigned int idx3 = vec_idx(posBuf[i+2], verts);
+
+        triangle_idx.push_back({idx1, idx2, idx3});
+
+        insert_nonredundant_edge(std::pair<unsigned int, unsigned int>(idx1, idx2), edges);
+        insert_nonredundant_edge(std::pair<unsigned int, unsigned int>(idx2, idx3), edges);
+        insert_nonredundant_edge(std::pair<unsigned int, unsigned int>(idx3, idx1), edges);
+    }
+   
+
+}
+
+
+contact_pair are_colliding(Collider& meshA, Collider& meshB, const glm::mat4& TA, const glm::mat4& pTA, const glm::mat4& TB, const glm::mat4& pTB){
+    std::vector<Contact> contacts_on_A, contacts_on_B;
+    vectors prev_verts_A, verts_A, prev_verts_B, verts_B;
+
+    prev_verts_A.reserve(meshA.verts.size());
+    verts_A.reserve(meshA.verts.size());
+    prev_verts_B.reserve(meshB.verts.size());
+    verts_B.reserve(meshB.verts.size());
+
+    for (auto v : meshA.verts) {
+        prev_verts_A.push_back(pTA * glm::vec4(v, 1.0f));
+        verts_A.push_back(TA * glm::vec4(v, 1.0f));
+    }
+
+    for (auto v : meshB.verts) {
+        prev_verts_B.push_back(pTB * glm::vec4(v, 1.0f));
+        verts_B.push_back(TB * glm::vec4(v, 1.0f));
+    }
+    check_vertices_against_faces(meshA, meshB, prev_verts_A, verts_A, prev_verts_B, verts_B, contacts_on_A, contacts_on_B);
+    check_vertices_against_faces(meshB, meshA, prev_verts_B, verts_B, prev_verts_A, verts_A, contacts_on_B, contacts_on_A);
+    check_edges(meshA, meshB, prev_verts_A, verts_A, prev_verts_B, verts_B, contacts_on_A, contacts_on_B);
+
+    return { contacts_on_A, contacts_on_B };
+}  
+
+void check_vertices_against_faces(Collider& meshA, Collider& meshB, vectors& pvA, vectors& vA, vectors& pvB, vectors& vB, std::vector<Contact>& contactsA, std::vector<Contact>& contactsB) {
+    for (int i = 0; i < vA.size(); ++i) {
+        for (int j = 0; j < meshB.triangle_idx.size(); ++j) {
+            vec3 v1,v2,v3;
+
+            auto [idx1, idx2, idx3] = meshB.triangle_idx[j];
+            
+            v1 = vB[idx1]; v2 = vB[idx2]; v3 = vB[idx3];
+
+            vertex_triangle_collision(pvA[i], vA[i], v1, v2, v3, contactsA, contactsB);
+        }
+    }
+}
+
+glm::vec4 closest_point(vec3 q0, vec3 q1, vec3 p0, vec3 p1) {
+    vec3 r = q0 - p0;
+
+    vec3 a = p1 - p0;
+    vec3 b = q1 - q0;
+
+    if (glm::abs(glm::dot(glm::normalize(a),glm::normalize(b))) > 0.99f) return glm::vec4(0.0f,0.0f,0.0f,-1.0f);
+
+    vec3 n = glm::normalize(glm::cross(a,b));
+
+    vec3 b_cross_n =  glm::cross(glm::normalize(b), glm::normalize(n));
+    vec3 a_cross_n  = glm::cross(glm::normalize(a), glm::normalize(n));
+
+    float s = glm::dot(r,b_cross_n) / glm::dot(a,b_cross_n );
+
+    float t = glm::dot(-r, a_cross_n) / glm::dot(b, a_cross_n );
+
+    if (s < 0.0001f || t < 0.0001f || s > 0.999f || t > 0.999f) return glm::vec4(0.0f,0.0f,0.0f,-1.0f);
+
+    vec3 qa = q0 + t * b;
+    vec3 pa = p0 + s * a;
+
+    return glm::vec4(qa - pa, t);
+}
+
+void check_edges(Collider& meshA, Collider& meshB, vectors& pvA, vectors& vA, vectors& pvB, vectors& vB, std::vector<Contact>& contactsA, std::vector<Contact>& contactsB){
+
+    for (auto [e1_1, e1_2] : meshA.edges) {
+
+        vec3 edge1_1 = vA[e1_1];
+        vec3 edge1_2 = vA[e1_2];
+        vec3 prev_edge1_1 = pvA[e1_1];
+        vec3 prev_edge1_2 = pvA[e1_2];
+
+        for (auto [e2_1, e2_2] : meshB.edges) {
+            
+
+            vec3 edge2_1 = vB[e2_1];
+            vec3 edge2_2 = vB[e2_2];
+            vec3 prev_edge2_1 = pvB[e2_1];
+            vec3 prev_edge2_2 = pvB[e2_2];
+
+            glm::vec4 _m = closest_point(edge1_1, edge1_2, edge2_1, edge2_2);
+            glm::vec4 _prev_m = closest_point(prev_edge1_1, prev_edge1_2, prev_edge2_1, prev_edge2_2);
+
+            float t = _m.w;
+            float pt = _prev_m.w;
+
+            vec3 m = _m;
+            vec3 prev_m = _prev_m;
+
+            if ((t < 0.0f || pt < 0.0f) || glm::dot(m, prev_m) > 0.0f) continue;
+            std::cout<<"-";
+
+            vec3 n = glm::normalize(glm::cross(edge1_2 - edge1_1,edge2_2 - edge2_1));
+
+            float s = glm::dot(m,n) > 0.0f ? -1.0f: 1.0f;
+
+            Contact contactA, contactB;
+            contactA.exists = true;
+            contactB.exists = true;
+            contactA.normal = s * n;
+            contactB.normal = -s * n;
+
+            contactA.p = edge1_1 + (edge1_2 - edge1_1) * t;
+            contactB.p = contactA.p;
+
+            contactsA.push_back(contactA);
+            contactsB.push_back(contactB);
+        }
     }
 }
 
 
-std::pair<std::vector<glm::vec4>, size_t> get_face_normals(const vectors& polytope, const std::vector<size_t>&  faces) {
-	std::vector<glm::vec4> normals;
-	size_t minTriangle = 0;
-	float  minDistance = FLT_MAX;
+void vertex_triangle_collision(vec3 prev, vec3 p, vec3 v1, vec3 v2, vec3 v3, std::vector<Contact>& contacts_point, std::vector<Contact>& contacts_face) {
+    vec3 point_of_collision;
+    if (triangle_hit(prev, p, v1, v2, v3, point_of_collision)) {
+        std::cout<<".";
+        Contact point, face;
+        point.normal = glm::cross(v2 - v1, v3 - v1);
+        point.exists = true;
+        point.p = point_of_collision;
 
-	for (size_t i = 0; i < faces.size(); i += 3) {
-		vec3 a = polytope[faces[i    ]];
-		vec3 b = polytope[faces[i + 1]];
-		vec3 c = polytope[faces[i + 2]];
+        face.normal = -1.0f * point.normal;
+        face.exists = true;
+        face.p = point_of_collision;
 
-		vec3 normal = glm::normalize(glm::cross(b - a, c - a));
-		float distance = glm::dot(normal, a);
-
-		if (distance < 0.0f) {
-			normal   *= -1.0f;
-			distance *= -1.0f;
-		}
-
-		normals.emplace_back(normal, distance);
-
-		if (distance < minDistance) {
-			minTriangle = i / 3;
-			minDistance = distance;
-		}
-	}
-
-	return { normals, minTriangle };
+        contacts_point.push_back(point);
+        contacts_face.push_back(face);
+    }
 }
 
-void add_unique_edge(std::vector<std::pair<size_t, size_t>>& edges, const std::vector<size_t>& faces, size_t a, size_t b){
-	auto reverse = std::find(               //      0--<--3
-		edges.begin(),                     //     / \ B /   A: 2-0
-		edges.end(),                       //    / A \ /    B: 0-2
-		std::make_pair(faces[b], faces[a]) //   1-->--2
-	);
- 
-	if (reverse != edges.end()) {
-		edges.erase(reverse);
-	}
- 
-	else {
-		edges.emplace_back(faces[a], faces[b]);
-	}
-}
+bool inside(vec3 collision_position , vec3 vertex_0, vec3 vertex_1, vec3 vertex_2) {
+	vec3 u = vertex_1 - vertex_0;
+	vec3 v = vertex_2 - vertex_0;
+	vec3 n = glm::cross(u, v);
+	vec3 w = collision_position - vertex_0;
 
-Contact EPA(const Simplex& simplex, const vectors& verts1, const vectors& verts2){
-    Contact contact;
-    vectors polytope(simplex.begin(), simplex.end());
-	std::vector<size_t>  faces = {
-		0, 1, 2,
-		0, 3, 1,
-		0, 2, 3,
-		1, 3, 2
-	};
+	float gamma = glm::dot(glm::cross(u, w), n) / glm::dot(n,n);
+	float beta = glm::dot(glm::cross(w, v), n) / glm::dot(n,n);
+	float alpha = 1.0f - gamma - beta;
 
-	// list: vector4(normal, distance), index: min distance
-	auto [normals, minFace] = get_face_normals(polytope, faces);
-    vec3 minNormal;
-	float minDistance = FLT_MAX;
-	
-	while (minDistance == FLT_MAX) {
-		minNormal   = normals[minFace];
-		minDistance = normals[minFace].w;
- 
-		vec3 support = get_support(verts1, verts2, minNormal);
-		float sDistance = glm::dot(minNormal, support);
- 
-		if (glm::abs(sDistance - minDistance) > 0.0000001f) {
-			minDistance = FLT_MAX;
-            std::vector<std::pair<size_t, size_t>> uniqueEdges;
+	return alpha >= -0.00001 && beta >= -0.00001 && gamma >= -0.00001;
+};
 
-			for (size_t i = 0; i < normals.size(); i++) {
-				if (same_dir(normals[i], support)) {
-					size_t f = i * 3;
+bool triangle_hit(vec3 prev, vec3 p, vec3 v1, vec3 v2, vec3 v3, vec3& contact) {
+   vec3 n = glm::normalize(glm::cross(v2 - v1, v3 - v1));
 
-					add_unique_edge(uniqueEdges, faces, f,     f + 1);
-					add_unique_edge(uniqueEdges, faces, f + 1, f + 2);
-					add_unique_edge(uniqueEdges, faces, f + 2, f    );
+    float d_A = glm::dot(prev - v1, n);
+    float d_B = glm::dot(p - v1, n);
 
-					faces[f + 2] = faces.back(); faces.pop_back();
-					faces[f + 1] = faces.back(); faces.pop_back();
-					faces[f    ] = faces.back(); faces.pop_back();
+    float t = glm::abs(d_A) / glm::abs(d_B - d_A);
 
-					normals[i] = normals.back(); normals.pop_back();
+    contact = prev + (p-prev) * glm::length(p-prev) * t;
 
-					i--;
-				}
-			}
-            std::vector<size_t> newFaces;
-			for (auto [edgeIndex1, edgeIndex2] : uniqueEdges) {
-				newFaces.push_back(edgeIndex1);
-				newFaces.push_back(edgeIndex2);
-				newFaces.push_back(polytope.size());
-			}
-			 
-			polytope.push_back(support);
-
-			auto [newNormals, newMinFace] = get_face_normals(polytope, newFaces);
-            float oldMinDistance = FLT_MAX;
-			for (size_t i = 0; i < normals.size(); i++) {
-				if (normals[i].w < oldMinDistance) {
-					oldMinDistance = normals[i].w;
-					minFace = i;
-				}
-			}
- 
-			if (newNormals[newMinFace].w < oldMinDistance) {
-				minFace = newMinFace + normals.size();
-			}
- 
-			faces  .insert(faces  .end(), newFaces  .begin(), newFaces  .end());
-			normals.insert(normals.end(), newNormals.begin(), newNormals.end());
-		} else {
-            vec3 v1 = polytope[faces[minFace*3]];
-            vec3 v2 = polytope[faces[minFace*3+1]];
-            vec3 v3 = polytope[faces[minFace*3+2]];
-
-            vec3 p = -1.0f*minNormal * sDistance;
-
-            vec3 c = barycentric(p,v1,v2,v3);
-            
-            contact.p = p;
-            std::cout<<p.x<<", "<<p.y<<", "<<p.z<<std::endl;
-        }
-	}
-	contact.normal = minNormal;
-	contact.depth = minDistance + 0.0000001f;
-	contact.exists = true;
- 
-	return contact;
-}
-
-
-vec3 barycentric(vec3 p, vec3 a, vec3 b, vec3 c){
-    vec3 v0 = b - a, v1 = c - a, v2 = p - a;
-    float d00 = glm::dot(v0, v0);
-    float d01 = glm::dot(v0, v1);
-    float d11 = glm::dot(v1, v1);
-    float d20 = glm::dot(v2, v0);
-    float d21 = glm::dot(v2, v1);
-    float denom = d00 * d11 - d01 * d01;
-    float v = (d11 * d20 - d01 * d21) / denom;
-    float w = (d00 * d21 - d01 * d20) / denom;
-    float u = 1.0f - v - w;
-    return vec3(u,v,w);
+    return d_B * d_A < 0.0 && inside(contact, v1, v2, v3);
 }

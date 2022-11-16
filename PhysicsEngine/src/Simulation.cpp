@@ -100,7 +100,7 @@ void Simulation::set_scene() {
 	auto& sphere_entity = create_entity("Sphere");
 	sphere_entity.add_component<Mesh>("sphere.obj");
 	sphere_entity.add_component<Material>(glm::vec3(0.1f, 0.3f, 0.9f));
-	sphere_entity.add_component<Transform>(glm::vec3(0.6f, 5.0f, 0.0f));
+	sphere_entity.add_component<Transform>(glm::vec3(0.4f, 1.0f, 0.01f));
 	sphere_entity.add_tag_component<RigidBody>();
 	Mesh& sphere_mesh = sphere_entity.get_component<Mesh>();
 	sphere_entity.add_component<Collider>(sphere_mesh.posBuf);
@@ -157,11 +157,13 @@ void Simulation::update() {
 
 		for (auto& [entity, static_collider, static_transform] : registry.view<Collider, StaticBody, Transform>().each()) {
 
-			Contact contact = GJK(dynamic_collider, static_collider, dynamic_transform, static_transform);
+			auto [dyn_contact, stat_contact] = are_colliding(dynamic_collider, static_collider, dynamic_transform, dynamic_transform.prev, static_transform, static_transform.prev);
 
-			if (contact.exists) {
-				options[(unsigned) 'p'] = true;
-				contact.normal *= -1.0f;
+			if (dyn_contact.size() > 0) std::cout<<dyn_contact.size()<<std::endl;
+
+			for (int i = 0; i < dyn_contact.size(); ++i) {
+
+				Contact& contact = dyn_contact[i];
 							
 				glm::vec3 r = contact.p - (dynamic_transform.centroid + dynamic_transform.state.x);
 				glm::vec3 dp = (dynamic_transform.state.p/mass) + glm::cross(w,r);
@@ -172,13 +174,9 @@ void Simulation::update() {
 				j /= (1.0f/mass) + glm::dot(contact.normal, (R*I_inv*glm::transpose(R) * glm::cross(glm::cross(r, contact.normal), r)));
 
 				glm::vec3 J = j * contact.normal;
-				// std::cout<<glm::cross(w,r);
-				// std::cout<<j<<std::endl;
-				// std::cout<<J;
+
 				dynamic_transform.state.p += J;
 				dynamic_transform.state.L += glm::cross(r, J);
-
-
 			}
 		}
 	}
