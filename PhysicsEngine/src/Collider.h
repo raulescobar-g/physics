@@ -58,4 +58,6 @@ void add_unique_edge(std::vector<std::pair<size_t, size_t>>& edges, const std::v
 
 Contact EPA(const Simplex& simplex, const vectors& verts1, const vectors& verts);
 
+vec3 barycentric(vec3 p, vec3 a, vec3 b, vec3 c);
+
 #endif 

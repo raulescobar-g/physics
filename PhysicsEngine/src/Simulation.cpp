@@ -98,9 +98,9 @@ void Simulation::set_scene() {
 	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 
 	auto& sphere_entity = create_entity("Sphere");
-	sphere_entity.add_component<Mesh>("sphere.obj");
+	sphere_entity.add_component<Mesh>("cube.obj");
 	sphere_entity.add_component<Material>(glm::vec3(0.1f, 0.3f, 0.9f));
-	sphere_entity.add_component<Transform>(glm::vec3(0.6f, 5.0f, 0.0f));
+	sphere_entity.add_component<Transform>(glm::vec3(5.6f, 5.0f, 0.0f));
 	sphere_entity.add_tag_component<RigidBody>();
 	Mesh& sphere_mesh = sphere_entity.get_component<Mesh>();
 	sphere_entity.add_component<Collider>(sphere_mesh.posBuf);
@@ -108,7 +108,7 @@ void Simulation::set_scene() {
 	auto& cube_entity = create_entity("Cube");
 	cube_entity.add_component<Mesh>("cube.obj");
 	cube_entity.add_component<Material>(glm::vec3(0.9f, 0.3f, 0.1f));
-	cube_entity.add_component<Transform>(glm::vec3(0.0f, -1.0f, 0.0f));
+	cube_entity.add_component<Transform>(glm::vec3(5.0f, -1.0f, 0.0f));
 	cube_entity.add_tag_component<StaticBody>();
 	Mesh& cube_mesh = cube_entity.get_component<Mesh>();
 	cube_entity.add_component<Collider>(cube_mesh.posBuf);

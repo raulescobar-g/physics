@@ -236,6 +236,20 @@ void add_unique_edge(std::vector<std::pair<size_t, size_t>>& edges, const std::v
 	}
 }
 
+vec3 barycentric(vec3 p, vec3 a, vec3 b, vec3 c){
+    vec3 v0 = b - a, v1 = c - a, v2 = p - a;
+    float d00 = glm::dot(v0, v0);
+    float d01 = glm::dot(v0, v1);
+    float d11 = glm::dot(v1, v1);
+    float d20 = glm::dot(v2, v0);
+    float d21 = glm::dot(v2, v1);
+    float denom = d00 * d11 - d01 * d01;
+    float v = (d11 * d20 - d01 * d21) / denom;
+    float w = (d00 * d21 - d01 * d20) / denom;
+    float u = 1.0f - v - w;
+    return vec3(u,v,w);
+}
+
 Contact EPA(const Simplex& simplex, const vectors& verts1, const vectors& verts2){
     Contact contact;
     vectors polytope(simplex.begin(), simplex.end());
@@ -313,6 +327,9 @@ Contact EPA(const Simplex& simplex, const vectors& verts1, const vectors& verts2
             vec3 c = barycentric(p,v1,v2,v3);
             
             contact.p = p;
+            std::cout<<"v1 <"<<v1.x<<", "<<v1.y<<", "<<v1.z<<">\n";
+            std::cout<<"v2 <"<<v2.x<<", "<<v2.y<<", "<<v2.z<<">\n";
+            std::cout<<"v3 <"<<v3.x<<", "<<v3.y<<", "<<v3.z<<">\n";
             std::cout<<p.x<<", "<<p.y<<", "<<p.z<<std::endl;
         }
 	}
@@ -324,16 +341,3 @@ Contact EPA(const Simplex& simplex, const vectors& verts1, const vectors& verts2
 }
 
 
-vec3 barycentric(vec3 p, vec3 a, vec3 b, vec3 c){
-    vec3 v0 = b - a, v1 = c - a, v2 = p - a;
-    float d00 = glm::dot(v0, v0);
-    float d01 = glm::dot(v0, v1);
-    float d11 = glm::dot(v1, v1);
-    float d20 = glm::dot(v2, v0);
-    float d21 = glm::dot(v2, v1);
-    float denom = d00 * d11 - d01 * d01;
-    float v = (d11 * d20 - d01 * d21) / denom;
-    float w = (d00 * d21 - d01 * d20) / denom;
-    float u = 1.0f - v - w;
-    return vec3(u,v,w);
-}
